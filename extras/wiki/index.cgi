@@ -31,9 +31,10 @@
 #    59 Temple Place, Suite 330
 #    Boston, MA 02111-1307 USA
 
-BEGIN { use CGI::Carp qw(fatalsToBrowser);
-        use Text::Template;
-      }
+use lib qw(/home/troc/lib/local/share/perl);
+
+use CGI::Carp qw(fatalsToBrowser);
+use Text::Template;
 
 $| = 1;    # Do not buffer output
 undef $/;  # Read complete files
@@ -1093,9 +1094,52 @@ sub GetHeader {
                            DELIMITERS => [ '<%','%>' ],
                            SOURCE => "$Templates/header.html"
                          );
+    $data{bgcolor} = day2color((gmtime)[7]);
     $result = $template->fill_in(HASH => \%data);
 
     return $result;
+}
+
+sub day2color {
+  my $day = shift;
+
+  # Spring begins about 80 days into the year.  Since we start spring
+  # at hue 0, subtract 80 from the day of the year, then correct for
+  # negative days.  I think this will tolerate some sloppiness.
+
+  my $hue = $day - 80;
+  $hue += 365 if $hue < 0;
+
+  my $sat = 0.10;         # Low saturation for a tint of white.
+  my $val = 1.00;         # High value so it's not a tint of grey.
+
+  # Gray.
+  if ($hue < 0 or $sat == 0) {
+    my $gray = $val * 255;
+    return sprintf("#%2x%2x%2x", $gray, $gray, $gray);
+  }
+
+  # Cap the hue at 360, because we'll be converting day-of-year into
+  # hue.  Then, if it's 360, roll it around to zero.
+  $hue = 360 if $hue > 360;
+  $hue = 0 if $hue == 360;
+  $hue = $hue / 60;
+
+  my $j = int($hue);
+  my $f = $hue - $j;
+  my $p = 255 * ($val * (1 - $sat));
+  my $q = 255 * ($val * (1 - ($sat * $f)));
+  my $t = 255 * ($val * (1 - ($sat * (1 - $f))));
+
+  $val = $val * 255;
+
+  return sprintf("#%2x%2x%2x", $val, $t, $p) if $j == 0;
+  return sprintf("#%2x%2x%2x", $q, $val, $p) if $j == 1;
+  return sprintf("#%2x%2x%2x", $p, $val, $t) if $j == 2;
+  return sprintf("#%2x%2x%2x", $p, $q, $val) if $j == 3;
+  return sprintf("#%2x%2x%2x", $t, $p, $val) if $j == 4;
+  return sprintf("#%2x%2x%2x", $val, $p, $q) if $j == 5;
+  die "j should never equal $j\n";
 }
 
 sub GetFooterText {
@@ -1283,6 +1327,7 @@ sub CommonMarkup {
     s/\&lt;boxes\&gt;\s*\n?((.|\n)*?)\&lt;\/boxes\&gt;/&StoreBoxes($1)/ige;
     s/\&lt;tests\&gt;\s*\n?((.|\n)*?)\&lt;\/tests\&gt;/&StoreTests($1)/ige;
     s/\&lt;projects\&gt;\s*\n?((.|\n)*?)\&lt;\/projects\&gt;/&StoreProjects($1)/ige;
+    s/\&lt;outline\&gt;\s*\n?((.|\n)*?)\&lt;\/outline\&gt;/&StoreOutline($1)/ige;
     s/\&lt;components\&gt;\s*\n?((.|\n)*?)\&lt;\/components\&gt;/&StoreComponents($1)/ige;
 
     if ($HtmlTags) {
@@ -1468,6 +1513,11 @@ sub InterPageLink {
   $name = $id;
   ($site, $remotePage) = split(/:/, $id, 2);
   $url = &GetSiteUrl($site);
+  # The next line is an evil hack to prevent warnings
+  # in the error logs.  Do something better later. -><-
+  $url = "" unless defined $url;
+  $id = "" unless defined $id;
+  $punct = "" unless defined $punct;
   return ("", $id . $punct)  if ($url eq "");
   $remotePage =~ s/&amp;/&/g;  # Unquote common URL HTML
   $url .= $remotePage;
@@ -1744,6 +1794,51 @@ sub StoreProjects {
   return $html;
 }
 
+sub StoreOutline {
+  my $source = shift;
+
+  # The Wiki has munged $/, so we munge it back.  By the time we get
+  # here, the Wiki page has already been HTML quoted.  We need to
+  # unquote the HTML for the source code, or it may not look like
+  # source!
+  local $/ = "\n";
+  $source = UnquoteHtml($source);
+
+  my @outline;
+  my $level = 0;
+
+  while ($source =~ m/^(.*)$/mig) {
+    my $line = $1;
+    if ($line =~ s/^(\t+)//) {
+      $level = length $1;
+    }
+    else {
+      $level = 0;
+    }
+
+    # Pipe denotes text.
+    if ($line =~ s/^\| //) {
+      $line =~ s/^\s*$//;
+      push @outline, $line;
+      next;
+    }
+
+    # Empty pipes happen.
+    if ($line =~ s/^\|\s*$//) {
+      push @outline, "";
+      next;
+    }
+
+    my $stuff = "=" x ($level + 1);
+    push @outline, "$stuff $line $stuff\n";
+  }
+
+  if (@outline) {
+    return WikiLinesToHtml(join "\n", @outline);
+  }
+  return "<p>No outline.</p>";
+}
+
 sub StoreComponents {
   my $source = shift;
   my @components;
@@ -2011,6 +2106,8 @@ sub StoreUrl {
 
   ($link, $extra) = &UrlLink($name, $useImage);
   # Next line ensures no empty links are stored
+  $link = "" unless defined $link;
+  $extra = "" unless defined $extra;
   $link = &StoreRaw($link)  if ($link ne "");
   return $link . $extra;
 }
@@ -4363,6 +4460,7 @@ sub SubstituteTextLinks {
   $text =~ s/(<boxes>((.|\n)*?)<\/boxes>)/&StoreBoxes($1)/smige;
   $text =~ s/(<tests>((.|\n)*?)<\/tests>)/&StoreTests($1)/smige;
   $text =~ s/(<projects>((.|\n)*?)<\/projects>)/&StoreProjects($1)/smige;
+  $text =~ s/(<outline>((.|\n)*?)<\/outline>)/&StoreOutline($1)/smige;
   $text =~ s/(<components>((.|\n)*?)<\/components>)/&StoreComponents($1)/smige;
   $text =~ s/(<nowiki>((.|\n)*?)<\/nowiki>)/&StoreRaw($1)/ige;
 
