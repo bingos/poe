@@ -471,7 +471,7 @@ sub DoBrowseRequest {
   }
   $id = &GetParam("keywords", "");
   if ($id) {                    # Just script?PageName
-    &BrowsePage($id)  if &ValidIdOrDie($id);
+    &BrowsePage($id) if &ValidIdOrDie($id);
     return 1;
   }
   $action = lc(&GetParam("action", ""));
@@ -3841,9 +3841,9 @@ sub PrintPageList {
 
 sub DoLinks {
   print &GetHeader("",&QuoteHtml("Full Link List"), ""),
-        "<hr><pre>\n\n\n\n\n";  # Extra lines to get below the logo
+        "<hr>";  # Extra lines to get below the logo
   &PrintLinkList(&GetFullLinkList());
-    print "</pre>\n";
+    print "\n";
 
     my $template = Text::Template->new(TYPE => 'FILE', DELIMITERS => [ '<%','%>' ], SOURCE => "$Templates/footer.html");
     print $template->fill_in(HASH => {});
@@ -3882,8 +3882,20 @@ sub PrintLinkList {
     }
     if (!$names) {
       shift(@links);
+      print join(" ", @links), "<br />";
     }
-    print join(' ', @links), "\n";
+    else {
+      print "<dl><dt>", shift(@links), " links to:";
+      if (@links > 1) {
+        foreach my $lnk (@links) {
+          print "<dd>$lnk";
+        }
+      }
+      else {
+        print " ", join("; ", @links);
+      }
+      print "</dl>";
+    }
   }
 }
 
@@ -3937,7 +3949,18 @@ sub GetFullLinkList {
     if ($sort) {
       @links = sort(@links);
     }
+
+    # Fix relative links.
+    my $base_page = $name;
+    $base_page =~ s/\s/_/g;
+    $base_page =~ s/\/.*$//;
+
+    foreach my $fixup (@links) {
+    	$fixup =~ s/^\//$base_page\//;
+    }
+    
     unshift (@links, $name);
+
     if ($empty || ($#links > 0)) {  # If only one item, list is empty.
       push(@found, join(' ', @links));
     }
@@ -3960,6 +3983,7 @@ sub GetPageLinks {
   $text =~ s/<perl>(.|\n)*?\<\/perl>/ /ig;
   $text =~ s/<boxes>(.|\n)*?\<\/boxes>/ /ig;
   $text =~ s/<tests>(.|\n)*?\<\/tests>/ /ig;
+
   if ($interlink) {
     $text =~ s/''+/ /g;  # Quotes can adjacent to inter-site links
     $text =~ s/$InterLinkPattern/push(@links, &StripUrlPunct($1)), ' '/geo;
@@ -3974,8 +3998,8 @@ sub GetPageLinks {
   }
   if ($pagelink) {
     if ($FreeLinks) {
-      s/\[\[$FreeLinkPattern\|[^\]]+\]\]/push(@links,&SpaceToLine($1)),' '/geo;
-      s/\[\[$FreeLinkPattern\]\]/push(@links, &SpaceToLine($1)), ' '/geo;
+      $text =~ s/\[\[$FreeLinkPattern\|[^\]]+\]\]/push(@links,&SpaceToLine($1)),' '/geo;
+      $text =~ s/\[\[$FreeLinkPattern\]\]/push(@links, &SpaceToLine($1)), ' '/geo;
     }
     if ($WikiLinks) {
       $text =~ s/$LinkPattern/push(@links, &StripUrlPunct($1)), ' '/geo;
@@ -3988,7 +4012,7 @@ sub SpaceToLine {
   my ($id) = @_;
 
   $id =~ s/ /_/g;
-  return $id;
+  return lc $id;
 }
 
 sub DoPost {
