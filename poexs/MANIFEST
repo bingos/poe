@@ -1,5 +1,6 @@
 docs/layout.txt
 lib/POE/XS.pm
+LICENSE
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
