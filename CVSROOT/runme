@@ -1,2 +1,5 @@
-print "hello, world!\n";
+#!/usr/bin/perl
+$| = 1;
+print STDOUT "hello, world!\n";
 print STDERR "hello, bizarro world!\n";
+exit 0;
