@@ -1819,6 +1819,8 @@ sub StoreOutline {
   my @outline;
   my $level = 0;
 
+  my $last_color = "000000";
+
   while ($source =~ m/^(.*)$/mig) {
     my $line = $1;
 
@@ -1845,7 +1847,7 @@ sub StoreOutline {
 	}
 	else {
           my $stuff = ":" x ($level + 1);
-	  push @outline, "$stuff$line";
+	  push @outline, "$stuff<font color='#$last_color'>$line";
 	}
       }
       else {
@@ -1888,7 +1890,8 @@ sub StoreOutline {
         $color = "F08080";
       }
 
-      push @outline, "$stuff <font color='$color'>$line</font>";
+      $last_color = $color;
+      push @outline, "$stuff <font color='\#$color'>$line</font>";
       next;
     }
 
@@ -1904,6 +1907,10 @@ sub StoreOutline {
 	  $outline[$_] = $match;
 	}
       }
+    }
+
+    foreach (@outline) {
+      s/\s*$/<\/font>\n/ if /^:/;
     }
 
     if ($type eq "todo") {
