@@ -1,0 +1,19 @@
+this module is intended the POE::XS codebase as it grows from an idea
+into reality. The decision was made NOT to include the original POE perl
+modules here so they would not hamper us into thinking like perl in our
+c. there are two rules for this module:
+
+1) POE::XS *MUST* pass all tests in the main POE distribution and then
+some. in addition to being 100% perl-poe compliant, POE::XS must also
+pass XS specific tests.
+
+2) Do everything in C until perl has to know about what's going on.
+Internal structures, objects, whatever stay in c until perl asks
+specifically for the data. No gains will be made if we simply translate
+Perl one-to-one into XS.
+
+Beyond that, go to town. Have fun. Find cool ways to make POE faster and
+better.
+
+- sungo (10/12/2004)
+
