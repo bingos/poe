@@ -26,3 +26,4 @@
 #DEFAULT (echo ""; id; echo %{sVv}; date; cat) >> $CVSROOT/CVSROOT/commitlog
 #
 DEFAULT $CVSROOT/CVSROOT/syncmail %{sVv} "" poe-commits@lists.sourceforge.net
+ALL $CVSROOT/CVSROOT/ciabot_cvs.pl %{,,,s} $USER 
