@@ -1,7 +1,7 @@
 this module is intended the POE::XS codebase as it grows from an idea
 into reality. The decision was made NOT to include the original POE perl
 modules here so they would not hamper us into thinking like perl in our
-c. there are two rules for this module:
+c. there are some rules for this module:
 
 1) POE::XS *MUST* pass all tests in the main POE distribution and then
 some. in addition to being 100% perl-poe compliant, POE::XS must also
@@ -11,6 +11,12 @@ pass XS specific tests.
 Internal structures, objects, whatever stay in c until perl asks
 specifically for the data. No gains will be made if we simply translate
 Perl one-to-one into XS.
+
+3) Internal breakage is strongly encouraged ( do not break the public
+interface ) as it will let us flex our minds and come up with new ways
+to make POE faster. One example would be removing Session references
+from the Kernel, operating solely on IDs. So, if you have ideas, 
+send them in!
 
 Beyond that, go to town. Have fun. Find cool ways to make POE faster and
 better.
