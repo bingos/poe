@@ -3,56 +3,110 @@
 use warnings;
 use strict;
 
-srand(1);
-
-use Time::HiRes qw(time);
+$|=1;
 
 use POE::Queue;
 
-#create random sequence
-for my $int (1..100) {
-    my @seq;
-    for(1..5000) {
-	my $prio = int(rand($int));
-	push(@seq,[$prio, $_]);
+# The sequence length should be at least as many items as there are
+# priorities.
+
+sub MAX_PRIORITIES  () { 200 }
+sub SEQUENCE_LENGTH () { 5000 }
+
+die if SEQUENCE_LENGTH < MAX_PRIORITIES;
+
+# Fisher-Yates shuffle them, for extra yummy randomness.  Use srand
+# with the same seed each time so every @seq list represents different
+# lengths of the same "random" sequence.
+
+my @seq;
+sub build_list {
+  my $priorities = shift;
+  my $factor = SEQUENCE_LENGTH / $priorities;
+
+  @seq = map { [ int($_ / $factor), $_ ] } (0..(SEQUENCE_LENGTH-1));
+
+  { srand(1);
+    my $i = @seq;
+    while (--$i) {
+      my $j = int rand($i+1);
+      @seq[$i,$j] = @seq[$j,$i];
     }
+  }
+}
 
-    for my $impl (qw(Array PriorityHeap)) {
-	my $queue = POE::Queue->new($impl);
-	my $start_time = time();
-	my $i = 0;
-	for(@seq) {
-	    $queue->enqueue(@$_);
-	}
-	my $end_time = time();
-	my $time = $end_time - $start_time;
+# Run through the list for a number of benchmarks.  Each benchmark has
+# a different number of priorities.
 
-        print join("\t", $int, $impl, "enqueue 1", $time), "\n";
-	
-	$start_time = time();
-	while($queue->dequeue) { $i++ };
-	$end_time = time();
-	$time = $end_time - $start_time;
+for my $priorities (1..MAX_PRIORITIES) {
 
-        print join("\t", $int, $impl, "dequeue", $time), "\n";
+  build_list($priorities);
 
-        $start_time = time();
-	$i = 0;
-	for(@seq) {
-	    $queue->enqueue(@$_);
-	}
-	$end_time = time();
-        $time = $end_time - $start_time;
+  # One for each queue implementation.
+  for my $impl (qw(Array PriorityHeap)) {
 
-        print join("\t", $int, $impl, "enqueue 2", $time), "\n";
+    my $queue = POE::Queue->new($impl);
 
-	$i = 0;
-	$start_time = time();
-	while(scalar @{$queue->dequeue_next_priority}) { $i++ };
+    ### Plain enqueue/dequeue.
 
-	$end_time = time();
-	$time = $end_time - $start_time;
+    my ($begin_usr, $begin_sys) = (times)[0,1];
+    $queue->enqueue(@$_) for @seq;
+    my ($cease_usr, $cease_sys) = (times)[0,1];
 
-        print join("\t", $int, $impl, "dequeue np", $time), "\n";
-    }
+    my $elapsed = ($cease_usr - $begin_usr) + ($cease_sys - $begin_sys);
+
+    print( join( "\t",
+                 $priorities,
+                 $impl, "enqueue-plain",
+                 $elapsed/SEQUENCE_LENGTH, # Time per operation.
+               ),
+           "\n"
+         );
+
+    ($begin_usr, $begin_sys) = (times)[0,1];
+    1 while $queue->dequeue;
+    ($cease_usr, $cease_sys) = (times)[0,1];
+
+    $elapsed = ($cease_usr - $begin_usr) + ($cease_sys - $begin_sys);
+
+    print( join( "\t",
+                 $priorities,
+                 $impl, "dequeue-plain",
+                 $elapsed/SEQUENCE_LENGTH, # Time per operation.
+               ),
+           "\n"
+         );
+
+    ### Next-priority enqueue/dequeue.  The enqueue is actually just a
+    ### plain one, but we get to see the effect of internal data
+    ### structure freeing tradeoffs.
+
+    ($begin_usr, $begin_sys) = (times)[0,1];
+    $queue->enqueue(@$_) for @seq;
+    ($cease_usr, $cease_sys) = (times)[0,1];
+
+    $elapsed = ($cease_usr - $begin_usr) + ($cease_sys - $begin_sys);
+
+    print( join( "\t",
+                 $priorities,
+                 $impl, "enqueue-np",
+                 $elapsed/SEQUENCE_LENGTH, # Time per operation.
+               ),
+           "\n"
+         );
+
+    ($begin_usr, $begin_sys) = (times)[0,1];
+    1 while scalar(@{$queue->dequeue_next_priority});
+    ($cease_usr, $cease_sys) = (times)[0,1];
+
+    $elapsed = ($cease_usr - $begin_usr) + ($cease_sys - $begin_sys);
+
+    print( join( "\t",
+                 $priorities,
+                 $impl, "dequeue-np",
+                 $elapsed/SEQUENCE_LENGTH, # Time per operation.
+               ),
+           "\n"
+         );
+  }
 }
