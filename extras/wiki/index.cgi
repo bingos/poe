@@ -1327,7 +1327,9 @@ sub CommonMarkup {
     s/\&lt;boxes\&gt;\s*\n?((.|\n)*?)\&lt;\/boxes\&gt;/&StoreBoxes($1)/ige;
     s/\&lt;tests\&gt;\s*\n?((.|\n)*?)\&lt;\/tests\&gt;/&StoreTests($1)/ige;
     s/\&lt;projects\&gt;\s*\n?((.|\n)*?)\&lt;\/projects\&gt;/&StoreProjects($1)/ige;
-    s/\&lt;outline\&gt;\s*\n?((.|\n)*?)\&lt;\/outline\&gt;/&StoreOutline($1)/ige;
+    s/\&lt;outline\&gt;\s*\n?((.|\n)*?)\&lt;\/outline\&gt;/&StoreOutline($1,"bullets")/ige;
+    s/\&lt;outline-head\&gt;\s*\n?((.|\n)*?)\&lt;\/outline\&gt;/&StoreOutline($1,"headers")/ige;
+    s/\&lt;outline-todo\&gt;\s*\n?((.|\n)*?)\&lt;\/outline\&gt;/&StoreOutline($1,"todo")/ige;
     s/\&lt;components\&gt;\s*\n?((.|\n)*?)\&lt;\/components\&gt;/&StoreComponents($1)/ige;
 
     if ($HtmlTags) {
@@ -1410,7 +1412,7 @@ sub WikiLinesToHtml {
   $pageHtml = "";
   foreach (split(/\n/, $pageText)) {  # Process lines one-at-a-time
     $_ .= "\n";
-    if (s/^(\;+)([^:]+\:?)\:/<dt>$2<dd>/) {
+    if (s/^(\;+)([^:]+\:?)\:?/<dt>$2<dd>/) {
       $code = "DL";
       $depth = length $1;
     } elsif (s/^(\:+)/<dt><dd>/) {
@@ -1794,8 +1796,18 @@ sub StoreProjects {
   return $html;
 }
 
+my %otl_colors = (
+  "?" => "C0C0C0",
+  "-" => "008000",
+  "=" => "00C000",
+  "+" => "00FF00",
+  "*" => "000000",
+  "#" => "800000",
+);
+
 sub StoreOutline {
-  my $source = shift;
+  my ($source, $type) = @_;
+  $type = "headers" unless defined $type;
 
   # The Wiki has munged $/, so we munge it back.  By the time we get
   # here, the Wiki page has already been HTML quoted.  We need to
@@ -1809,6 +1821,8 @@ sub StoreOutline {
 
   while ($source =~ m/^(.*)$/mig) {
     my $line = $1;
+
+    # Headings.
     if ($line =~ s/^(\t+)//) {
       $level = length $1;
     }
@@ -1819,7 +1833,24 @@ sub StoreOutline {
     # Pipe denotes text.
     if ($line =~ s/^\| //) {
       $line =~ s/^\s*$//;
-      push @outline, $line;
+
+      if ($type eq "todo") {
+      	# Can't use : in todo lists, because it's a special wiki character.
+        $line =~ s/:/&#58;/g;
+
+	# This line continues a pipe, and it's not pre-formatted.
+	if (@outline and $outline[-1] =~ /^:/ and $line !~ /^\s/) {
+	  $outline[-1] =~ s/\s+$//;
+	  $outline[-1] .= " $line";
+	}
+	else {
+          my $stuff = ":" x ($level + 1);
+	  push @outline, "$stuff$line";
+	}
+      }
+      else {
+        push @outline, $line;
+      }
       next;
     }
 
@@ -1829,11 +1860,81 @@ sub StoreOutline {
       next;
     }
 
-    my $stuff = "=" x ($level + 1);
-    push @outline, "$stuff $line $stuff\n";
+    if ($type eq "headers") {
+      my $stuff = "=" x ($level + 1);
+      push @outline, "$stuff $line $stuff\n";
+      next;
+    }
+
+    if ($type eq "bullets") {
+      my $stuff = "*" x ($level + 1);
+      push @outline, "$stuff $line";
+      next;
+    }
+
+    if ($type eq "todo") {
+      my $stuff = ";" x ($level+1);
+      $line =~ s/^([\!-\/\:-\@\[-\`\{-\~])\s+/<tt>$1 <\/tt>/;
+      my $bullet = $1;
+
+      $line =~ s/\:/&#58;/g;
+
+      # TODO - Make this use style sheets!
+      my $color;
+      if (exists $otl_colors{$bullet}) {
+        $color = $otl_colors{$bullet};
+      }
+      else {
+        $color = "F08080";
+      }
+
+      push @outline, "$stuff <font color='$color'>$line</font>";
+      next;
+    }
+
+    push @outline, "?($type,$level) $line";
   }
 
   if (@outline) {
+    for (1..$#outline-1) {
+      next if $outline[$_] =~ /\S/;
+      if ($outline[$_-1] =~ /^(\s+)/) {
+      	my $match = $1;
+	if ($outline[$_+1] =~ /^$match/) {
+	  $outline[$_] = $match;
+	}
+      }
+    }
+
+    if ($type eq "todo") {
+      unshift(
+        @outline,
+	"  \? = Maybe.  An idea without a plan.",
+	"  \- = Planned.",
+	"  \= = Started.  Actively being worked on.",
+	"  \+ = Almost done.",
+	"  \* = Done.  Hooray!",
+	"  \# = Blocked.  Someone or something is in the way.",
+      );
+    }
+
+#    # Wrap indented blocks in <pre></pre>.
+#    my $index = @outline;
+#    my $outside_pre = 1;
+#    while ($index--) {
+#      if ($outline[$index] =~ /^ /) {
+#      	if ($outside_pre) {
+#	  splice(@outline, $index+1, 0, "</pre>");
+#	  $outside_pre = 0;
+#	}
+#        next;
+#      }
+#      unless ($outside_pre) {
+#        splice(@outline, $index, 0, "<pre>");
+#	$outside_pre = 1;
+#      }
+#    }
+
     return WikiLinesToHtml(join "\n", @outline);
   }
   return "<p>No outline.</p>";
@@ -4460,7 +4561,9 @@ sub SubstituteTextLinks {
   $text =~ s/(<boxes>((.|\n)*?)<\/boxes>)/&StoreBoxes($1)/smige;
   $text =~ s/(<tests>((.|\n)*?)<\/tests>)/&StoreTests($1)/smige;
   $text =~ s/(<projects>((.|\n)*?)<\/projects>)/&StoreProjects($1)/smige;
-  $text =~ s/(<outline>((.|\n)*?)<\/outline>)/&StoreOutline($1)/smige;
+  $text =~ s/(<outline>((.|\n)*?)<\/outline>)/&StoreOutline($1,"bullets")/smige;
+  $text =~ s/(<outline-head>((.|\n)*?)<\/outline>)/&StoreOutline($1,"headers")/smige;
+  $text =~ s/(<outline-todo>((.|\n)*?)<\/outline>)/&StoreOutline($1,"todo")/smige;
   $text =~ s/(<components>((.|\n)*?)<\/components>)/&StoreComponents($1)/smige;
   $text =~ s/(<nowiki>((.|\n)*?)<\/nowiki>)/&StoreRaw($1)/ige;
 
