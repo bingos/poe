@@ -1792,8 +1792,8 @@ sub StoreComponents {
             "<td width='1%'>" .
             "<font face='verdana' color=#000000 size=2><b>Author</b></font>" .
             "</td>" .
-            "<td width='1%'>" .
-            "<font face='verdana' color=#000000 size=2>&nbsp;<b>:</b>&nbsp;</font>" .
+            "<td width='1%' nowrap>" .
+            "<font face='verdana' color=#000000 size=2> <b>:</b> </font>" .
             "</td>" .
             "<td width='98%'>"
           );
@@ -1817,8 +1817,8 @@ sub StoreComponents {
             "<td width='1%'>" .
             "<font face='verdana' color=#000000 size=2><b>URL</b></font>" .
             "</td>" .
-            "<td width='1%'>" .
-            "<font face='verdana' color=#000000 size=2>&nbsp;<b>:</b>&nbsp;</font>" .
+            "<td width='1%' nowrap>" .
+            "<font face='verdana' color=#000000 size=2> <b>:</b> </font>" .
             "</td>" .
             "<td width='98%'>" .
             $url .
@@ -1835,8 +1835,8 @@ sub StoreComponents {
             "<b>Version</b>" .
             "</font>" .
             "</td>" .
-            "<td width='1%'>" .
-            "<font face='verdana' color=#000000 size=2>&nbsp;<b>:</b>&nbsp;</font>" .
+            "<td width='1%' nowrap>" .
+            "<font face='verdana' color=#000000 size=2> <b>:</b> </font>" .
             "</td>" .
             "<td width='98%'>" .
             "<font face='verdana' color=#000000 size=2>" .
