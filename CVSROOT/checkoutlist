@@ -13,4 +13,4 @@
 # comment lines begin with '#'
 readers
 syncmail
-ciabot_cvs.pl
+cia_cvs.pl
