@@ -1,4 +1,3 @@
-#!/usr/bin/perl
 $| = 1;
 print STDOUT "hello, world!\n";
 print STDERR "hello, bizarro world!\n";
