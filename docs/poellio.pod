@@ -1,0 +1,176 @@
+# $Header$
+
+=pod
+
+=head1 NAME
+
+poellio - POE low-level I/O
+
+=head1 DATE
+
+$Date$
+
+=head1 SYNOPSIS
+
+  my $kernel = $_[KERNEL];
+
+  $kernel->select_read( $handle, $read_event );
+  $kernel->select_write( $handle, $write_event );
+  $kernel->select_expedite( $handle, $expedite_event );
+
+  $kernel->select( $handle, $read_event, $write_event, $expedite_event );
+
+  $kernel->select_pause_write( $handle );
+  $kernel->select_resume_write( $handle );
+  $kernel->select_pause_read( $handle );
+  $kernel->select_resume_read( $handle );
+
+  sub file_event_handler {
+    my ($handle, $watcher_type) = @_[ARG0, ARG1];
+  }
+
+=head1 DESCRIPTION
+
+POE's low-level I/O functions are mainly used for implementing new I/O
+patterns or device interfaces.
+
+Generally speaking, once a new pattern or device interface has been
+implemented, it is made into a Wheel or Component so it won't need to
+be written again.
+
+Low-level I/O in POE is all about watching file handles and notifying
+programs when they are ready to be used.
+
+Creating device, file, socket, and other handles is beyond the scope
+of POE's low-level I/O library.
+
+POE's low-level I/O routines were named after select(2), which is what
+they were originally implemented in.  They still use select(2) by
+default, but they are not limited to it.
+
+Because of their names, POE's file handle watchers are sometimes known
+as "selects".
+
+Filehandle watchers will keep their parent sessions alive.
+
+When a file handle is first watched with a select function, it is made
+unbuffered and non-blocking.  Multiplexed I/O works better with file
+handles in this mode.
+
+[Need to verify this.  Can multiple sessions select the same handle?]
+It is possible for multiple sessions to watch the same filehandle, but
+only one session will be able to read from it.  Sessions that read too
+late will find that the data is already gone.  This can lead to
+strange problems when two or more sessions pull random chunks of data
+from a stream.
+
+The select(2) syscall can watch three aspects of a file: whether it's
+ready to be read from, whether it can be written to, and whether it
+has encountered an exception.
+
+Exceptions can be errors or out-of-band data.  Regardless of what they
+are, they become ready immediately whether or not there is data to be
+read ahead of them.
+
+The UNIX Sockets FAQ explains how to interact with non-blocking file
+handles using select(2).  POE has implemented wheels for the most
+common tasks.
+
+=head2 Selecting Files
+
+<b>Basic filehandle watchers.</b>
+
+Three basic functions exist to watch specific attributes of a file
+handle.  They all follow the same semantics.
+
+select_read() manages watchers that activate when files are ready to
+be read from.
+
+Likewise, select_write() and select_expedite() manage watchers that
+activate when files can be written to, or when they have exceptions to
+be handled.
+
+All three functions accept one or two parameters: A file handle
+reference, and the name of an event that indicates when the watcher
+has become active.  For example, this causes a "can_read" event to be
+generated whenever STDIN has input to be read:
+
+  $kernel->select_read( \*STDIN, "can_read_event" );
+
+Omitting the event name shuts down the watcher for that handle.
+
+  $kernel->select_read( \*STDIN );
+
+<b>Combined file handle watchers.</b>
+
+There is a fourth function that manipulates all three possible
+watchers for a given handle.
+
+  $kernel->select( $socket, "can_read", "can_write", "has_exception" );
+
+It is possible to turn off selects as well.  This selects a socket for
+reading and exceptions, but not for writing:
+
+  $kernel->select( $socket, "can_read", undef, "has_exception" );
+
+=head2 File Event Handlers
+
+File event handlers receive two parameters in addition to the common
+parameters that come with all POE events.
+
+C<ARG0> holds a copy of the file handle that has become active.
+Several file watchers can share the same event handler, and it will
+always be called with the appropriate handle.
+
+C<ARG1> holds a number identifying the type of watcher that generated
+the I/O event.  Zero means the handle is ready to be read from.  One
+means the handle is ready to be written to.  Two means there is some
+exception status to be handled.
+
+These numbers are easy to remember if you know these common rules:
+
+  fileno(STDIN)  == 0 ... select_read()
+  fileno(STDOUT) == 1 ... select_write()
+  fileno(STDERR) == 2 ... select_expedite()
+
+=head2 Flow Control
+
+Flow control is useful when data is being created faster than it's
+used.
+
+For example, flow control is used to pause input when it's coming too
+quickly.  When a program catches up with its input, it resumes that
+stream.
+
+Stopping and starting file handle watchers is relatively expensive
+compared to twiddling select(2) bits.  Much lighter functions exist to
+temporarily pause and resume watchers without the overhead of
+destroying and re-creating them.
+
+To pause and resume a file handle's read watcher:
+
+  $kernel->select_pause_read( $handle );
+  $kernel->select_resume_read( $handle );
+
+Likewise its write watcher:
+
+  $kernel->select_pause_write( $handle );
+  $kernel->select_resume_write( $handle );
+
+There are no flow control calls for watchers created by
+select_expedite().  These watchers are rarely used, and expedited
+statuses are often too important to ignore.
+
+=head1 TODO
+
+Link to other pages.
+
+Find a good URL for the UNIX Sockets FAQ.
+
+Copyright and other formalities.
+
+=head1 AUTHOR
+
+Rocco Caputo <rcaputo@cpan.org>.
+
+=cut

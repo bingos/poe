@@ -1,0 +1,108 @@
+=pod
+
+=head1 NAME
+
+poesimple - manifesto for the POE::Simple movement
+
+=head1 SYNOPSIS
+
+POE::Simple is part of a vast conspiracy to make POE ridiculously 
+simple for normal people to use. (This documentation is also part 
+of this movement.) This document contains the history of the 
+simplification movement and the manifesto for the POE::Simple 
+namespace.
+
+=head1 AUTHOR
+
+Ann Barcomb (kudra@domaintje.com)
+
+Matt Cashner (eek@eekek.org)
+
+=head1 DATE
+
+$Date$
+
+=head1 VERSION
+
+$Revision$
+
+=head1 COPYRIGHT AND LICENSE
+
+This text is copyright 2001 by Ann Barcomb and Matt Cashner. It is 
+licensed under the  BSD License.
+
+=head1 HISTORY
+
+The desire to make POE easier actually started with Rocco even before
+the first release of POE. At some point in 3Q 1998, Rocco sat down and
+coded ListenAccept and ReadWrite to simplify the socket interface.
+
+Ideas for simplifying POE began to filter through the then small POE
+user community early in 1999. The records here are unclear. There are
+questions about POE::Simple in relation to a TCP server that had been
+discussed by Artur Bergman, Rocco, and Simon Cozens. This appears to 
+have just been talk. Philp Gwyn also makes mention of needing a
+POE::Simple module for WWW searching. This also appears to have just
+been talk.
+
+In the summer of 2001 (just prior to YAPC::NA), Uri Guttman began 
+wooing sungo and Philip Gwyn with Stem and the promise of a "less 
+sucky POE".  Specifically, Stem promised to involve no coding. All 
+that was needed was a configuration file. While Stem did things in a 
+new way, neither sungo nor philip felt like abandoning POE quite yet. 
+However, Uri did have a point. POE could be made a lot more simple. 
+Philip began an attempt to make Stem configs work for POE. sungo 
+went another direction and began thrashing people about making POE 
+terribly simple to use. 
+
+Rocco and sungo tried out some of these ideas with the interface to
+POE::Component::MPG123 to the great glee of all in August 2001. sungo 
+followed this up with POE::Component::IKC::ReallyEasy in September 2001.
+
+On September 5, 2001, Rocco moved the POE website over to a Wiki. A wiki
+is an online collaboration tool that lets I<anyone> edit the content.
+This gave birth to the POE Cookbook and massive amounts of helper
+content. The web site thus became simple to use.
+
+The next project to spawn was the POEd (or POE Documentation project),
+in October of 2001. sungo started this in an attempt to make the POE
+documentation more digestable and usable by normal people.
+
+POE::Simple itself grew out of Ann Barcomb's and Jos Boumans' desire to
+make POE less complicated. Jos tells the story like this:
+
+I<"[Ann] mentioned a project to me and I proposed using POE. She said 
+[POE] was too complicated and wrote a wrapper. I gave this to [Rocco]
+and proposed he might use this for POE::Simple."> Thus the birth of the
+first POE::Simple module in October of 2001.
+
+=head1 THE POE::Simple MANIFESTO
+
+The modules in the POE::Simple namespace are intended for the casual
+user who has heard of the power of POE but finds the sample code, with
+its HEAP and ARGs, intimidating.  A limited subset of choices which can
+be summarized in a couple of calls will provide all the functionality
+she or he needs.
+
+Essentially providing a wrapper around the functionality of common
+programs, the modules limit the user's options through the use of
+defaults. Some of the defaults can be replaced by the
+user to expand beyond the default behavior, while others are--by
+the necessity of simplification--inflexible. 
+
+In this way POE syntax, with its vast options, is reduced to a 
+few basic choices and a number of assumptions about what the user
+wants to do.  Instead of the HEAP and ARGs, the user might be
+given access to a hash containing a few named keys specific to
+the module.  Using a POE::Simple module should be as uncomplicated
+as using a module like LWP::Simple, which uses the same principle
+of standard cases and abstraction.
+
+Modules in the POE::Simple namespace are intended to give casual 
+users a minimal and expected interface to POE at the cost of some
+of POE's capabilities.  Users who are aware of the limitations 
+imposed by POE::Simple modules should opt for the flexibility
+and power offered by POE's original interface.
+
+=cut
+

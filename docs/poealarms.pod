@@ -1,0 +1,185 @@
+# $Header$
+
+=pod
+
+=head1 NAME
+
+poealarms - POE alarms
+
+=head1 DATE
+
+$Date$
+
+=head1 SYNOPSIS
+
+  my $kernel = $_[KERNEL];
+
+  $kernel->alarm( $event => $time => \@optional_payload );
+  $kernel->alarm_add( $event => $time => \@optional_payload );
+  $kernel->alarm( $event );
+
+  $kernel->delay( $event => $duration => \@optional_payload );
+  $kernel->delay_add( $event => $duration => \@optional_payload );
+  $kernel->delay( $event );
+
+  $id = $kernel->alarm_set( $event => $time => \@optional_payload );
+  $id = $kernel->delay_set( $event => $duration => \@optional_payload );
+
+  $kernel->alarm_remove( $id );
+  $kernel->alarm_adjust( $id => $delta_seconds );
+  $kernel->alarm_remove_all();
+
+=head1 DESCRIPTION
+
+Alarms are almost exactly like events, but they're queued for delivery
+at some other time.
+
+Alarm payloads are values given to them at creation time.  When alarms
+are delivered, their C<ARG0> through C<$#_> parameters contain their
+payloads' values.
+
+For now sessions can only set alarms in themselves.  Alarms set in one
+session do not affect those set in another.
+
+The alarm methods are part of the Kernel because they are feature the
+Kernel provides for all types of sessions.  This is analogous to the
+alarm features that kernels provide.
+
+There are two major types of alarms: ones due at absolute times, and
+ones due after a certain amount of time has elapsed.
+
+Absolute alarms are called "alarms".  Relative ones are called
+"delays".  Absolute alarms are manipulated with the alarm() functions.
+Relative alarms are managed by the delay() functions.
+
+Pending alarms keep their sessions alive.
+
+There are two major alarm interfaces: anonymous alarms and identified
+ones.  Anonymous alarms are coarsely controlled by their event names.
+Identified alarms' unique identities are used to control them with
+more detail.
+
+Alarms in any given session share the same event namespace, regardless
+whether they're anonymous, identified, alarms or delays.
+
+It is possible to have multiple alarms for the same time.  Alarms for
+the same time will go off in the order in which they were set.
+
+=head2 Anonymous Alarms
+
+Anonymous alarms are set with alarm(), alarm_add(), delay(), and
+delay_add().
+
+The alarm() functions set absolute alarms.  These alarms go off at
+specified times.  Alarm clocks work like this.  "Tell me when it has
+become a certain time."
+
+The delay() functions set relative alarms.  Delays take durations
+instead of absolute times.  They go off when their durations have
+elapsed.  The real-world equivalent might be a cooking timer.  "Tell
+me when this much time has elapsed."
+
+The unadorned functions, alarm() and delay(), are one-shot alarms.
+Existing alarms with the same event name will be cleared before adding
+new ones.
+
+Set an alarm for ten seconds into the future.
+
+  $kernel->alarm( input_timeout => time() + 10 );
+
+Replace the alarm with another of the same event name, for fifteen
+seconds hence.  This clears the previous C<input_timeout> and sets a
+new one.
+
+  $kernel->delay( input_timeout => 15 );
+
+Every subsequent C<delay( input_timeout => 15 )> call will reset
+C<input_timeout> so it's fifteen seconds into the future.  This makes
+a handy timeout.
+
+The alarm functions that end with C<_add> allow programs to set
+additional alarms with the same event name.  They merely bypass the
+code that clears old alarms.
+
+This sets two C<input_timeout> alarms in addition to any that were
+already set.
+
+  $kernel->alarm_add( input_timeout => time() + 15 );
+  $kernel->delay_add( input_timeout => 10 );
+
+The alarm() and delay() functions can be used to remove alarms that
+have yet to be triggered.  Specify C<undef> (or just omit) everything
+but the event name.  Both of these will wipe out every alarm with the
+event name C<input_timeout>.
+
+  $kernel->alarm( "input_timeout" );
+  $kernel->delay( input_timeout => undef );
+
+It is possible to remove identified alarms with the C<alarm()> and
+C<delay()> functions.
+
+=head2 Identified Alarms
+
+Identified alarm functions begin with C<alarm> and C<delay> like the
+anonymous ones.
+
+They have event names just like anonymous alarms.  Each session has
+only one namespace for anonymous and identified alarms.  The
+namespaces for each session are separate.
+
+The functions that set identified alarms are alarm_set() and
+delay_set().  They take the same parameters as their anonymous
+counterparts, but they return unique values that identify those alarms
+for subsequent calls.
+
+Identified alarms don't collide.  This will set two alarms, both
+called "wake_up".  Each will have a different ID.
+
+  my $alarm_id_1 = $kernel->alarm_set( wake_up => $wake_up_time );
+  my $alarm_id_2 = $kernel->delay_set( wake_up => $in_a_while );
+
+It is easy to remove an alarm, provided that the program has saved its
+ID.  The alarm_remove() call will remove an identified alarm and
+return its event name, the time it was due, and any payload values
+given at its creation time.
+
+  my ($name, $time, @payload)
+  ($name, $time, @payload) = $kernel->alarm_remove( $alarm_id_1 );
+  ($name, $time, @payload) = $kernel->alarm_remove( $alarm_id_2 );
+
+The alarm_remove() call will work on IDs returned by both alarm_set()
+and delay_set().  There is no separate delay_remove() call.
+
+The alarm_adjust() call moves an alarm's time forward or backward by a
+number of seconds.  Identified alarms can be adjusted more efficiently
+than anonymous ones because alarm_adjust() has more intimate knowledge
+about them.
+
+  my $new_alarm_time = $kernel->alarm_adjust( $alarm_id, $delta_seconds );
+
+The alarm_adjust() call will work on IDs returned by both alarm_set()
+and delay_set().  There is no separate delay_adjust() call.
+
+=head2 Common Functions
+
+The alarm_remove_all() function removes all outstanding alarms from a
+session, regardless of how they were set.
+
+=head2 Alarm Event Handlers
+
+Alarm events don't include any parameters out of the ordinary.
+C<ARG0> and so on contain an alarm event's payload.
+
+=head1 TODO
+
+The names "anonymous" and "identified" aren't very evocative.
+
+Some of the language (like the payloads definition) is just icky.
+
+Copyright and other formalities.
+
+=head1 AUTHOR
+
+Rocco Caputo <rcaputo@cpan.org>.
+
+=cut

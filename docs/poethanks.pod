@@ -1,0 +1,131 @@
+# $Header$
+
+=head1 NAME
+
+poethanks - props to ma peeps
+
+=head1 DATE
+
+$Date$
+
+=head1 DESCRIPTION
+
+POE is the combined effort of more people than I can remember
+sometimes.  If I've forgotten someone, please let me know.
+
+=head2 Rocco Caputo
+
+Rocco Caputo is <troc+poe@netrus.net>.  POE is his brainchild.
+
+Except where otherwise noted, POE is Copyright 1998-2001 Rocco Caputo.
+All rights reserved.  POE is free software; you may redistribute it
+and/or modify it under the same terms as Perl itself.
+
+=head2 Arnar M. Hrafnkelsson
+
+Arnar is <addi@umich.edu>.  Addi tested POE and POE::Component::IRC on
+Windows, finding bugs and testing fixes.  He appears throughout the
+Changes file.
+
+=head2 Artur Bergman
+
+Artur Bergman is <artur@vogon-solutions.com>.  He contributed many
+hours' work into POE and quite a lot of ideas.  Years later, I decide
+he's right and actually implement them.
+
+Artur is the author of Filter::HTTPD and Filter::Reference, as well as
+bits and pieces throughout POE.  His intangible contributions include
+feedback, testing, conceptual planning and inspiration.  POE would
+never have come this far without his support.
+
+=head2 Douglas Couch
+
+Douglas Couch is <dscouch@purdue.edu>.  Douglas maintains POE for
+Windows, as well as the latest PPM and online documentation at
+<http://poe.sourceforge.net/>.  Rockin'!
+
+=head2 Philip Gwyn
+
+Philip Gwyn is <gwynp@artware.qc.ca>.  He extended the Wheels I/O
+abstraction to support hot-swappable filters, and he eventually
+convinced me of the utility of unique session and kernel IDs.  They
+rock, by the way, and I'm sorry I didn't apply his patches sooner.
+
+Philip also enhanced Filter::Reference to support different
+serialization methods.  His intangible contributions include the
+discovery and/or destruction of several bugs (see the Changes file)
+and a thorough code review around version 0.06.
+
+=head2 Dave Paris
+
+Dave Paris is <dparis@w3works.com>.  Dave tested and benchmarked POE
+around version 0.05, discovering some subtle (and not so subtle)
+timing problems.  The pre-forking server sample was his idea.
+Versions 0.06 and later should scale to higher loads because of his
+work.  His intangible contributions include lots of testing and
+feedback, much of which is tagged in the Changes file as a-mused.
+
+And I do mean *lots* of testing.  I go and announce a new development
+version, and he's, like, "All tests passed!" just a few minutes later.
+If that wasn't enough, he investigates any bugs that turn up, and
+often fixes them.  The man's scarily good.
+
+=head2 Dieter Pearcey
+
+Dieter Pearcey is <dieter@bullfrog.perlhacker.org>.  He goes by
+several Japanese nicknames.  Dieter patched Wheel::FollowTail to be
+more useful.  His Filter contributions include the basic Block filter,
+as well as Stackable, RecordBlock, Grep and Map.
+
+=head2 Robert Seifer
+
+Robert Seifer is <e-mail unknown>.  He rotates IRC nicknames
+regularly.
+
+Robert contributed entirely too much time, both his own and his
+computers, towards the detection and eradication of a memory
+corruption bug that POE tickled in earlier Perl versions.  In the end,
+his work produced a simple compile-time hack that worked around a
+problem relating to anonymous subs, scope and @{} processing.
+
+In short, he squashed a coredump with a reliable work-around.
+
+=head2 Dennis Taylor
+
+Dennis Taylor is <dennis@funkplanet.com>.  Dennis has been testing,
+debugging and patching bits here and there, such as Filter::Line which
+he improved by leaps in 0.1102.  He's also the author of
+POE::Component::IRC, which isn't included here but may be found at
+either L<http://www.infobot.org/dev/POE/>.
+
+=head2 Andrew Chen
+
+Andrew Chen is achen-poe@micropixel.com. Andrew contributes much 
+needed testing for Solaris on the SPARC and Windows 2000.  
+
+=head2 Matt Cashner
+
+Matt Cashner is eek@eekeek.org and aka C<sungo>.
+
+=head2 Richard Soderberg
+
+Richard Soderberg is poe@crystalflame.net and aka C<coral>. 
+
+=head2 Ann Barcomb
+
+Ann Barcomb is kudra@domaintje.com and aka C<kudra>. Ann contributed large 
+portions of poesimple and is a major driving force behind the 
+POE::Simple movement.
+
+=head2 Jos Boumans
+
+Jos Boumans is boumans@frg.eur.nl and aka C<Co-Kane>. Jos is a major 
+driving force behind the POE::Simple movement and is one of the POE 
+idea fairies. Jos is also always available on IRC for the wizards to 
+bounce ideas off of for a fresh perspective.
+
+=head2 Others?
+
+Please contact the author if you've been forgotten.
+
+

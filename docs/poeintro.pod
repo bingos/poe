@@ -1,0 +1,132 @@
+# $Header$
+
+=pod
+
+=head1 NAME
+
+perlintro - Introduction to POE
+
+=head1 AUTHOR
+
+Matt Cashner (eek@eekeek.org)
+
+=head1 DATE
+
+$Date$
+
+=head1 DISCUSSION
+
+=head2 What is POE?
+
+POE is a giant ball of kinetic energy and Computer Science buzzwords wrapped in a very strange and wonderful culture.  POE is a MUD engine gone awry into some sort of wacked out Disney land of event driven network niftiness. POE is that which keeps many minds from wandering the streets in search of branes to eat. Ok. None of that means anything to anyone. Maybe I should start on a much simpler level, eh?
+
+POE is:
+
+=over 4
+
+=item * a perl module
+
+Geesh, I started off REALLY simple didnt I?
+
+=item * written in Object Oriented Perl5
+
+Modules are good.  OOP is good.
+
+=item * compatible with perl 5.004_05 and up
+
+Will most likely run on most annoying web hosting services out there.
+
+=item * a pseudothreading application kernel
+
+Huh? The short version is that perl programs can pretend to be threaded on a non-threaded perl with POE.   POE is essentially a cooperative task scheduler at heart. Tasks are bundles of event handlers that look a lot like state machines. Several of these carefully constructed state machines can be running all at once.
+
+=item * an event loop
+
+POE's task scheduler is basically an event loop. (We'll be talking about event-driven systems here in a bit.)  Various event loops usually don't play nice with each other. POE, however, is designed to play nicely with such event loops as Event.pm, GTK, or Tk. 
+
+To quote the author of POE: I<POE's methods are designed from the user's standpoint. More people will be using them than writing them, so they should be a lot easier to use than implement. This should reduce the authors' workload over time, since they'll be using POE more than writing it.>
+
+=item * a network application framework
+
+POE lends itself quite well to network applications. Some folks would say this is what it's best at.
+
+=item * a singlethreaded application architecture
+
+POE can track state for procedural code. In single-tasking programs, there's no real requirement for states to return right away. State transitions act more like C<goto> here.
+
+=item * a framework for portable high-level components
+
+POE can be used as a framework for portable high-level components. Components may be event-driven, class hierarchies, or simple functions.  Many such components already exist and more are in development every day.
+
+=back
+
+=head2 Why use POE?
+
+=over 4
+
+=item * ease of use
+
+POE is very easy to use once one understands the concepts behind the system. Its modularity and flexibility allow for code and concept reuse.  This ease of use translates into ease of maintenence, a much sought after commodity.
+
+=item * portability
+
+POE runs almost everywhere on any decent perl. Perl 5.004_05 and up all run POE (tho earlier perl's may sacrifice some of newer features due to strangeness in that perl).  POE runs on NT, believe it or not. There are even rumors of it running on Mac OS Classic. MAC OS X is also supported. 
+
+=item * rapid development
+
+Thanks to POE's ease of use, the concept-to-code cycle is very rapid.  To make things even better, Richard Soderberg (coral) and Rocco Caputo (dngor) have been working on a system by which flow charts can be run as POE programs. Isn't that scary?  The other really scary thing is how often pseudocode works well as a first pass POE program.  Tiny states can be written to encapsulate algorithms and then tied together with a Session. 
+
+=item * shininess
+
+POE won Best New Module at TPC3 in 1999. Mark Jason Dominus called POE I<the last really interesting Perl development> (speaking about the Perl5 universe).  While not quite strewn across billboards, POE suffers from a huge and fanatical underground following, almost a revolution some days.
+
+=back 
+
+=head2 General Concepts
+
+POE is a completely new way of looking at perl for most folks. It destroys the minds of the feeble and empowers the minds of the great.  There is a sense in which POE is like learning a new programming language.  Say goodbye to Kansas, Dorothy, because here we go...
+
+=head3 Events 
+
+POE is event driven. Wait. What does that mean? To draw a somewhat relevant analogy... For most geeks, life is event driven.  Most of the day is spent waiting for something interesting to happen.
+
+Ponder a friday evening. We're talking about a geek here so not much is going on. Just bad american tv. (is there any other kind of american tv?) Delivery Pizza arrives.  This causes the geek to scramble for cash, pay the delivery man, and then hungrily devour pizza. When the pizza is gone, the geek resumes watching tv.
+
+The arrival of the pizza is an B<event>. This causes a Pizza Arrival B<state>, the collection of actions including paying for the pizza and eating it. When the Pizza Arrival state ends, the geek goes back to a passive wait state, waiting for the next event in his/her life.
+
+POE spends most of its time waiting.  Waiting for what? Well, for any number of things. Incoming socket connections, console input, and internal timers can all trigger events.  POE::Wheel's also trigger events from various input sources.
+
+=head3 States 
+
+States are a collection of actions which will be "fired" when an event happens.  These can be customized for the given parameters of the event. For instance, it is not always appropriate to scream and run when the Pizza Delivery Person speaks. The Pizza Delivery Person may be an attractive member of the Appropriate Gender. In light of these parameters, an appropriate interface can be defined.
+
+POE states are plain ol' perl. Standard perl rules apply. Anything that can be in perl, can be done in a state. 
+
+=head3 Sessions 
+
+A Session is a collection of event handlers that looks a lot like state machine. Several sessions can be running at one time. Each session is its own unique machine, though communication is possible between sessions.
+
+=head3 The Heap 
+
+Each session has a data storehouse called the C<heap>. The heap can be any data structure required. It is unique per session and persistent across events.  This is a great place to store session data like tickets, user information, or whatever the program needs.
+
+
+
+=head2 POErl (Syntax) 
+
+Ok, now for the nitty gritty. This is a very high level introduction to POE syntax. Each of the following sections is tied to another man page which provides the super indepth view. 
+
+=head3 Session Creation (poesess)
+
+    POE::Session->create( 
+        inline_states => {
+            _start => \&start,
+            ping   => \&ping,
+            _stop  => \&stop,
+        },
+    );
+ 
+
+
+=cut
+

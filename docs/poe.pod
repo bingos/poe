@@ -1,0 +1,266 @@
+# $Header$
+
+=pod
+
+=head1 NAME
+
+POE - multitasking and networking framework for perl
+
+
+=head1 DATE
+
+$Date$
+
+=head1 SYNOPSIS
+
+For ease of access, the POE manual has been broken up into several sections:
+
+=head2 Introductions and Tutorials
+
+=over 4 
+
+=item L<poe> 
+
+POE overview (this section)
+
+=item L<poeintro> 
+
+POE general concepts and introduction
+
+=back
+
+=head2 POE Syntax and Usage
+
+=over 4
+
+=item L<poesyntax> 
+
+POE syntax and general usage
+
+=item L<poestyle> 
+
+POE coding style thoughts and suggestions
+
+=back
+
+=head2 Guts and Twiddly Bits
+
+=over 4
+
+=item L<poealarms>
+
+POE alarms and their usage
+
+=item L<poellio>
+
+POE Low-Level I/O
+
+=item L<poesess>
+
+POE sessions and their innerworkings
+
+=item L<poesigs>
+
+POE signals and their usage
+
+=back
+
+=head2 Design and Theory
+
+=over 4
+
+=item L<poedesign>       
+
+POE Design and other grand paintings
+
+=back
+
+=head2 WWW Links
+
+=over 4
+
+=item L<http://poe.perl.org>
+
+The POE Website
+
+=back
+
+=head1 DESCRIPTION
+
+POE is an acronym of "Persistent Object Environment".  It originally
+was designed as the core of a persistent object server and runtime
+environment, but it's evolved into a general purpose application (as
+opposed to system) kernel.
+
+POE's core contains two types of module.  First there's POE::Kernel;
+this is the main resource manager and event loop.  Second are the
+sessions or state machines which implement the actual threads.  The
+sessions are POE::Session (not quite a proper state machine) and
+POE::NFA.
+
+The remainder of this distribution consists of convenience and helper
+modules, most of which aren't required to begin using POE.
+
+
+
+=head1 SAMPLE PROGRAMS
+
+This distribution contains 28 example and/or tutorial programs in the
+archive's ./samples directory.  Be advised, however, that many of them
+date from the early days of POE's development and may not exhibit the
+best coding practices.
+
+The author's always looking for new example ideas.
+
+
+
+
+=head1 COMPATIBILITY ISSUES
+
+POE has tested favorably on as many Perl versions as the author can
+find or harass people into trying.  This includes Linux, FreeBSD, OS/2,
+Solaris, and at least one unspecified version of Windows.  As far as 
+anyone can tell, nobody ever has tried it on any version of MacOS.
+
+POE has been tested with Perl versions as far back as 5.004_03 and as
+recent as 5.6.1.  The CPAN testers are a wonderful bunch of people who
+have dedicated resources to running new modules on a variety of
+platforms.  The latest POE tests are visible at
+L<http://testers.cpan.org/search?request=dist&dist=POE>.  Thanks,
+people!
+
+Please let the author know of breakage or success that hasn't been
+covered already.  Thanks!
+
+=head2 Specific issues
+
+=over 4
+
+=item Various Unices
+
+No known problems.
+
+=item OS/2
+
+No known problems.  POE has no OS/2 tester starting with version
+0.1206.
+
+=item Windows
+
+Windows support lapsed between version 0.0806 and 0.0903 when Sean
+Puckett ran out of time to pursue it and Douglas Couch found time for
+it.  Douglas now maintains POE's Windows code, as well as the
+ActiveState PPM and HTML documentation available at
+L<http://poe.sourceforge.net/>.
+
+Newer versions of ActiveState Perl for Windows have broken
+non-blocking socket() calls.  See these URLs:
+
+L<http://bugs.activestate.com/cgi-bin/bugzilla/show_bug.cgi?id=14518>
+
+L<http://bugs.activestate.com/cgi-bin/bugzilla/show_bug.cgi?id=14560>
+
+=item MacOS
+
+I have heard rumors from MacOS users that POE might work with MacPerl,
+but so far nobody has stepped forward with an actual status report.
+I'd be happy to hear either way.
+
+=back
+
+
+
+=head1 SYSTEM REQUIREMENTS
+
+POE's module recommendations have been codified as part of the `make
+test' procedure.  Any missing dependencies will be reported on, and
+POE will refuse to test itself if critical modules aren't found.
+
+Some of POE's sample programs use fork().  They won't work wherever
+fork() isn't available; sorry.
+
+POE relies heavily on constants in the POSIX module.  Some of the
+constants aren't defined by ActiveState Perl for Windows, but POE
+defines them itself to work around this.
+
+POE::Preprocessor needs Filter::Util::Call version 1.18 or later for
+source filtering.  Everything else relies on POE::Preprocessor.
+
+Some of POE's sample programs require a recent IO bundle, but you get
+that for free with recent versions of Perl.
+
+Filter::Reference needs Storable or FreezeThaw or some other data
+freezer/thawer package.  Storable tends to be the fastest, and so it's
+preferred.  Compress::Zlib is needed if you want to compress frozen
+data.
+
+B<Important Filter::Reference note:> If you're using Filter::Reference
+to pass data to another machine, make sure every machine has the same
+versions of the same libraries.  Subtle differences, even in different
+versions of modules like Storable, can cause mysterious errors when
+data is reconstituted at the receiving end.  Whe all else fails,
+upgrade to the latest versions.
+
+Filter::HTTPD uses a small world of modules including HTTP::Status;
+HTTP::Request; HTTP::Date and URI::URL.  The httpd.perl sample program
+uses Filter::HTTPD, which uses all that other stuff.
+
+Wheel::Curses requires the Curses module, which in turn requires some
+sort of curses library.
+
+
+
+
+=head1 SUPPORT RESOURCES
+
+These are Internet resources where you may find more information about
+POE.
+
+
+=head2 The POE Mailing List
+
+POE has a mailing list at perl.org.  You can receive subscription
+information by sending e-mail:
+
+  To: poe-help@perl.org
+  Subject: (anything will do)
+
+  The message body is ignored.
+
+All forms of feedback are welcome.
+
+=head2 The POE Web Site
+
+POE has a web site where the latest development snapshot, along with
+the Changes file and other stuff may be found: L<http://poe.perl.org/>
+
+=head2 SourceForge
+
+POE's development has moved to SourceForge as an experiment in project
+management.  You can reach POE's project summary page at
+L<http://sourceforge.net/projects/poe/>
+
+
+=head1 TODO
+
+Aliases, and any other subsystem/API that's missing.
+
+Wheels.
+
+Components?
+
+=head1 LICENSE
+
+Except where otherwise noted, POE is Copyright 1998-2001 Rocco Caputo. 
+All rights reserved.  POE is free software; you may redistribute it 
+and/or modify it under the same terms as Perl itself.
+
+This documentation is Copyright (C) 2001 by Matt Cashner and is
+available under the MIT License.
+
+A host of people have contributed to POE over the years. Their 
+contributions remain under their copyright. Please see 
+L<the "poethanks" manpage|poethanks> for a list of contributors and their copyrights.
+
+=cut
+

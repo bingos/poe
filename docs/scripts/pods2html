@@ -1,0 +1,304 @@
+#!/usr/bin/perl
+
+use strict;
+use File::Find;
+use File::Path;
+use Getopt::Long;
+use HTML::Stream;
+use IO::File;
+
+my %Options = (bgcolor => '#fffff8',
+	       text    => '#000000',
+	       hr      => 1,
+	       toc     => 1 );
+
+my $ok = GetOptions(\%Options, "base:s", 
+		               "index:s", 
+		               "bgcolor:s", 
+		               "text:s",
+		               "toc!", 
+		               "hr:i");
+$ok or die "Bad command line options\n";
+
+my %Index;
+my($PodDir, $HTMLDir) = @ARGV;
+$HTMLDir or die "pods2html PodDir HTMLDir\n";
+
+mkpath($HTMLDir);
+
+$PodDir  =~ s( /$ )()x;
+$HTMLDir =~ s( /$ )()x;
+
+my $HTML_inode;
+
+umask 0022;
+find({ wanted   => \&Translate,
+       no_chdir => 1          }, $PodDir);
+Index() if $Options{index};
+
+
+sub Translate
+{
+    -d and &Translate_Dir;
+    -f and &Translate_POD;
+}
+
+
+sub Translate_Dir
+{
+    my $dir = $File::Find::name;
+
+    if ( (stat $dir)[1] == (stat $HTMLDir)[1] )
+    {
+	$File::Find::prune = 1;
+	return;
+    }
+
+    $dir =~ s/^$PodDir/$HTMLDir/o;
+    -d $dir or mkdir $dir, 0755 or die "Can't mkdir $dir: $!\n";
+    print "$File::Find::name\n";
+}
+
+
+sub Translate_POD
+{
+    m( \.(pm|pod)$ )x or return;
+    my $source = $File::Find::name;
+
+    Hidden($source) and return;
+    print "$source\n";
+
+    my $dest = $source;
+    $dest =~ s/^$PodDir/$HTMLDir/;
+    $dest =~ s( \.\w+$ )(.html)x;
+
+    my $depth = Depth($source);
+
+    my $pod = $source;
+    $pod =~ s(^$PodDir/)();
+    $pod =~ s( \.\w+$ )()x;
+    $Index{$pod} = 1;
+
+    my $html = new Pod::Tree::HTML::POE $source, $dest;
+    $html->set_options(%Options, depth => $depth);
+    $html->translate;
+}
+
+sub Hidden
+{
+    my $source = shift;
+       $source =~ m(\.pm$) or return 0;
+       $source =~ s(\.pm$)(.pod);
+    -e $source
+}
+
+sub Depth 
+{
+    my $path  = shift;
+       $path  =~ s(^$PodDir/)();
+    my @path  = split m#/#, $path;
+       @path - 1
+}
+
+sub Index
+{
+    my $index   = "$HTMLDir/index.html";
+    my $fh      = new IO::File ">$index";
+    defined $fh or die "Can't open $index: $!\n";
+
+    my $stream  = new HTML::Stream $fh;
+
+    my $title   = $Options{index};
+    my $bgcolor = $Options{bgcolor};
+    my $text 	= $Options{text};
+
+    $stream-> HTML->HEAD;
+    $stream-> TITLE->text($title)->_TITLE;
+    $stream->tag('link',rel=>'stylesheet', type=>'text/css',href=>'/default.css');
+    $stream->_HEAD
+	   -> BODY(BGCOLOR => $bgcolor, TEXT => $text);
+    $stream->H1->t($title)->_H1;
+
+    Emit_Entries($stream);
+
+    $stream->_BODY->_HTML;
+}
+
+
+sub Emit_Entries
+{
+    my $stream = shift;
+
+    $stream->UL;
+
+    for my $entry (sort keys %Index)
+    {
+	$stream->LI
+	       ->A(HREF => "$entry.html")
+	       ->t($entry)
+	       ->_A
+	       ->_LI;
+    }
+
+    $stream->_UL;
+}
+
+=head1 NAME
+
+pods2html - translate a tree of PODs to HTML
+
+
+=head1 SYNOPSIS
+
+C<pods2html> 
+[C<--base> I<url>]
+[C<--index> I<title>]
+[C<-->[C<no>]C<toc>] [C<--hr> I<level>] 
+[C<--bgcolor> I<#rrggbb>] [C<--text> I<#rrggbb>]
+I<PODdir> I<HTMLdir>
+
+
+=head1 DESCRIPTION
+
+C<pod2html> finds all the F<.pod> and F<.pm> files in the 
+directory tree rooted at I<PODdir>.
+It translates each POD to HTML,
+and writes it to a parallel directory tree rooted at I<HTMLdir>
+
+It makes the HTML files world-readable.
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item C<--base> I<url>
+
+Specifies a base URL for HTML links.
+
+
+=item C<--index> I<title>
+
+Writes an index of all the HTML files to I<HTMLDir>F</index.html>.
+I<title> is used as the title of the index page.
+
+
+=item C<-->[C<no>]C<toc>
+
+Includes or omits the table of contents.
+Default is to include the TOC.
+
+
+=item C<--hr> I<level>
+
+Controls the profusion of horizontal lines in the output, as follows:
+
+    level   horizontal lines
+    0 	    none
+    1 	    between TOC and body
+    2 	    after each =head1
+    3 	    after each =head1 and =head2
+
+Default is level 1.
+
+
+=item C<--bgcolor> I<#rrggbb>
+
+Set the background color to I<#rrggbb>.
+Default is off-white.
+
+
+=item C<--text> I<#rrggbb>
+
+Set the text color to I<#rrggbb>.
+Default is black.
+
+=back
+
+
+=head1 REQUIRES
+
+L<C<Pod::Tree::HTML>>, 
+L<C<HTML::Stream>>
+
+
+=head1 SEE ALSO
+
+L<C<pod2html>>, 
+L<C<Pod::Tree::HTML>>
+
+
+=head1 AUTHOR
+
+Steven McDougall, <swmcd@world.std.com>
+
+
+=head1 COPYRIGHT
+
+Copyright 1999-2001 by Steven McDougall.  This program is free software;
+you can redistribute it and/or modify it under the same terms as Perl.
+
+=cut
+
+package Pod::Tree::HTML::POE;
+use base qw(Pod::Tree::HTML);
+use warnings;
+use strict;
+
+sub translate                                                                          
+{                                                                                      
+    my $html    = shift;                                                               
+    my $stream  = $html->{stream};                                                     
+    my $bgcolor = $html->{options}{bgcolor};                                           
+    my $text    = $html->{options}{text};                                              
+    my $title   = $html->_make_title;                                                  
+    my $base    = $html->{options}{base};                                              
+                                                                                       
+    $stream->HTML->HEAD;                                                               
+                                                                                       
+    defined $title and $stream->TITLE->text($title)->_TITLE;                           
+    defined $base  and $stream->BASE(href => $base);                                   
+    
+    $stream->tag('link',rel=>'stylesheet', type=>'text/css',href=>'/perldoc.css');
+
+    $stream->_HEAD                                                                     
+       ->BODY(BGCOLOR => $bgcolor, TEXT => $text);                                     
+                                                                                       
+    $html->_emit_toc;                                                                  
+    $html->_emit_body;                                                                 
+                                                                                       
+    $stream->nl                                                                        
+       ->_BODY                                                                         
+       ->_HTML                                                                         
+}
+
+sub _emit_command
+{
+    my %HeadTag = ( head1 => { 'open' => 'H1', 'close' => '_H1', level => 1 },
+                    head2 => { 'open' => 'H2', 'close' => '_H2', level => 2 }, 
+                  );
+
+    my($html, $node) = @_;
+    my $stream   = $html->{stream};
+    my $command  = $node->get_command;
+    my $head_tag = $HeadTag{$command};      
+    $head_tag or return; 
+    my $anchor   = $html->_make_anchor($node);
+
+    $html->_emit_hr($head_tag->{level});
+
+    $stream->A(NAME => $anchor);
+    $stream->_A;
+
+    my $tag;
+    $tag = $head_tag->{'open'};
+    $stream->$tag();
+    $html->_emit_children($node);
+    $stream->A(HREF=>"#top");
+    $stream->IMG(SRC=>"http://www.perldoc.com/i/uparrow.gif", ALT => 'toc', BORDER=>'0');
+    $stream->_A;
+
+    $tag = $head_tag->{'close'};
+    $stream->$tag();
+}
+
