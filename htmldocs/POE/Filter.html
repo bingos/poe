@@ -1,0 +1,132 @@
+<HTML>
+<HEAD>
+<TITLE><A HREF=/docs/POE/Filter.html>POE::Filter</A> - a protocol abstraction</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="100%"><TR><TD WIDTH="30">
+<img HSPACE="0" VSPACE="0" border="0" src="/images/L-circle.jpg" align="left" alt="" width="30" height="60">
+</TD><TD ALIGN="Center" WIDTH=100% BGCOLOR="#000000">
+<STRONG><font color="#FFFFFF" size="5"><A HREF=/docs/POE/Filter.html>POE::Filter</A> - a protocol abstraction</font></STRONG></TD><TD>
+<img HSPACE="0" VSPACE="0" border="0" src="/images/R-circle.jpg" align="right" alt="" width="30" height="60">
+</TD></TR></TABLE>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#description">DESCRIPTION</A></LI>
+	<LI><A HREF="#public filter methods">PUBLIC FILTER METHODS</A></LI>
+	<LI><A HREF="#see also">SEE ALSO</A></LI>
+	<LI><A HREF="#bugs">BUGS</A></LI>
+	<LI><A HREF="#authors & copyrights">AUTHORS &amp; COPYRIGHTS</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="name">NAME</A></H1>
+<P><A HREF=/docs/POE/Filter.html>POE::Filter</A> - a protocol abstraction</P>
+<P>
+<HR>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<PRE>
+  $filter = POE::Filter::Something-&gt;new();
+  $arrayref_of_logical_chunks =
+    $filter-&gt;get($arrayref_of_raw_chunks_from_driver);
+  $arrayref_of_streamable_chunks_for_driver =
+     $filter-&gt;put($arrayref_of_logical_chunks);</PRE>
+<P>
+<HR>
+<H1><A NAME="description">DESCRIPTION</A></H1>
+<P>Filters implement generic interfaces to low- and medium-level
+protocols.  Wheels use them to communicate in basic ways without
+needing to know the details for doing so.  For example, the Line
+filter does everything needed to translate incoming streams into lines
+and outgoing lines into streams.  Sessions can get on with the
+business of using lines.</P>
+<P>
+<HR>
+<H1><A NAME="public filter methods">PUBLIC FILTER METHODS</A></H1>
+<P>These methods are the generic Filter interface, and every filter must
+implement them.  Specific filters may have additional methods.</P>
+<DL>
+<DT><STRONG><A NAME="item_new">new</A></STRONG><BR>
+<DD>
+<A HREF="#item_new"><CODE>new()</CODE></A> creates and initializes a new filter.  Specific filters may have
+different constructor parameters.
+<P></P>
+<DT><STRONG><A NAME="item_get">get ARRAYREF</A></STRONG><BR>
+<DD>
+<A HREF="#item_get"><CODE>get()</CODE></A> translates raw data into records as defined by the filter.  It
+accepts a reference to an array of raw data chunks, and it returns a
+reference to an array of complete records.
+<P>Drivers' <A HREF="#item_get"><CODE>get()</CODE></A> methods return ARRAYREFs of raw data chunks suitable
+for passing to filters' <A HREF="#item_put"><CODE>put()</CODE></A> methods.</P>
+<PRE>
+  my $records = $filter-&gt;get( $driver-&gt;get( $filehandle ) );</PRE>
+<P>There needn't be a 1:1 ratio between raw data and logical records.
+Some filters buffer partial records until they are completed in
+subsequent <A HREF="#item_get"><CODE>get()</CODE></A> calls.</P>
+<P><A HREF="#item_get"><CODE>get()</CODE></A> returns a reference to an empty array if the stream doesn't
+include enough information to complete a record.</P>
+<P></P>
+<DT><STRONG><A NAME="item_put">put ARRAYREF</A></STRONG><BR>
+<DD>
+<A HREF="#item_put"><CODE>put()</CODE></A> serializes records into a form that may be written to a file or
+sent across a socket.  It accepts a reference to a list of records,
+and it returns a reference to a list of stream chunks.
+<P>The list reference it returns may be passed directly to a driver.</P>
+<PRE>
+  $driver-&gt;put( $filter-&gt;put( \@records ) );</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_get_pending">get_pending</A></STRONG><BR>
+<DD>
+<A HREF="#item_get_pending"><CODE>get_pending()</CODE></A> returns a filter's partial input buffer, clearing it in
+the process.  The ReadWrite wheel uses this for hot-swapping filters;
+it gives partial input buffers to the next filter.
+<P>Filters don't have output buffers.  They accept complete records and
+immediately pass the serialized information to a driver's queue.</P>
+<P>It can be tricky keeping both ends of a socket synchronized during a
+filter change.  It's recommended that some sort of handshake protocol
+be used to make sure both ends are using the same type of filter at
+the same time.</P>
+<P>TCP also tries to combine small packets for efficiency's sake.  In a
+streaming protocol, a filter change could be embedded between two data
+chunks.</P>
+<PRE>
+  type-1 data
+  type-1 data
+  change to type-2 filter
+  type-2 data
+  type-2 data</PRE>
+<P>A driver can easily read that as a single chunk.  It will be passed to
+a filter as a single chunk, and that filter (type-1 in the example)
+will break the chunk into pieces.  The type-2 data will be interpreted
+as type-1 because the ReadWrite wheel hasn't had a chance to switch
+filters yet.</P>
+<P>Adding a handshake protocol means the sender will wait until a filter
+change has been acknowledged before going ahead and sending data in
+the new format.</P>
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="see also">SEE ALSO</A></H1>
+<P>The <A HREF=/docs/POE.html#see also>SEE ALSO section in <EM>POE</EM></A> contains a table of contents covering
+the entire POE distribution.</P>
+<P>
+<HR>
+<H1><A NAME="bugs">BUGS</A></H1>
+<P>In theory, filters should be interchangeable.  In practice, stream and
+block protocols tend to be incompatible.</P>
+<P>
+<HR>
+<H1><A NAME="authors & copyrights">AUTHORS &amp; COPYRIGHTS</A></H1>
+<P>Please <A HREF=/docs/POE.html>see <EM>POE</EM></A> for more information about authors and contributors.</P>
+
+</BODY>
+
+</HTML>

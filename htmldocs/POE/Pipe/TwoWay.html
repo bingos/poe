@@ -1,0 +1,81 @@
+<HTML>
+<HEAD>
+<TITLE><A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A> - portable two-way pipe creation</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="100%"><TR><TD WIDTH="30">
+<img HSPACE="0" VSPACE="0" border="0" src="/images/L-circle.jpg" align="left" alt="" width="30" height="60">
+</TD><TD ALIGN="Center" WIDTH=100% BGCOLOR="#000000">
+<STRONG><font color="#FFFFFF" size="5"><A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A> - portable two-way pipe creation</font></STRONG></TD><TD>
+<img HSPACE="0" VSPACE="0" border="0" src="/images/R-circle.jpg" align="right" alt="" width="30" height="60">
+</TD></TR></TABLE>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#description">DESCRIPTION</A></LI>
+	<LI><A HREF="#debugging">DEBUGGING</A></LI>
+	<LI><A HREF="#bugs">BUGS</A></LI>
+	<LI><A HREF="#author & copyright">AUTHOR &amp; COPYRIGHT</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="name">NAME</A></H1>
+<P><A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A> - portable two-way pipe creation (works without POE)</P>
+<P>
+<HR>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<PRE>
+  my ($a_read, $a_write, $b_read, $b_write) = <A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A>-&gt;new();
+  die &quot;couldn't create a pipe: $!&quot; unless defined $a_read;</PRE>
+<P>
+<HR>
+<H1><A NAME="description">DESCRIPTION</A></H1>
+<P><A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A> makes unbuffered two-way pipes or it dies trying.
+It can be more frugal with filehandles than two OneWay pipes when
+<CODE>socketpair()</CODE> is available.</P>
+<P>Pipes are troublesome beasts because the different pipe creation
+methods have spotty support from one system to another.  Some systems
+have <CODE>pipe()</CODE>, others have <CODE>socketfactory()</CODE>, and still others have
+neither.</P>
+<P><A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A> tries different ways to make a pipe in the hope that
+one of them will succeed on any given platform.  It tries them in
+<CODE>socketpair()</CODE> -&gt; <CODE>pipe()</CODE> -&gt; IO::Socket::INET order.  If <CODE>socketpair()</CODE> is
+available, the two-way pipe will use half as many filehandles as two
+one-way pipes.</P>
+<P>So anyway, the syntax is pretty easy:</P>
+<PRE>
+  my ($a_read, $a_write, $b_read, $b_write) = <A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A>-&gt;new();
+  die &quot;couldn't create a pipe: $!&quot; unless defined $a_read;</PRE>
+<P>And now you have an unbuffered pipe with two read/write sides, A and
+B.  Writing to <CODE>$a_write</CODE> passes data to <CODE>$b_read</CODE>, and writing to
+<CODE>$b_write</CODE> passes data to <CODE>$a_read</CODE>.</P>
+<P>
+<HR>
+<H1><A NAME="debugging">DEBUGGING</A></H1>
+<P>It's possible to force <A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A> to use one of its underlying
+pipe methods.  This was implemented for exercising each method in
+tests, but it's possibly useful for others.</P>
+<P>However, forcing TwoWay's pipe method isn't documented because it's
+cheezy and likely to change.  Use it at your own risk.</P>
+<P>
+<HR>
+<H1><A NAME="bugs">BUGS</A></H1>
+<P>The INET domain socket method may block for up to 1s if it fails.</P>
+<P>
+<HR>
+<H1><A NAME="author & copyright">AUTHOR &amp; COPYRIGHT</A></H1>
+<P><A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A> is copyright 2000 by Rocco Caputo.  All rights
+reserved.  <A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A> is free software; you may redistribute it
+and/or modify it under the same terms as Perl itself.</P>
+
+</BODY>
+
+</HTML>

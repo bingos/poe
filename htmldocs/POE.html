@@ -1,0 +1,731 @@
+<HTML>
+<HEAD>
+<TITLE>POE - perl application kernel with event driven threads</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="100%"><TR><TD WIDTH="30">
+<img HSPACE="0" VSPACE="0" border="0" src="/images/L-circle.jpg" align="left" alt="" width="30" height="60">
+</TD><TD ALIGN="Center" WIDTH=100% BGCOLOR="#000000">
+<STRONG><font color="#FFFFFF" size="5">POE - perl application kernel with event driven threads</font></STRONG></TD><TD>
+<img HSPACE="0" VSPACE="0" border="0" src="/images/R-circle.jpg" align="right" alt="" width="30" height="60">
+</TD></TR></TABLE>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#description">DESCRIPTION</A></LI>
+	<LI><A HREF="#using poe">USING POE</A></LI>
+	<LI><A HREF="#writing poe programs">WRITING POE PROGRAMS</A></LI>
+	<LI><A HREF="#poe's architecture">POE's ARCHITECTURE</A></LI>
+	<LI><A HREF="#poe components">POE COMPONENTS</A></LI>
+	<LI><A HREF="#support modules">Support Modules</A></LI>
+	<LI><A HREF="#sample programs">SAMPLE PROGRAMS</A></LI>
+	<LI><A HREF="#compatibility issues">COMPATIBILITY ISSUES</A></LI>
+	<LI><A HREF="#system requirements">SYSTEM REQUIREMENTS</A></LI>
+	<LI><A HREF="#support resources">SUPPORT RESOURCES</A></LI>
+	<LI><A HREF="#see also">SEE ALSO</A></LI>
+	<UL>
+
+		<LI><A HREF="#events layer">Events Layer</A></LI>
+		<LI><A HREF="#i/o layer">I/O Layer</A></LI>
+		<LI><A HREF="#standard components">Standard Components</A></LI>
+		<LI><A HREF="#supporting cast">Supporting Cast</A></LI>
+	</UL>
+
+	<LI><A HREF="#bugs">BUGS</A></LI>
+	<LI><A HREF="#authors & copyright">AUTHORS &amp; COPYRIGHT</A></LI>
+	<UL>
+
+		<LI><A HREF="#author">Author</A></LI>
+	</UL>
+
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="name">NAME</A></H1>
+<P>POE - perl application kernel with event driven threads</P>
+<P>
+<HR>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<PRE>
+  #!/usr/bin/perl -w
+  use strict;</PRE>
+<PRE>
+  # Use POE!
+  use POE;</PRE>
+<PRE>
+  # Every session must handle a special event, _start.  It's used to
+  # tell the session that it has been successfully instantiated.
+  # $_[KERNEL] is a reference to the program's global <A HREF=/docs/POE/Kernel.html>POE::Kernel</A>
+  # instance; $_[HEAP] is the session's local storage; $_[SESSION] is
+  # a reference to the session itself.</PRE>
+<PRE>
+  sub handler_start {
+    my ($kernel, $heap, $session) = @_[KERNEL, HEAP, SESSION];
+    print &quot;Session &quot;, $session-&gt;ID, &quot; has started.\n&quot;;
+    $heap-&gt;{count} = 0;
+    $kernel-&gt;yield('increment');
+  }</PRE>
+<PRE>
+  sub handler_increment {
+    my ($kernel, $heap, $session) = @_[KERNEL, HEAP, SESSION];
+    print &quot;Session &quot;, $session-&gt;ID, &quot; counted to &quot;, ++$heap-&gt;{count}, &quot;.\n&quot;;
+    $kernel-&gt;yield('increment') if $heap-&gt;{count} &lt; 10;
+  }</PRE>
+<PRE>
+  # The _stop event is special but, handling it is not required.  It's
+  # used to tell a session that it's about to be destroyed.  _stop
+  # handlers perform shutdown things like resource cleanup or
+  # termination logging.</PRE>
+<PRE>
+  sub handler_stop {
+    print &quot;Session &quot;, $_[SESSION]-&gt;ID, &quot; has stopped.\n&quot;;
+  }</PRE>
+<PRE>
+  # Start ten sessions.  <A HREF=/docs/POE/Session.html>POE::Session</A> constructors map event names to
+  # the code that handles them.</PRE>
+<PRE>
+  for (0..9) {
+    <A HREF=/docs/POE/Session.html>POE::Session</A>-&gt;create(
+      inline_states =&gt;
+        { _start    =&gt; \&amp;handler_start,
+          increment =&gt; \&amp;handler_increment,
+          _stop     =&gt; \&amp;handler_stop,
+        }
+    );
+  }</PRE>
+<PRE>
+  # Start the kernel, which will run as long as there are sessions.</PRE>
+<PRE>
+  $poe_kernel-&gt;run();
+  exit;</PRE>
+<P>
+<HR>
+<H1><A NAME="description">DESCRIPTION</A></H1>
+<P>Please see the SEE ALSO section for conceptual summary of all POE's
+documentation.</P>
+<P>POE is an acronym of ``Persistent Object Environment''.  It originally
+was designed as the core of a persistent object server and runtime
+environment, but it's evolved into a general purpose application (as
+opposed to system) kernel.</P>
+<P>POE's core contains two types of module.  First there's <A HREF=/docs/POE/Kernel.html>POE::Kernel</A>;
+this is the main resource manager and event loop.  Second are the
+sessions or state machines which implement the actual threads.  The
+sessions are <A HREF=/docs/POE/Session.html>POE::Session</A> (not quite a proper state machine) and
+<A HREF=/docs/POE/NFA.html>POE::NFA</A>.</P>
+<P>The remainder of this distribution consists of convenience and helper
+modules, most of which aren't required to begin using POE.</P>
+<P>
+<HR>
+<H1><A NAME="using poe">USING POE</A></H1>
+<P>Using POE can be pretty tedious.  Consider this example, which pulls
+in the necessary modules for a line-based TCP server:</P>
+<PRE>
+  use <A HREF=/docs/POE/Kernel.html>POE::Kernel</A>;
+  use <A HREF=/docs/POE/Session.html>POE::Session</A>;
+  use <A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A>;
+  use <A HREF=/docs/POE/Wheel/ReadWrite.html>POE::Wheel::ReadWrite</A>;
+  use <A HREF=/docs/POE/Filter/Line.html>POE::Filter::Line</A>;
+  use <A HREF=/docs/POE/Driver/SysRW.html>POE::Driver::SysRW</A>;</PRE>
+<P>The POE.pm module fixes some of this tedium.  When POE.pm is used
+directly, it automatically includes <A HREF=/docs/POE/Kernel.html>POE::Kernel</A> and <A HREF=/docs/POE/Session.html>POE::Session</A>.  It
+also includes each of the <CODE>use</CODE> statement's parameters, first
+prepending ``POE::'' to them.  An example is in order:</P>
+<P>This <CODE>use</CODE> statement is equivalent to the previous six.</P>
+<PRE>
+  use POE qw( Wheel::SocketFactory Wheel::ReadWrite
+              Filter::Line Driver::SysRW
+            );</PRE>
+<P>
+<HR>
+<H1><A NAME="writing poe programs">WRITING POE PROGRAMS</A></H1>
+<P>Basic POE programs have four parts.</P>
+<DL>
+<DT><STRONG><A NAME="item_Preliminary_program_setup">Preliminary program setup</A></STRONG><BR>
+<DD>
+This is the usual overhead for writing a Perl program: a shebang line,
+perhaps some <CODE>use</CODE> statements to import things, and maybe some global
+variables or configuration constants.  It's all pretty standard stuff.
+<PRE>
+  #!/usr/bin/perl -w
+  use strict;
+  use POE;</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_Define_the_program%27s_event_handlers_or_states">Define the program's event handlers or states</A></STRONG><BR>
+<DD>
+Declare functions which will handle events here.  This is deceptive,
+since the functions can be declared anywhere, including as anonymous
+subroutines in a session constructor call.
+<PRE>
+  sub handler_start {
+    ...
+  }</PRE>
+<PRE>
+  sub handler_increment {
+    ...
+  }</PRE>
+<PRE>
+  sub handler_stop {
+    ...
+  }</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_Start_initial_sessions_or_machines">Start initial sessions or machines</A></STRONG><BR>
+<DD>
+The Kernel only runs as long as there is something for it to do.  It's
+main loop returns after the last session has stopped.  The obvious
+corolary to this rule is that the main loop will return immediately if
+nothing is set up when it's called.
+<PRE>
+  for (0..9) {
+    <A HREF=/docs/POE/Session.html>POE::Session</A>-&gt;create(
+      inline_states =&gt;
+        { _start    =&gt; \&amp;handler_start,
+          increment =&gt; \&amp;handler_increment,
+          _stop     =&gt; \&amp;handler_stop,
+        }
+    );
+  }</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_Start_the_kernel%27s_main_loop">Start the kernel's main loop</A></STRONG><BR>
+<DD>
+_start handlers are invoked immediately when sessions are
+instantiated.  Everything else happens because the kernel makes it so,
+and the kernel can't do that 'til it's started.  Most programs exit
+afterwards since the kernel only returns after everything is done.
+<PRE>
+  $poe_kernel-&gt;run();
+  exit 0;</PRE>
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="poe's architecture">POE's ARCHITECTURE</A></H1>
+<P>POE is built in separate layers.  Each layer requires the ones beneath
+it, but no low-level layer requires a higher one.</P>
+<DL>
+<DT><STRONG><A NAME="item_Events_layer">Events layer</A></STRONG><BR>
+<DD>
+The events layer consists of an event dispatcher, <A HREF=/docs/POE/Kernel.html>POE::Kernel</A>, and the
+sessions or state machines it runs: <A HREF=/docs/POE/Session.html>POE::Session</A> (a generic event
+driven thread) and <A HREF=/docs/POE/NFA.html>POE::NFA</A> (an event driven nondeterministic finite
+automaton).
+<P></P>
+<DT><STRONG><A NAME="item_One_or_more_I%2FO_layers">One or more I/O layers</A></STRONG><BR>
+<DD>
+I/O layers are built upon the event layer, and that allows them to
+coexist in the same program.  POE only includes one I/O layer: Wheels.
+``Wheels'' is a whimsical name for interlocking cogs that together make
+things go.  They're also reinvented a lot, and this is no exception.
+<P>POE comes with four wheels.</P>
+<DL>
+<DT><STRONG><A NAME="item_POE%3A%3AWheel%3A%3AFollowTail"><A HREF=/docs/POE/Wheel/FollowTail.html>POE::Wheel::FollowTail</A></A></STRONG><BR>
+<DD>
+FollowTail follows the tail of an ever-growing file.  It's useful for
+watching logs and things of that nature.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AWheel%3A%3AListenAccept"><A HREF=/docs/POE/Wheel/ListenAccept.html>POE::Wheel::ListenAccept</A></A></STRONG><BR>
+<DD>
+ListenAccept performs ye olde non-blocking socket listen and accept.
+It's great for programs that can't use SocketFactory and instead must
+listen and accept connections from sockets created elsewhere.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AWheel%3A%3AReadLine"><A HREF=/docs/POE/Wheel/ReadLine.html>POE::Wheel::ReadLine</A></A></STRONG><BR>
+<DD>
+The ReadLine wheel accepts console input as lines only.  It handles
+many of the common shell command editing keystrokes, making it pretty
+easy to input things.  It's event driven, unlike Term::ReadLine, and
+it cooperates nicely with the rest of POE.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AWheel%3A%3AReadWrite"><A HREF=/docs/POE/Wheel/ReadWrite.html>POE::Wheel::ReadWrite</A></A></STRONG><BR>
+<DD>
+ReadWrite is the star of POE's default I/O layer.  It performs
+buffered, flow-controlled I/O on non-blocking, unbuffered filehandles.
+It almost acts like a Unix stream which can't stack protocol layers,
+but that may change.
+<P>ReadWrite uses two other classes to do its dirty work: Driver and
+Filter.  Drivers do the actual work of reading and writing
+filehandles.  Filters translate between raw streams and cooked chunks
+of tasty dada.</P>
+<P>D comes before F, so Drivers go first.</P>
+<DL>
+<DT><STRONG><A NAME="item_POE%3A%3ADriver%3A%3ASysRW"><A HREF=/docs/POE/Driver/SysRW.html>POE::Driver::SysRW</A></A></STRONG><BR>
+<DD>
+Nobody has needed another driver yet, so this is the only one
+currently available.  It performs sysread and syswrite in a generic
+way so that ReadWrite can use it and future drivers interchangeably.
+<P>Other drivers will use the same interface, should they ever be
+written.</P>
+<P></P></DL>
+<P>Filters next.  There are a few.</P>
+<DL>
+<DT><STRONG><A NAME="item_POE%3A%3AFilter%3A%3ABlock"><A HREF=/docs/POE/Filter/Block.html>POE::Filter::Block</A></A></STRONG><BR>
+<DD>
+This filter parses input as fixed-length blocks.  On the output side,
+it merely passes data through unscathed.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AFilter%3A%3AHTTPD"><A HREF=/docs/POE/Filter/HTTPD.html>POE::Filter::HTTPD</A></A></STRONG><BR>
+<DD>
+The HTTPD filter parses input as HTTP requests and translates them
+into HTTP::Request objects.  On the output side, it takes
+HTTP::Response objects and turns them into something suitable to be
+sent to a web client/user-agent.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AFilter%3A%3ALine"><A HREF=/docs/POE/Filter/Line.html>POE::Filter::Line</A></A></STRONG><BR>
+<DD>
+The Line filter parses incoming streams into lines and turns outgoing
+lines into streams.  It used to be very basic, but recent improvements
+have added interesting features like newline autodetection.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AFilter%3A%3AReference"><A HREF=/docs/POE/Filter/Reference.html>POE::Filter::Reference</A></A></STRONG><BR>
+<DD>
+The Reference filter is used to sond Perl structures between POE
+programs or between POE and other Perl programs.  On the input side,
+frozen data (via Storable, FreezeThaw, or some other data mechanism)
+is thawed into Perl data structures.  On output, references given to
+the filter are frozen.  Data may also be compressed on request if
+Compress::Zlib is installed.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AFilter%3A%3AStream"><A HREF=/docs/POE/Filter/Stream.html>POE::Filter::Stream</A></A></STRONG><BR>
+<DD>
+The stream filter does nothing.  It merely passes data through without
+any change.
+<P></P></DL>
+<DT><STRONG><A NAME="item_POE%3A%3AWheel%3A%3ASocketFactory"><A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A></A></STRONG><BR>
+<DD>
+SocketFactory creates all manner of connectionless and connected
+network sockets.  It also listens on TCP server sockets, only
+returning accepted client connections as they arrive.
+<P></P></DL>
+</DL>
+<P>
+<HR>
+<H1><A NAME="poe components">POE COMPONENTS</A></H1>
+<P>Components consist of one or more sessions or state machines that
+encapsulate a very high level procedure.  For example,
+POE::Component::IRC (not included) performs nearly all the functions
+of a full-featured IRC client.  POE::Component::UserBase (not
+included) is a user authentication and data persistence servlet.</P>
+<P>Components tend to be highly reusable core libraries that handle
+tedious tasks, freeing programmers to focus on more interesting
+things.  This should be true for any library, though.</P>
+<DL>
+<DT><STRONG><A NAME="item_POE%3A%3AComponent%3A%3AServer%3A%3ATCP"><A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A></A></STRONG><BR>
+<DD>
+This is a thin wrapper around <A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A>.  It provides
+the core of a very simple TCP server and is customized by giving it
+coderefs to execute when connections arrive or errors occur.
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="support modules">Support Modules</A></H1>
+<P>Finally, there are some files which POE uses but aren't required
+elsewhere.  These include <A HREF=/docs/POE/Preprocessor.html>POE::Preprocessor</A> and the base classes:
+<A HREF=/docs/POE/Component.html>POE::Component</A>, <A HREF=/docs/POE/Driver.html>POE::Driver</A>, <A HREF=/docs/POE/Filter.html>POE::Filter</A> and <A HREF=/docs/POE/Wheel.html>POE::Wheel</A>.  There also
+are some development files in the lib directory.</P>
+<DL>
+<DT><STRONG><A NAME="item_POE%3A%3APreprocessor"><A HREF=/docs/POE/Preprocessor.html>POE::Preprocessor</A></A></STRONG><BR>
+<DD>
+This is a macro preprocessor.  It also implements plain and enumerated
+constants.  <A HREF=/docs/POE/Kernel.html>POE::Kernel</A> uses it to inline smaller functions and make
+the source generally more readable.  There seem to be two drawbacks:
+First, code is more difficult to examine in perl's debugger since it
+doesn't necessarily look like the original source.  Second, programs
+take longer to start up because every source line must first pass
+through a perl filter.  The compile-time penalty is negligible in
+long-running programs, and the runtime boost from fewer function calls
+can make up for it over time.
+<P><A HREF=/docs/POE/Component.html>POE::Component</A>, <A HREF=/docs/POE/Driver.html>POE::Driver</A> and <A HREF=/docs/POE/Filter.html>POE::Filter</A> exist to document their
+classes of objects.  <A HREF=/docs/POE/Wheel.html>POE::Wheel</A> contains some base functions for
+tracking unique wheel IDs.</P>
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="sample programs">SAMPLE PROGRAMS</A></H1>
+<P>The sample programs are scheduled for removal from this distribution
+in version 0.1301.  They will be moved to a separate distribution and
+documented better.</P>
+<P>This distribution contains 28 example and/or tutorial programs in the
+archive's ./samples directory.  Be advised, however, that many of them
+date from the early days of POE's development and may not exhibit the
+best coding practices.</P>
+<P>The author's always looking for new example ideas.</P>
+<P>
+<HR>
+<H1><A NAME="compatibility issues">COMPATIBILITY ISSUES</A></H1>
+<P>POE has tested favorably on as many Perl versions as the author can
+find or harass people into trying.  This includes Linux, FreeBSD, OS/2
+and at least one unspecified version of Windows.  As far as anyone can
+tell, nobody ever has tried it on any version of MacOS.</P>
+<P>POE has been tested with Perl versions as far back as 5.004_03 and as
+recent as 5.6.0.  The CPAN testers are a wonderful bunch of people who
+have dedicated resources to running new modules on a variety of
+platforms.  The latest POE tests are visible at
+&lt;http://testers.cpan.org/search?request=dist&amp;dist=POE&gt;.  Thanks,
+people!</P>
+<P>Please let the author know of breakage or success that hasn't been
+covered already.  Thanks!</P>
+<P>Specific issues:</P>
+<DL>
+<DT><STRONG><A NAME="item_Various_Unices">Various Unices</A></STRONG><BR>
+<DD>
+No known problems.
+<P></P>
+<DT><STRONG><A NAME="item_OS%2F2">OS/2</A></STRONG><BR>
+<DD>
+No known problems.  POE has no OS/2 tester starting with version
+0.1206.
+<P></P>
+<DT><STRONG><A NAME="item_Windows">Windows</A></STRONG><BR>
+<DD>
+Windows support lapsed in version 0.0806 when I took out some code I
+wasn't sure was working.  Well, it was working, and removing it broke
+POE on Windows.
+<P>Douglas Couch reported that POE worked with the latest stable
+ActivePerl prior to version 5.6.0-RC1.  He said that RC1 supported
+fork and other Unix compatibilities, but it still seemed like beta
+level code.  This seems to have changed with the release of 5.6.0-GA.</P>
+<P>Douglas writes:</P>
+<PRE>
+  I've done some preliminary testing of the 0.0903 version and the
+  re-addition of the Win32 support seems to be a success.  I'll do
+  some more intensive testing in the next few days to make sure
+  nothing else is broken that I haven't missed.</PRE>
+<P>And later:</P>
+<PRE>
+  After testing out my own program and having no problems with the
+  newest version (with Win32 support), I thought I'd test out some of
+  the samples and relay my results.</PRE>
+<PRE>
+  filterchange.perl and preforkedserver.perl both contain fork
+  commands which are still unsupported by ActiveState's port of Perl,
+  so they were both unsuccessful.  (this was anticipated for anything
+  containing fork)</PRE>
+<PRE>
+  ref-type.perl, refsender.perl, thrash.perl and wheels2.perl all ran
+  up against the same unsupported POSIX macro.  According to the error
+  message, my vendor's POSIX doesn't support the macro EINPROGRESS.</PRE>
+<PRE>
+  [EINPROGRESS is fixed as of version 0.1003; see the Changes]</PRE>
+<PRE>
+  Other than those particular problems all of the other sample scripts
+  ran fine.</PRE>
+<P>As far as I know, POE works okay on Windows these days.</P>
+<P></P>
+<DT><STRONG><A NAME="item_MacOS">MacOS</A></STRONG><BR>
+<DD>
+I have heard rumors from MacOS users that POE might work with MacPerl,
+but so far nobody has stepped forward with an actual status report.
+I'd be happy to hear either way.
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="system requirements">SYSTEM REQUIREMENTS</A></H1>
+<P>POE's module recommendations have been codified as part of the `make
+test' procedure.  Any missing dependencies will be reported on, and
+POE will refuse to test itself if critical modules aren't found.</P>
+<P>Some of POE's sample programs use fork().  They won't work wherever
+<CODE>fork()</CODE> isn't available; sorry.</P>
+<P>POE relies heavily on constants in the POSIX module.  Some of the
+constants aren't defined by ActiveState Perl for Windows, but POE
+defines them itself to work around this.</P>
+<P><A HREF=/docs/POE/Preprocessor.html>POE::Preprocessor</A> needs Filter::Util::Call version 1.18 or later for
+source filtering.  Everything else relies on <A HREF=/docs/POE/Preprocessor.html>POE::Preprocessor</A>.</P>
+<P>Some of POE's sample programs require a recent IO bundle, but you get
+that for free with recent versions of Perl.</P>
+<P>Filter::Reference needs Storable or FreezeThaw or some other data
+freezer/thawer package.  Storable tends to be the fastest, and so it's
+preferred.  Compress::Zlib is needed if you want to compress frozen
+data.</P>
+<P><STRONG>Important Filter::Reference note:</STRONG> If you're using Filter::Reference
+to pass data to another machine, make sure every machine has the same
+versions of the same libraries.  Subtle differences, even in different
+versions of modules like Storable, can cause mysterious errors when
+data is reconstituted at the receiving end.  Whe all else fails,
+upgrade to the latest versions.</P>
+<P>Filter::HTTPD uses a small world of modules including HTTP::Status;
+HTTP::Request; HTTP::Date and URI::URL.  The httpd.perl sample program
+uses Filter::HTTPD, which uses all that other stuff.</P>
+<P>
+<HR>
+<H1><A NAME="support resources">SUPPORT RESOURCES</A></H1>
+<P>These are Internet resources where you may find more information about
+POE.</P>
+<DL>
+<DT><STRONG><A NAME="item_The_POE_Mailing_List">The POE Mailing List</A></STRONG><BR>
+<DD>
+POE has a mailing list at perl.org.  You can receive subscription
+information by sending e-mail:
+<PRE>
+  To: poe-help@perl.org
+  Subject: (anything will do)</PRE>
+<PRE>
+  The message body is ignored.</PRE>
+<P>All forms of feedback are welcome.</P>
+<P></P>
+<DT><STRONG><A NAME="item_The_POE_Web_Site">The POE Web Site</A></STRONG><BR>
+<DD>
+POE has a web site where the latest development snapshot, along with
+the Changes file and other stuff may be found: &lt;http://poe.perl.org/&gt;
+<P></P>
+<DT><STRONG><A NAME="item_SourceForge">SourceForge</A></STRONG><BR>
+<DD>
+POE's development has moved to SourceForge as an experiment in project
+management.  You can reach POE's project summary page at
+&lt;http://sourceforge.net/projects/poe/&gt;.
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="see also">SEE ALSO</A></H1>
+<P>This is a summary of POE's modules and the things documented in each.</P>
+<P>
+<H2><A NAME="events layer">Events Layer</A></H2>
+<P>These are POE's core modules.</P>
+<DL>
+<DT><STRONG><A NAME="item_POE">POE (this document)</A></STRONG><BR>
+<DD>
+The <A HREF=/docs/POE.html>POE manpage</A> includes a sample program and walkthrough of its
+parts, a summary of the modules which comprise this distribution,
+POE's general system requirements, how to use POE (literally), and
+where to get help.  It also has a table of contents which you're even
+now reading.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AKernel"><A HREF=/docs/POE/Kernel.html>POE::Kernel</A></A></STRONG><BR>
+<DD>
+The <A HREF=/docs/POE/Kernel.html>POE::Kernel</A> manpage includes information about debugging traces
+and assertions; FIFO events; filehandle watchers; Kernel data
+accessors; posting events from traditional callbacks (postbacks);
+redefining sessions' states; resource management; session aliases;
+signal types, handlers, and pitfalls; signal watchers; synchronous
+vs. asynchronous events; and timed events (alarms and delays).
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3ANFA"><A HREF=/docs/POE/NFA.html>POE::NFA</A></A></STRONG><BR>
+<DD>
+The <A HREF=/docs/POE/NFA.html>POE::NFA</A> manpage covers this session's additional predefined
+events, how NFA differs from Session, state changing methods, and the
+spawn constructor.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3ASession"><A HREF=/docs/POE/Session.html>POE::Session</A></A></STRONG><BR>
+<DD>
+The <A HREF=/docs/POE/Session.html>POE::Session</A> manpage covers different kinds of states (inline
+coderef, object methods, and package methods); postback mechanics;
+predefined event names and the parameters included with them; resource
+management and its effects on sessions; session constructors (new and
+create); session data accessors; synchronous vs. asynchronous events
+in more detail; why sessions don't stop by themselves, and how to
+force them to.
+<P></P></DL>
+<P>
+<H2><A NAME="i/o layer">I/O Layer</A></H2>
+<P>These modules comprise POE's ``Wheels'' I/O abstraction.</P>
+<DL>
+<DT><STRONG><A NAME="item_POE%3A%3ADriver"><A HREF=/docs/POE/Driver.html>POE::Driver</A></A></STRONG><BR>
+<DD>
+The <A HREF=/docs/POE/Driver.html>POE::Driver</A> manpage covers drivers in general and their common
+interface.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Driver/SysRW.html>POE::Driver::SysRW</A></STRONG><BR>
+<DD>
+The SysRW driver's manpage describes the sysread/syswrite abstraction
+and covers parameters which can be used to customize a SysRW driver's
+operation.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AFilter"><A HREF=/docs/POE/Filter.html>POE::Filter</A></A></STRONG><BR>
+<DD>
+The <A HREF=/docs/POE/Filter.html>POE::Filter</A> manpage covers filters in general and their common
+interface.  It discusses the pitfalls involved in switching filters
+on a running wheel.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Filter/HTTPD.html>POE::Filter::HTTPD</A></STRONG><BR>
+<DD>
+The HTTPD filter's manpage covers using POE as a web server.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Filter/Line.html>POE::Filter::Line</A></STRONG><BR>
+<DD>
+The Line filter's manpage discusses how to read and write data by
+lines; how to change the newline literal or regular expression; and
+how to enable newline autodetection when working with strange peers.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Filter/Reference.html>POE::Filter::Reference</A></STRONG><BR>
+<DD>
+The Reference filter's manpage talks about marshalling data and
+passing it between POE programs; and customizing the way data is
+frozen, thawed and optionally compressed.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Filter/Stream.html>POE::Filter::Stream</A></STRONG><BR>
+<DD>
+The Stream filter's manpage is pretty empty since it doesn't do much
+of anything.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3AWheel"><A HREF=/docs/POE/Wheel.html>POE::Wheel</A></A></STRONG><BR>
+<DD>
+The Wheel's manpage talks about wheels in general and their common
+interface.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Wheel/FollowTail.html>POE::Wheel::FollowTail</A></STRONG><BR>
+<DD>
+The FollowTail wheel's manpage discusses how to watch the end of an
+ever-growing file (not to be confused with that orb tune) and how to
+change aspects of the wheel's behavior with constructor parameters.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Wheel/ListenAccept.html>POE::Wheel::ListenAccept</A></STRONG><BR>
+<DD>
+The ListenAccept wheel's manpage discusses how to listen and accept
+connections using sockets created from sources other than
+SocketFactory.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Wheel/ReadWrite.html>POE::Wheel::ReadWrite</A></STRONG><BR>
+<DD>
+The ReadWrite wheel's manpage covers non-blocking I/O with optional
+flow control.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A></STRONG><BR>
+<DD>
+The SocketFactory wheel's manpage discusses how socket factories
+create and manage sockets; the events they emit on connection,
+acceptance, and failure; and the parameters which govern what they do.
+<P></P></DL>
+<P>
+<H2><A NAME="standard components">Standard Components</A></H2>
+<P>These components are included with POE because they're nearly
+universally useful.</P>
+<DL>
+<DT><STRONG><A NAME="item_POE%3A%3AComponent"><A HREF=/docs/POE/Component.html>POE::Component</A></A></STRONG><BR>
+<DD>
+The <A HREF=/docs/POE/Component.html>POE::Component</A> manpage discusses what components are and why they
+exist.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A></STRONG><BR>
+<DD>
+The TCP server component explains how to create TCP servers with a
+minimum of fuss.
+<P></P></DL>
+<P>
+<H2><A NAME="supporting cast">Supporting Cast</A></H2>
+<P>These modules help in the background.</P>
+<DL>
+<DT><STRONG><A NAME="item_POE%3A%3APipe%3A%3AOneWay"><A HREF=/docs/POE/Pipe/OneWay.html>POE::Pipe::OneWay</A></A></STRONG><BR>
+<DD>
+This creates unbuffered one-way pipes.  It tries various methods in
+the hope that one of them will work on any given platform.
+<P></P>
+<DT><STRONG><A NAME="item_POE%3A%3APipe%3A%3ATwoWay"><A HREF=/docs/POE/Pipe/TwoWay.html>POE::Pipe::TwoWay</A></A></STRONG><BR>
+<DD>
+This creates unbuffered two-way pipes.  It tries various methods in
+the hope that one of them will work on any given platform.  It's
+preferred over two OneWay pipes because sometimes two-way transports
+are available and it can save you a couple filehandles.
+<P></P>
+<DT><STRONG><A HREF=/docs/POE/Preprocessor.html>POE::Preprocessor</A></STRONG><BR>
+<DD>
+POE's preprocessor covers inline constant replacement, enumerated
+constants, and macro substitutions in perl programs.
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="bugs">BUGS</A></H1>
+<P>The t/*.t tests only cover about 70% of POE.  The latest numbers are
+in the README file.</P>
+<P>
+<HR>
+<H1><A NAME="authors & copyright">AUTHORS &amp; COPYRIGHT</A></H1>
+<P>POE is the combined effort of more people than I can remember
+sometimes.  If I've forgotten someone, please let me know.</P>
+<DL>
+<DT><STRONG><A NAME="item_Arnar_M%2E_Hrafnkelsson">Arnar M. Hrafnkelsson</A></STRONG><BR>
+<DD>
+Arnar is &lt;<A HREF="mailto:addi@umich.edu">addi@umich.edu</A>&gt;.  Addi tested POE and POE::Component::IRC on
+Windows, finding bugs and testing fixes.  He appears throughout the
+Changes file.
+<P></P>
+<DT><STRONG><A NAME="item_Artur_Bergman">Artur Bergman</A></STRONG><BR>
+<DD>
+Artur Bergman is &lt;<A HREF="mailto:artur@vogon-solutions.com">artur@vogon-solutions.com</A>&gt;.  He contributed many
+hours' work into POE and quite a lot of ideas.  Years later, I decide
+he's right and actually implement them.
+<P>Artur is the author of Filter::HTTPD and Filter::Reference, as well as
+bits and pieces throughout POE.  His intangible contributions include
+feedback, testing, conceptual planning and inspiration.  POE would
+never have come this far without his support.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Douglas_Couch">Douglas Couch</A></STRONG><BR>
+<DD>
+Douglas Couch is &lt;<A HREF="mailto:dscouch@purdue.edu">dscouch@purdue.edu</A>&gt;.  He was the brave soul who
+stepped forward to offer valuable testing on the Windows platforms.
+His reports helped get POE working on Win32 and are summarized earlier
+in this document.
+<P></P>
+<DT><STRONG><A NAME="item_Philip_Gwyn">Philip Gwyn</A></STRONG><BR>
+<DD>
+Philip Gwyn is &lt;<A HREF="mailto:gwynp@artware.qc.ca">gwynp@artware.qc.ca</A>&gt;.  He extended the Wheels I/O
+abstraction to support hot-swappable filters, and he eventually
+convinced me of the utility of unique session and kernel IDs.  They
+rock, by the way, and I'm sorry I didn't apply his patches sooner.
+<P>Philip also enhanced Filter::Reference to support different
+serialization methods.  His intangible contributions include the
+discovery and/or destruction of several bugs (see the Changes file)
+and a thorough code review around version 0.06.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Dave_Paris">Dave Paris</A></STRONG><BR>
+<DD>
+Dave Paris is &lt;<A HREF="mailto:dparis@w3works.com">dparis@w3works.com</A>&gt;.  Dave tested and benchmarked POE
+around version 0.05, discovering some subtle (and not so subtle)
+timing problems.  The pre-forking server sample was his idea.
+Versions 0.06 and later should scale to higher loads because of his
+work.  His intangible contributions include lots of testing and
+feedback, much of which is tagged in the Changes file as a-mused.
+<P>And I do mean *lots* of testing.  I go and announce a new development
+version, and he's, like, ``All tests passed!'' just a few minutes later.
+If that wasn't enough, he investigates any bugs that turn up, and
+often fixes them.  The man's scarily good.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Dieter_Pearcey">Dieter Pearcey</A></STRONG><BR>
+<DD>
+Dieter Pearcey is &lt;<A HREF="mailto:dieter@bullfrog.perlhacker.org">dieter@bullfrog.perlhacker.org</A>&gt;.  He goes by
+several Japanese nicknames.  Dieter patched Wheel::FollowTail to be
+more useful and has contributed the basic Filter::Block and its
+documentation.
+<P></P>
+<DT><STRONG><A NAME="item_Robert_Seifer">Robert Seifer</A></STRONG><BR>
+<DD>
+Robert Seifer is &lt;e-mail unknown&gt;.  He rotates IRC nicknames
+regularly.
+<P>Robert contributed entirely too much time, both his own and his
+computers, towards the detection and eradication of a memory
+corruption bug that POE tickled in earlier Perl versions.  In the end,
+his work produced a simple compile-time hack that worked around a
+problem relating to anonymous subs, scope and @{} processing.</P>
+<P>In short, he squashed a coredump with a reliable work-around.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Dennis_Taylor">Dennis Taylor</A></STRONG><BR>
+<DD>
+Dennis Taylor is &lt;<A HREF="mailto:dennis@funkplanet.com">dennis@funkplanet.com</A>&gt;.  Dennis has been testing,
+debugging and patching bits here and there, such as Filter::Line which
+he improved by leaps in 0.1102.  He's also the author of
+POE::Component::IRC, which isn't included here but may be found at
+either &lt;http://www.infobot.org/dev/POE/&gt;.
+<P></P>
+<DT><STRONG><A NAME="item_Others%3F">Others?</A></STRONG><BR>
+<DD>
+Please contact the author if you've been forgotten.
+<P></P></DL>
+<P>
+<H2><A NAME="author">Author</A></H2>
+<DL>
+<DT><STRONG><A NAME="item_Rocco_Caputo">Rocco Caputo</A></STRONG><BR>
+<DD>
+Rocco Caputo is &lt;<A HREF="mailto:troc+poe@netrus.net">troc+poe@netrus.net</A>&gt;.  POE is his brainchild.
+<P>Except where otherwise noted, POE is Copyright 1998-2000 Rocco Caputo.
+All rights reserved.  POE is free software; you may redistribute it
+and/or modify it under the same terms as Perl itself.</P>
+<P></P></DL>
+<P>Thank you for reading!</P>
+
+</BODY>
+
+</HTML>

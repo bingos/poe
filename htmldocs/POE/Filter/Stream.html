@@ -1,0 +1,62 @@
+<HTML>
+<HEAD>
+<TITLE><A HREF=/docs/POE/Filter/Stream.html>POE::Filter::Stream</A> - pass through data unchanged</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="100%"><TR><TD WIDTH="30">
+<img HSPACE="0" VSPACE="0" border="0" src="/images/L-circle.jpg" align="left" alt="" width="30" height="60">
+</TD><TD ALIGN="Center" WIDTH=100% BGCOLOR="#000000">
+<STRONG><font color="#FFFFFF" size="5"><A HREF=/docs/POE/Filter/Stream.html>POE::Filter::Stream</A> - pass through data unchanged</font></STRONG></TD><TD>
+<img HSPACE="0" VSPACE="0" border="0" src="/images/R-circle.jpg" align="right" alt="" width="30" height="60">
+</TD></TR></TABLE>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#description">DESCRIPTION</A></LI>
+	<LI><A HREF="#see also">SEE ALSO</A></LI>
+	<LI><A HREF="#bugs">BUGS</A></LI>
+	<LI><A HREF="#authors & copyrights">AUTHORS &amp; COPYRIGHTS</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="name">NAME</A></H1>
+<P><A HREF=/docs/POE/Filter/Stream.html>POE::Filter::Stream</A> - pass through data unchanged (a do-nothing filter)</P>
+<P>
+<HR>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<PRE>
+  $filter = <A HREF=/docs/POE/Filter/Stream.html>POE::Filter::Stream</A>-&gt;new();
+  $arrayref_of_logical_chunks =
+    $filter-&gt;get($arrayref_of_raw_chunks_from_driver);
+  $arrayref_of_streamable_chunks_for_driver =
+     $filter-&gt;put($arrayref_of_logical_chunks);</PRE>
+<P>
+<HR>
+<H1><A NAME="description">DESCRIPTION</A></H1>
+<P>This filter passes data through unchanged.</P>
+<P>
+<HR>
+<H1><A NAME="see also">SEE ALSO</A></H1>
+<P><A HREF=/docs/POE/Filter.html>POE::Filter</A>.</P>
+<P>The <A HREF=/docs/POE.html#see also>SEE ALSO section in <EM>POE</EM></A> contains a table of contents covering
+the entire POE distribution.</P>
+<P>
+<HR>
+<H1><A NAME="bugs">BUGS</A></H1>
+<P>Oh, probably some.</P>
+<P>
+<HR>
+<H1><A NAME="authors & copyrights">AUTHORS &amp; COPYRIGHTS</A></H1>
+<P>Please <A HREF=/docs/POE.html>see <EM>POE</EM></A> for more information about authors and contributors.</P>
+
+</BODY>
+
+</HTML>

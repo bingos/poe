@@ -1,0 +1,120 @@
+<HTML>
+<HEAD>
+<TITLE><A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A> - a simplified TCP server</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="100%"><TR><TD WIDTH="30">
+<img HSPACE="0" VSPACE="0" border="0" src="/images/L-circle.jpg" align="left" alt="" width="30" height="60">
+</TD><TD ALIGN="Center" WIDTH=100% BGCOLOR="#000000">
+<STRONG><font color="#FFFFFF" size="5"><A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A> - a simplified TCP server</font></STRONG></TD><TD>
+<img HSPACE="0" VSPACE="0" border="0" src="/images/R-circle.jpg" align="right" alt="" width="30" height="60">
+</TD></TR></TABLE>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#description">DESCRIPTION</A></LI>
+	<LI><A HREF="#see also">SEE ALSO</A></LI>
+	<LI><A HREF="#bugs">BUGS</A></LI>
+	<LI><A HREF="#authors & copyrights">AUTHORS &amp; COPYRIGHTS</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="name">NAME</A></H1>
+<P><A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A> - a simplified TCP server</P>
+<P>
+<HR>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<PRE>
+  use POE;</PRE>
+<PRE>
+  sub accept_handler {
+    my ($socket, $remote_address, $remote_port) = @_[ARG0, ARG1, ARG2];
+    # code goes here to handle the accepted socket
+  }</PRE>
+<PRE>
+  sub error_handler {
+    my ($op, $errnum, $errstr) = @_[ARG0, ARG1, ARG2];
+    warn &quot;server encountered $op error $errnum: $errstr&quot;;
+    # possibly shut down the server
+  }</PRE>
+<PRE>
+  <A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A>-&gt;new
+    ( Port     =&gt; $bind_port,
+      Address  =&gt; $bind_address,    # Optional.
+      Acceptor =&gt; \&amp;accept_handler,
+      Error    =&gt; \&amp;error_handler,  # Optional.
+    );</PRE>
+<P>
+<HR>
+<H1><A NAME="description">DESCRIPTION</A></H1>
+<P>The TCP server component hides the steps needed to create a server
+using Wheel::SocketFactory.  The steps aren't many, but they're still
+repetitive and thus boring.</P>
+<P><A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A> helps out by supplying a default error
+handler.  This handler will write an error message on STDERR and shut
+the server down.</P>
+<P>The TCP server component takes three named arguments.  It's expected
+to accept other parameters as it evolves.</P>
+<DL>
+<DT><STRONG><A NAME="item_Address">Address</A></STRONG><BR>
+<DD>
+Address is the optional interface address the listening socket will be
+bound to.  When omitted, it defaults to INADDR_ANY.
+<PRE>
+  Address =&gt; '127.0.0.1'</PRE>
+<P>It's passed directly to SocketFactory's BindAddress parameter, and so
+it can be in whatever form SocketFactory supports.  At the time of
+this writing, that's a dotted quad, a host name, or a packed Internet
+address.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Port">Port</A></STRONG><BR>
+<DD>
+Port is the port the listening socket will be bound to.
+<PRE>
+  Port =&gt; 30023</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_Acceptor">Acceptor</A></STRONG><BR>
+<DD>
+Acceptor is a coderef which will be called to handle accepted sockets.
+The coderef is used as <A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A>'s SuccessState, so it
+accepts the same parameters.
+<PRE>
+  Acceptor =&gt; \&amp;success_state</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_Error">Error</A></STRONG><BR>
+<DD>
+Error is an optional coderef which will be called to handle server
+socket errors.  The coderef is used as <A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A>'s
+FailureState, so it accepts the same parameters.  If it is omitted, a
+default error handler will be provided.  The default handler will log
+the error to STDERR and shut down the server.
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="see also">SEE ALSO</A></H1>
+<P><A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A></P>
+<P>
+<HR>
+<H1><A NAME="bugs">BUGS</A></H1>
+<P><A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A> currently does not accept many of the
+options that <A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A> does, but it can be expanded
+easily to do so.</P>
+<P>
+<HR>
+<H1><A NAME="authors & copyrights">AUTHORS &amp; COPYRIGHTS</A></H1>
+<P><A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A> is Copyright 2000 by Rocco Caputo.  All
+rights are reserved.  <A HREF=/docs/POE/Component/Server/TCP.html>POE::Component::Server::TCP</A> is free software,
+and it may be redistributed and/or modified under the same terms as
+Perl itself.</P>
+
+</BODY>
+
+</HTML>

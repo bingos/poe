@@ -1,0 +1,290 @@
+<HTML>
+<HEAD>
+<TITLE><A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A> - non-blocking socket creation and management</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="100%"><TR><TD WIDTH="30">
+<img HSPACE="0" VSPACE="0" border="0" src="/images/L-circle.jpg" align="left" alt="" width="30" height="60">
+</TD><TD ALIGN="Center" WIDTH=100% BGCOLOR="#000000">
+<STRONG><font color="#FFFFFF" size="5"><A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A> - non-blocking socket creation and management</font></STRONG></TD><TD>
+<img HSPACE="0" VSPACE="0" border="0" src="/images/R-circle.jpg" align="right" alt="" width="30" height="60">
+</TD></TR></TABLE>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#description">DESCRIPTION</A></LI>
+	<LI><A HREF="#public methods">PUBLIC METHODS</A></LI>
+	<LI><A HREF="#events and parameters">EVENTS AND PARAMETERS</A></LI>
+	<LI><A HREF="#see also">SEE ALSO</A></LI>
+	<LI><A HREF="#bugs">BUGS</A></LI>
+	<LI><A HREF="#authors & copyrights">AUTHORS &amp; COPYRIGHTS</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="name">NAME</A></H1>
+<P><A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A> - non-blocking socket creation and management</P>
+<P>
+<HR>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<PRE>
+  use Socket; # For the constants</PRE>
+<PRE>
+  # Listening Unix domain socket.
+  $wheel = <A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A>-&gt;new(
+    SocketDomain =&gt; AF_UNIX,               # Sets the socket() domain
+    BindAddress  =&gt; $unix_socket_address,  # Sets the bind() address
+    SuccessState =&gt; $success_state,        # State to call upon accept()
+    FailureState =&gt; $state_failure,        # State to call upon error
+    # Optional parameters (and default values):
+    SocketType   =&gt; SOCK_STREAM,           # Sets the socket() type
+  );</PRE>
+<PRE>
+  # Connecting Unix domain socket.
+  $wheel = <A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A>-&gt;new(
+    SocketDomain  =&gt; AF_UNIX,              # Sets the socket() domain
+    RemoteAddress =&gt; $unix_server_address, # Sets the connect() address
+    SuccessState  =&gt; $success_state,       # State to call on connection
+    FailureState  =&gt; $state_failure,       # State to call on error
+    # Optional parameters (and default values):
+    SocketType    =&gt; SOCK_STREAM,          # Sets the socket() type
+    # Optional parameters (that have no defaults):
+    BindAddress   =&gt; $unix_client_address, # Sets the bind() address
+  );</PRE>
+<PRE>
+  # Listening Internet domain socket.
+  $wheel = <A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A>-&gt;new(
+    BindAddress    =&gt; $inet_address,       # Sets the bind() address
+    BindPort       =&gt; $inet_port,          # Sets the bind() port
+    SuccessState   =&gt; $success_state,      # State to call upon accept()
+    FailureState   =&gt; $state_failure,      # State to call upon error
+    # Optional parameters (and default values):
+    SocketDomain   =&gt; AF_INET,             # Sets the socket() domain
+    SocketType     =&gt; SOCK_STREAM,         # Sets the socket() type
+    SocketProtocol =&gt; 'tcp',               # Sets the socket() protocol
+    ListenQueue    =&gt; SOMAXCONN,           # The listen() queue length
+    Reuse          =&gt; 'no',                # Lets the port be reused
+  );</PRE>
+<PRE>
+  # Connecting Internet domain socket.
+  $wheel = <A HREF=/docs/POE/Wheel/SocketFactory.html>POE::Wheel::SocketFactory</A>-&gt;new(
+    RemoteAddress  =&gt; $inet_address,       # Sets the connect() address
+    RemotePort     =&gt; $inet_port,          # Sets the connect() port
+    SuccessState   =&gt; $success_state,      # State to call on connection
+    FailureState   =&gt; $state_failure,      # State to call on error
+    # Optional parameters (and default values):
+    SocketDomain   =&gt; AF_INET,             # Sets the socket() domain
+    SocketType     =&gt; SOCK_STREAM,         # Sets the socket() type
+    SocketProtocol =&gt; 'tcp',               # Sets the socket() protocol
+    Reuse          =&gt; 'no',                # Lets the port be reused
+  );</PRE>
+<PRE>
+  $wheel-&gt;event( ... );</PRE>
+<PRE>
+  $wheel-&gt;ID();</PRE>
+<P>
+<HR>
+<H1><A NAME="description">DESCRIPTION</A></H1>
+<P>SocketFactory creates sockets.  It can create connectionless sockets
+like UDP, or connected sockets like UNIX domain streams and TCP
+sockets.</P>
+<P>The SocketFactory manages connecting and listening sockets on behalf
+of the session that created it.  It will watch a connecting socket and
+fire a SuccessState or FailureState event when something happens.  It
+will watch a listening socket and fire a SuccessState or FailureState
+event for every connection.</P>
+<P>
+<HR>
+<H1><A NAME="public methods">PUBLIC METHODS</A></H1>
+<DL>
+<DT><STRONG><A NAME="item_new_LOTS_OF_THINGS">new LOTS_OF_THINGS</A></STRONG><BR>
+<DD>
+<CODE>new()</CODE> creates a new socket.  If necessary, it registers event handlers
+to manage the socket.  <CODE>new()</CODE> has parameters for just about every
+aspect of socket creation; thankfully they all aren't needed at once.
+<P><CODE>new()</CODE> always returns a SocketFactory wheel reference, even if a socket
+couldn't be created.</P>
+<P>These parameters provide information for the SocketFactory's <CODE>socket()</CODE>
+call.</P>
+<DL>
+<DT><STRONG><A NAME="item_SocketDomain">SocketDomain</A></STRONG><BR>
+<DD>
+SocketDomain supplies <CODE>socket()</CODE> with its DOMAIN parameter.  Supported
+values are AF_UNIX, AF_INET, PF_UNIX and PF_INET.  If SocketDomain is
+omitted, it defaults to AF_INET.
+<P></P>
+<DT><STRONG><A NAME="item_SocketType">SocketType</A></STRONG><BR>
+<DD>
+SocketType supplies <CODE>socket()</CODE> with its TYPE parameter.  Supported
+values are SOCK_STREAM and SOCK_DGRAM, although datagram sockets
+haven't been tested at this time.  If SocketType is omitted, it
+defaults to SOCK_STREAM.
+<P></P>
+<DT><STRONG><A NAME="item_SocketProtocol">SocketProtocol</A></STRONG><BR>
+<DD>
+SocketProtocol supplies <CODE>socket()</CODE> with its PROTOCOL parameter.
+Protocols may be specified by number or by a name that can be found in
+the system's protocol (or equivalent) database.  SocketProtocol is
+ignored for UNIX domain sockets.  It defaults to 'tcp' if it's omitted
+from an INET socket factory.
+<P></P></DL>
+<P>These parameters provide information for the SocketFactory's <CODE>bind()</CODE>
+call.</P>
+<DL>
+<DT><STRONG><A NAME="item_BindAddress">BindAddress</A></STRONG><BR>
+<DD>
+BindAddress supplies the address where a socket will be bound to.  It
+has different meanings and formats depending on the socket domain.
+<P>BindAddress may contain either a string or a packed Internet address
+when it's specified for INET sockets.  The string form of BindAddress
+should hold a dotted numeric address or resolvable host name.
+BindAddress is optional for INET sockets, and SocketFactory will use
+INADDR_ANY by default.</P>
+<P>When used to bind a UNIX domain socket, BindAddress should contain a
+path describing the socket's filename.  This is required for server
+sockets and datagram client sockets.  BindAddress has no default value
+for UNIX sockets.</P>
+<P></P>
+<DT><STRONG><A NAME="item_BindPort">BindPort</A></STRONG><BR>
+<DD>
+BindPort is only meaningful for INET domain sockets.  It contains a
+port on the BindAddress interface where the socket will be bound.  It
+defaults to 0 if omitted.
+<P>BindPort may be a port number or a name that can be looked up in the
+system's services (or equivalent) database.</P>
+<P></P></DL>
+<P>These parameters are used for outbound sockets.</P>
+<DL>
+<DT><STRONG><A NAME="item_RemoteAddress">RemoteAddress</A></STRONG><BR>
+<DD>
+RemoteAddress specifies the remote address to which a socket should
+connect.  If present, the SocketFactory will create a connecting
+socket.  Otherwise, it will make a listening socket, should the
+protocol warrant it.
+<P>Like with the bind address, RemoteAddress may be a string containing a
+dotted quad or a resolvable host name.  It may also be a packed
+Internet address, or a UNIX socket path.  It will be packed, with or
+without an accompanying RemotePort, as necessary for the socket
+domain.</P>
+<P></P>
+<DT><STRONG><A NAME="item_RemotePort">RemotePort</A></STRONG><BR>
+<DD>
+RemotePort is the port to which the socket should connect.  It is
+required for connecting Internet sockets and ignored in all other
+cases.
+<P>The remote port may be a number or a name in the /etc/services (or
+equivalent) database.</P>
+<P></P></DL>
+<P>This parameter is used for listening sockets.</P>
+<DL>
+<DT><STRONG><A NAME="item_ListenQueue">ListenQueue</A></STRONG><BR>
+<DD>
+ListenQueue specifies the length of the socket's <CODE>listen()</CODE> queue.  It
+defaults to SOMAXCONN if omitted.  SocketFactory will ensure that it
+doesn't exceed SOMAXCONN.
+<P></P></DL>
+<DT><STRONG><A NAME="item_event_EVENT_TYPE_%3D%3E_EVENT_NAME%2C_%2E%2E%2E">event EVENT_TYPE =&gt; EVENT_NAME, ...</A></STRONG><BR>
+<DD>
+<CODE>event()</CODE> is covered in the <A HREF=/docs/POE/Wheel.html>POE::Wheel</A> manpage.
+<P></P>
+<DT><STRONG><A NAME="item_getsockname">getsockname</A></STRONG><BR>
+<DD>
+<A HREF="#item_getsockname"><CODE>getsockname()</CODE></A> behaves like the built-in function of the same name.
+Because the SocketFactory's underlying socket is hidden away, it's
+hard to do this directly.
+<P>It's useful for finding which address and/or port the SocketFactory
+has bound to when it's been instructed to use BindAddress =&gt;
+INADDR_ANY or BindPort =&gt; 0.</P>
+<P></P>
+<DT><STRONG><A NAME="item_ID">ID</A></STRONG><BR>
+<DD>
+The ID method returns a FollowTail wheel's unique ID.  This ID will be
+included in every event the wheel generates, and it can be used to
+match events with the wheels which generated them.
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="events and parameters">EVENTS AND PARAMETERS</A></H1>
+<DL>
+<DT><STRONG><A NAME="item_SuccessState">SuccessState</A></STRONG><BR>
+<DD>
+SuccessState defines the event that will be emitted when a socket has
+been established successfully.  The SuccessState event is fired when
+outbound sockets have connected or whenever listening sockets accept
+new connections.
+<P>In all cases, <CODE>ARG0</CODE> holds the new socket handle.  <CODE>ARG3</CODE> holds the
+wheel's unique ID.  The parameters between them differ according to
+the socket's domain and whether it's listening or connecting.</P>
+<P>For INET sockets, <CODE>ARG1</CODE> and <CODE>ARG2</CODE> hold the socket's remote address
+and port, respectively.</P>
+<P>For UNIX <STRONG>client</STRONG> sockets, <CODE>ARG1</CODE> holds the server address.  It may
+be undefined on systems that have trouble retrieving a UNIX socket's
+remote address.  <CODE>ARG2</CODE> is always undefined for UNIX <STRONG>client</STRONG>
+sockets.</P>
+<P>According to _Perl Cookbook_, the remote address returned by <CODE>accept()</CODE>
+on UNIX sockets is undefined, so <CODE>ARG1</CODE> and <CODE>ARG2</CODE> are also
+undefined in this case.</P>
+<P>A sample SuccessState event handler:</P>
+<PRE>
+  sub server_accept {
+    my $accepted_handle = $_[ARG0];</PRE>
+<PRE>
+    my $peer_host = inet_ntoa($_[ARG1]);
+    print( &quot;Wheel $_[ARG3] accepted a connection from &quot;,
+           &quot;$peer_host port $peer_port\n&quot;
+         );</PRE>
+<PRE>
+    # Do something with the new connection.
+    &amp;spawn_connection_session( $accepted_handle );
+  }</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_FailureState">FailureState</A></STRONG><BR>
+<DD>
+FailureState defines the event that will be emitted when a socket
+error occurs.  EAGAIN does not count as an error since the
+SocketFactory knows what to do with it.
+<P>The FailureState event comes with the standard error event parameters.</P>
+<P><CODE>ARG0</CODE> contains the name of the operation that failed.  <CODE>ARG1</CODE> and
+<CODE>ARG2</CODE> hold numeric and string values for <CODE>$!</CODE>, respectively.
+<CODE>ARG3</CODE> contains the wheel's unique ID, which may be matched back to
+the wheel itself via the $wheel-&gt;ID call.</P>
+<P>A sample ErrorState event handler:</P>
+<PRE>
+  sub error_state {
+    my ($operation, $errnum, $errstr, $wheel_id) = @_[ARG0..ARG3];
+    warn &quot;Wheel $wheel_id generated $operation error $errnum: $errstr\n&quot;;
+    delete $heap-&gt;{wheels}-&gt;{$wheel_id}; # shut down that wheel
+  }</PRE>
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="see also">SEE ALSO</A></H1>
+<P><A HREF=/docs/POE/Wheel.html>POE::Wheel</A>.</P>
+<P>The <A HREF=/docs/POE.html#see also>SEE ALSO section in <EM>POE</EM></A> contains a table of contents covering
+the entire POE distribution.</P>
+<P>
+<HR>
+<H1><A NAME="bugs">BUGS</A></H1>
+<P>Many (if not all) of the croak/carp/warn/die statements should fire
+back $state_failure instead.</P>
+<P>SocketFactory is only tested with UNIX streams and INET sockets using
+the UDP and TCP protocols.  Others may or may not work, but the latest
+design is data driven and should be easy to extend.  Patches are
+welcome, as are test cases for new families and protocols.  Even if
+test cases fail, they'll make nice reference code to test additions to
+the SocketFactory class.</P>
+<P>
+<HR>
+<H1><A NAME="authors & copyrights">AUTHORS &amp; COPYRIGHTS</A></H1>
+<P>Please <A HREF=/docs/POE.html>see <EM>POE</EM></A> for more information about authors and contributors.</P>
+
+</BODY>
+
+</HTML>
