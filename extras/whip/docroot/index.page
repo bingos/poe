@@ -1,73 +1,75 @@
 <!-- -*- html -*- -->
+<!-- $Id$ -->
 
-<title>POE: Perl Object Environment</title>
-
-<whip.tabloid>
-  <column>
-    <whip.pane>
-      <title>About POE</title>
-      <color>#660000</color>
-      <item>[about-poe What POE is...]</item>
-      <item>[success Success stories...]</item>
-      <item>[current Current events...]</item>
-      <item>[past Past events...]</item>
-    </whip.pane>
-    <whip.pane>
-      <title>POE's Users</title>
-      <color>#660000</color>
-      <item>[projects POE projects...]</item>
-      <item>[people People using POE...]</item>
-      <item>[components POE components...]</item>
-    </whip.pane>
-  </column>
-  <column>
-    <whip.pane>
-      <title>Developer Support</title>
-      <color>#006600</color>
-      <item>[docs Online documentation...]</item>
-      <item>[faq Frequently Asked Questions...]</item>
-      <item>[cookbook Example programs...]</item>
-      <item>[tutorials Articles and tutorials...]</item>
-      <item>[mlists Mailing lists...]</item>
-      <item>[bugs Bug tracker...]</item>
-      <item>[irc IRC channels...]</item>
-    </whip.pane>
-    <whip.pane>
-      <title>Quality Assurance</title>
-      <color>#006600</color>
-      <item>[tests Test results...]</item>
-      <item>[coverage Test coverage report...]</item>
-      <item>[reporting Reporting test results...]</item>
-    </whip.pane>
-    <whip.pane>
-      <title>Development Notes</title>
-      <color>#006600</color>
-      <item>[deprecations Scheduled deprecations...]</item>
-      <item>[notes Unfinished ideas...]</item>
-    </whip.pane>
-  </column>
-  <column>
-    <whip.pane>
-      <title>Downloads</title>
-      <color>#000066</color>
-      <item>[cpan CPAN release (0.23)...]</item>
-      <item>[devel Development release (0.2302)...]</item>
-      <item>[winppm Windows PPM (0.23)...]</item>
-      <item>[anoncvs Anonymous CVS (latest)...]</item>
-      <item>[wincvs Windows CVS (latest)...]</item>
-    </whip.pane>
-    <whip.pane>
-      <title>Supporting POE</title>
-      <color>#000066</color>
-      <item>[joining Joining the project...]</item>
-      <item>[funding Funding the project...]</item>
-      <item>[donating Donating stuff...]</item>
-    </whip.pane>
-    <whip.pane>
-      <title>Credits</title>
-      <color>#000066</color>
-      <item>[credits Developers...]</item>
-      <item>[dedications Dedications...]</item>
-    </whip.pane>
-  </column>
-</whip.tabloid>
+<page>
+  <title>POE: Perl Object Environment</title>
+  <tabloid>
+    <column>
+      <pane>
+        <title>About POE</title>
+        <color>#660000</color>
+        <item>[about-poe What POE is...]</item>
+        <item>[success Success stories...]</item>
+        <item>[current Current events...]</item>
+        <item>[past Past events...]</item>
+      </pane>
+      <pane>
+        <title>POE's Users</title>
+        <color>#660000</color>
+        <item>[projects POE projects...]</item>
+        <item>[people People using POE...]</item>
+        <item>[components POE components...]</item>
+      </pane>
+    </column>
+    <column>
+      <pane>
+        <title>Developer Support</title>
+        <color>#006600</color>
+        <item>[docs Online documentation...]</item>
+        <item>[faq Frequently Asked Questions...]</item>
+        <item>[cookbook Example programs...]</item>
+        <item>[tutorials Articles and tutorials...]</item>
+        <item>[mlists Mailing lists...]</item>
+        <item>[bugs Bug tracker...]</item>
+        <item>[irc IRC channels...]</item>
+      </pane>
+      <pane>
+        <title>Quality Assurance</title>
+        <color>#006600</color>
+        <item>[tests Test results...]</item>
+        <item>[coverage Test coverage report...]</item>
+        <item>[reporting Reporting test results...]</item>
+      </pane>
+      <pane>
+        <title>Development Notes</title>
+        <color>#006600</color>
+        <item>[deprecations Scheduled deprecations...]</item>
+        <item>[notes Unfinished ideas...]</item>
+      </pane>
+    </column>
+    <column>
+      <pane>
+        <title>Downloads</title>
+        <color>#000066</color>
+        <item>[cpan CPAN release (0.23)...]</item>
+        <item>[devel Development release (0.2302)...]</item>
+        <item>[winppm Windows PPM (0.23)...]</item>
+        <item>[anoncvs Anonymous CVS (latest)...]</item>
+        <item>[wincvs Windows CVS (latest)...]</item>
+      </pane>
+      <pane>
+        <title>Supporting POE</title>
+        <color>#000066</color>
+        <item>[joining Joining the project...]</item>
+        <item>[funding Funding the project...]</item>
+        <item>[donating Donating stuff...]</item>
+      </pane>
+      <pane>
+        <title>Credits</title>
+        <color>#000066</color>
+        <item>[credits Developers...]</item>
+        <item>[dedications Dedications...]</item>
+      </pane>
+    </column>
+  </tabloid>
+</page>
