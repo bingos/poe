@@ -1,0 +1,167 @@
+=head1 ABOUT WHIP
+
+"Whip" is tentatively an acronym for Wiki Hosted In POE.
+
+=head1 OVERVIEW
+
+Whip itself itself is very small.  It provides just enough features to
+load pages and either execute them as code or parse them as XML-like
+content.
+
+Whip knows three kinds of files, which are determined by their
+extensions.  Two are code, and the third is renderable data.
+
+The code files end in .do and .tag.
+
+The .do files are directly invokable actions.  They are most often
+used as form handlers and dynamic content generators.
+
+The .tag files are designed to parse and render XML-like descriptions
+into the final markup for a client or user-agent.  While the current
+state of the project focuses on HTML, it is trivial to generate other
+types of markup.
+
+Data files end in .page, and they describe renderable pages made up of
+tags.  Many of the tags in a .page file may invoke code from .tag
+files.
+
+=head1 STATE
+
+The contents of a tag at any given time is called its state.
+
+=head1 TAG TYPES
+
+There are two kinds of tags: Whip tags and parameter tags.
+
+Whip tags are in the form <whip.something></whip.something>.  They
+describe a high-level piece of content, such as those faux windows
+that are in vogue or a tabloid layout.
+
+Parameter tags look like <something></something> and describe aspects
+of whatever whip tag they occur in.  The text that occurs between a
+parameter's opening and closing tag goes into the tag's states' _value
+attribute.
+
+=head1 TAG HANDLERS
+
+Each whip tag invokes a corresponding .tag file to process it.  The
+.tag file calls render_thing() to parse the tag's description and
+render it into a new state.  The new state may contain data, rendered
+markup, or both.
+
+render_thing() returns the new state to its caller, which in turn
+assimilates the information it needs and possibly returns yet another
+state to its caller.  This may recurse several levels deep depending
+on the nature of the page.
+
+=head1 STRUCTURE OF A TAG FILE
+
+We'll look at pane.tag as it currently stands.
+
+The pane.tag file defines how the whip markup between <whip.pane> and
+</whip.pane> will be parsed and rendered.  Whip generates the package
+name for a .tag file by replacing the leading "whip." part with
+"Whip::Tag::".
+
+The first section satisfies a few different programs.  Tell emacs that
+this is a perl file.  Tell CVS to include information about the file.
+Declare the package, and set the B&D options.
+
+  # -*- perl -*-
+  # $Id$
+
+  package Whip::Tag::pane;
+
+  use warnings;
+  use strict;
+
+Next we define the parameters that this whip tag will understand.  As
+we covered in L<TAG TYPES>, each parameter tag's value is stored in a
+_value attribute of the tag's state.  The Whip::Tag::as_value()
+function moves the value of _value to a new attribute named after the
+tag being processed.
+
+In this example, when <title></title> is finished, the contents of
+_value are moved to the "title" attribute.
+
+  my %tags =
+    ( title => \&Whip::Tag::as_value,
+      color => \&Whip::Tag::as_value,
+      item  => \&Whip::Tag::as_value,
+    );
+
+Finally we define the function that is run to deal with the tag.  This
+function does some preliminary setup, then calls render_thing() with
+the current tag's $state, the name of the tag being rendered, and the
+parameter tags to recognize.
+
+Internally, render_tag() will create new states for each tag it
+encounters.  Those states will inherit $state, which ultimately
+inherits from the parser's own state.
+
+render_tag() uses the tag name to search for an appropriate closing
+tag.  That's how it knows when to return.
+
+render_tag() returns the parsed tag's state, so that run() can extract
+values from it and format them.  Here run() fetches two scalars and a
+list: color, title, and item respectively.
+
+run() then renders the parsed tag's values into the output markup
+(HTML in this case) and stores it in the current state's _thing
+attribute.  This lets run() build a "thing" which may in turn be used
+as an element in some larger thing.
+
+The $state also contains an _output attribute.  Storing the rendered
+markup to _output would append it to the page's output rather than
+allow it to be nested inside something else.
+
+Then we return the augmented state for some other thing to process.
+
+  sub run {
+    my ($pkg, $state) = @_;
+
+    my $new_state = main::render_thing($state, "whip.pane", \%tags);
+
+    my $color = $new_state->fetch("color", "#666666");
+    my $title = $new_state->fetch("title", "Untitled");
+    my @items = $new_state->fetch("item");
+
+    $state->store
+      ( _thing =>
+        ( "<table cellpadding='2' cellspacing='3' border='0' width='100%' " .
+          "bgcolor='$color'>" .
+          "<tbody>" .
+          "<tr>" .
+          "<td valign='top'><font color='#ffffff'>$title</font><br> " .
+          "</td>" .
+          "</tr>" .
+          "<tr>" .
+          "<td valign='top' bgcolor='#ffffff'>" .
+          join("<br>", @items) .
+          "</td>" .
+          "</tr>" .
+          "</tbody>" .
+          "</table>"
+        )
+      );
+
+    return $state;
+  }
+
+# Satisfy C<require>.
+
+  1;
+
+=head1 WHIP'S EXECUTION MODEL
+
+Augh!
+
+=head1 WHIP'S EXECUTOR
+
+Augh!
+
+=head1 WHIP'S RENDERER
+
+Augh!
+
+=cut
