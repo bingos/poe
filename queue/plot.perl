@@ -38,7 +38,10 @@ foreach my $magnitude ($hi_index) {
         GlobalFont => 'gara.ttf'
       );
 
-    $plot->{Ylabel} = 'time per operation';
+    my $axis = $plot->GetAxis();
+    $axis->{Yformat} = sub { sprintf("%.0f", $_[0]*1000000) };
+
+    $plot->{Ylabel} = 'time per operation (microseconds)';
     $plot->{Xlabel} = 'queue priorities';
     $plot->{Title}  = "Benchmark for `$function' ($colors)";
 
