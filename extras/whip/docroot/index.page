@@ -3,6 +3,7 @@
 
 <page>
   <title>POE: Perl Object Environment</title>
+  <header/>
   <tabloid>
     <column>
       <pane>
@@ -10,14 +11,14 @@
         <color>#660000</color>
         <item>[about-poe What POE is...]</item>
         <item>[success Success stories...]</item>
-        <item>[current Current events...]</item>
-        <item>[past Past events...]</item>
+        <item>[current-news Current events...]</item>
+        <item>[news-archives Past events...]</item>
       </pane>
       <pane>
         <title>POE's Users</title>
         <color>#660000</color>
-        <item>[projects POE projects...]</item>
-        <item>[people People using POE...]</item>
+        <item>[poe-projects POE projects...]</item>
+        <item>[poe-people People using POE...]</item>
         <item>[components POE components...]</item>
       </pane>
     </column>
@@ -72,4 +73,5 @@
       </pane>
     </column>
   </tabloid>
+  <footer/>
 </page>

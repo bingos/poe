@@ -6,30 +6,21 @@ use warnings;
 use strict;
 use Whip::Tag qw(widget);
 
-sub open {
-  my $self = shift;
-
-  $self->set_subtags
-    ( { title => ONE,
-        status => ONE,
-        widget => STAR,
-      },
-    );
+sub get_syntax {
+  ( title  => [ SCALAR, "Untitled" ],
+    status => [ SCALAR, 200 ],
+    widget => [ LIST, "<h1>Empty</h1><p>This page is empty.</p>" ],
+  )
 }
 
 sub close {
-  my $self = shift;
+  my ($self, $title, $status, $widget) = @_;
 
-  my @widget = $self->fetch("widget");
-  my $title  = $self->fetch("title", "Untitled...");
-  my $status = $self->fetch("status", 200);
-
-  use CGI qw(:standard);
-
-  print( header(-status => $status),
-         start_html($title),
-         join("", @widget),
-       );
+  $self->emit_document
+    ( status => $status,
+      title  => $title,
+      body   => join("", @$widget)
+    );
 }
 
 1;

@@ -14,9 +14,8 @@ use Fcntl qw(:flock);
 use Symbol qw(gensym);
 use CGI qw(escapeHTML);
 
-sub STATE_PARENT () { 0 }
-sub STATE_VALUES () { 1 }
-sub STATE_ID     () { 2 }
+sub STATE_VALUES () { 0 }
+sub STATE_ID     () { 1 }
 
 ### Static functions to lock and unlock resources.  They should be
 ### moved into main or a general-purpose Whip class when other things
@@ -29,8 +28,7 @@ sub _lock {
   my $lock_file = main::DIR_LOCK . "/$resource";
 
   if (exists $locks{$lock_file}) {
-    main::error( 500,
-                 "500 Attempt To Double Lock",
+    Whip->error( 500, "Attempt To Double Lock",
                  "Could not lock file <tt>" . escapeHTML($lock_file) .
                  "</tt> because it already is locked."
                );
@@ -38,16 +36,14 @@ sub _lock {
 
   my $lock_fh = gensym();
   unless (open $lock_fh, ">", $lock_file) {
-    main::error( 500,
-                 "500 Could Not Open Lock",
+    Whip->error( 500, "Could Not Open Lock",
                  "Could not open lock file <tt>" . escapeHTML($lock_file) .
                  "</tt>: $!"
                );
   }
 
   unless (flock($lock_fh, LOCK_EX)) {
-    main::error( 500,
-                 "500 Could Not Acquire Lock",
+    Whip->error( 500, "Could Not Acquire Lock",
                  "Could not acquire lock on <tt>" .
                  escapeHTML($lock_file) . "</tt>: $!"
                );
@@ -62,16 +58,14 @@ sub _unlock {
 
   my $lock_fh = delete $locks{$lock_file};
   unless (defined $lock_fh) {
-    main:error( 500,
-                "500 Attempt To Unlock Unlocked Resource",
-                "Could not unlock <tt>" . escapeHTML($lock_file) .
-                "</tt> because it already is unlocked."
-              );
+    Whip->error( 500, "Attempt To Unlock Unlocked Resource",
+                 "Could not unlock <tt>" . escapeHTML($lock_file) .
+                 "</tt> because it already is unlocked."
+               );
   }
 
   unless (flock($lock_fh, LOCK_UN)) {
-    main::error( 500,
-                 "500 Could Not Release Lock",
+    Whip->error( 500, "Could Not Release Lock",
                  "Could not release lock on <tt>" .
                  escapeHTML($lock_file) . "</tt>: $!"
                );
@@ -83,10 +77,9 @@ sub _unlock {
 ### Create an initial state.
 
 sub new {
-  my ($class, $parent_state) = @_;
+  my ($class, $values) = @_;
   my $self = bless
-    [ $parent_state,  # STATE_PARENT
-      {},             # STATE_VALUES
+    [ $values,        # STATE_VALUES
       undef,          # STATE_ID
     ], $class;
   return $self;
@@ -104,7 +97,10 @@ sub freeze {
   my $id = $self->[STATE_ID];
   my $state_path = &main::DIR_STATE;
   my $state_file;
-  unless (defined $id) {
+  if (defined $id) {
+    $state_file = "$state_path/$id";
+  }
+  else {
     while (1) {
       $id = sha1_hex(Time::HiRes::time() . "-$$-" . rand());
       $state_file = "$state_path/$id";
@@ -116,8 +112,7 @@ sub freeze {
   # Store the state there.
   unless (open(STATE, ">", $state_file)) {
     _unlock("state");
-    main::error( 500,
-                 "500 Error Saving State",
+    Whip->error( 500, "Error Saving State",
                  "Could not save state in <tt>" . escapeHTML($state_file) .
                  "</tt>: $!"
                );
@@ -143,11 +138,11 @@ sub thaw {
   # Load and thaw a state.
   my $state_file = &main::DIR_STATE . "/" . $id;
   unless (open(STATE, "<", $state_file)) {
+    my $error = $!;
     _unlock("state");
-    main::error( 500,
-                 "500 Error Loading State",
+    Whip->error( 500, "Error Loading State",
                  "Could not load state from <tt>" . escapeHTML($state_file) .
-                 "</tt>: $!"
+                 "</tt>: $error"
                );
   }
 
@@ -166,8 +161,7 @@ sub thaw {
 sub destroy {
   my $self = shift;
   unless (defined $self->[STATE_ID]) {
-    main::error( 500,
-                 "500 Error Destroying State",
+    Whip->error( 500, "Error Destroying State",
                  "Could not destroy non-existent state."
                );
   }
@@ -178,8 +172,7 @@ sub destroy {
   _unlock("state");
 
   unless (unlink $state_file) {
-    main::error( 500,
-                 "500 Error Destroying State",
+    Whip->error( 500, "Error Destroying State",
                  "Could not destroy state in <tt>" . escapeHTML($state_file) .
                  "</tt>: $!"
                );
@@ -255,15 +248,6 @@ sub fetch {
       return @{$self->[STATE_VALUES]->{$attribute}};
     }
     return $self->[STATE_VALUES]->{$attribute}->[0];
-  }
-
-  if (defined $self->[STATE_PARENT]) {
-    if (wantarray) {
-      my @return = $self->[STATE_PARENT]->fetch($attribute);
-      return @return;
-    }
-    my $return = $self->[STATE_PARENT]->fetch($attribute);
-    return $return;
   }
 
   return @default;

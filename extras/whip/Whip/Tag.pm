@@ -12,26 +12,57 @@ use Whip::Attribute;
 
 sub TAG_NAME    () { 0 }
 sub TAG_DATA    () { 1 }
-sub TAG_SUBTAGS () { 2 }
-sub TAG_WHIP    () { 3 }
+sub TAG_WHIP    () { 2 }
+sub TAG_PARAM   () { 3 }
 
-sub ZERO   () { 0x00 }
-sub ONE    () { 0x01 }
-sub MANY   () { 0x02 }
+sub SCALAR () { 0x0100 }
+sub LIST   () { 0x0200 }
 
-sub QMARK () { ZERO | ONE }
-sub STAR  () { ZERO | ONE | MANY }
-sub PLUS  () { ONE | MANY }
+sub REQ    () { 0x1000 }
 
 use vars qw($whip_self);
 
-# Handle inheritance and base class loading via the C<use> line.
+### Helper: Render something.
+
+sub render_page {
+  my ($self, $page_id) = @_;
+  $self->[TAG_WHIP]->render_page($page_id, {});
+}
+
+### Accessor: Get a parameter.
+
+sub get_param {
+  my ($self, $field_name) = @_;
+  return $self->[TAG_PARAM]->{$field_name};
+}
+
+### Helper: Emit a document.
+
+sub emit_document {
+  my $self = shift;
+  $self->[TAG_WHIP]->emit_document(@_);
+}
+
+### Accessor: Find out why something failed.
+
+sub get_fail_flags {
+  my ($self, $field_name) = @_;
+  if (exists $self->[TAG_PARAM]->{_whip_failed}->{$field_name}) {
+    return
+      join( ", ",
+            sort values %{$self->[TAG_PARAM]->{_whip_failed}->{$field_name}}
+          );
+  }
+  return ();
+}
+
+### Handle inheritance and base class loading via the C<use> line.
 
 sub import {
   my ($class, $base_class) = @_;
 
   my $caller_package = (caller)[0];
-  foreach (qw(ZERO ONE MANY QMARK STAR PLUS)) {
+  foreach (qw(SCALAR LIST REQ)) {
     no strict 'refs';
     *{"$caller_package\::$_"} = \&{"$class\::$_"};
   }
@@ -39,78 +70,97 @@ sub import {
   if (defined $base_class) {
     my $base_package = Whip->load_page("$base_class.tag");
     eval "package $caller_package; use base qw($base_package)";
-    die if $@;
+    die if @$;
     undef $whip_self;
   }
 }
 
-# Create a new whip tag.
+### Create a new whip tag.
 
 sub new {
-  my ($class, $whip, $tag_name, $tag_data) = @_;
+  my ($class, $whip, $tag_name, $tag_data, $page_params) = @_;
 
   my $self = bless [], $class;
   $self->[TAG_NAME]    = $tag_name;
   $self->[TAG_DATA]    = [ ];
-  $self->[TAG_SUBTAGS] = { };
   $self->[TAG_WHIP]    = $whip;
+  $self->[TAG_PARAM]   = $page_params;
 
   while (my ($name, $val) = each %$tag_data) {
-    $self->set_contents( Whip::Attribute->new($name, $val) );
+    $self->set_contents(Whip::Attribute->new($name, $val));
   }
 
-  # Load the tag.
+  # Open the tag.
   $self->open();
 
   return $self;
 }
 
-# Determine whether a tag can contain another tag.
+### Virtual base method.
 
-sub can_contain {
-  my ($self, $child_tag) = @_;
-  return 1 if exists $self->[TAG_SUBTAGS]->{$child_tag};
+sub get_syntax { () }
 
-  foreach (keys %{$self->[TAG_SUBTAGS]}) {
-    return 1 if $self->isa("Whip::Tag::$_");
+### Accessor to get the page ID.
+
+sub get_page_id {
+  my $self = shift;
+  return $self->[TAG_WHIP]->get_page_id();
+}
+
+### Simple takes.  These create "take_foo" accessors for the simple
+### cases.
+
+sub set_syntax {
+  my $package = shift;
+
+  my @syntax = $package->get_syntax();
+  if (@syntax % 2) {
+    Whip->error( 500, "Error Loading Tag Syntax",
+           "<tt>$package\::get_syntax()</tt> returned an odd number of things."
+         );
   }
+
+  my %syntax = @syntax;
+
+  foreach my $name (keys %syntax) {
+    no strict 'refs';
+    *{"$package\::take_$name"} =
+      sub {
+        my $self = shift;
+        $self->push($name => @_);
+      }
+  }
+
+  Whip->set_syntax($package, \@syntax);
 }
 
-# Set the subtags for this tag.  Subtags are tags that this tag can
-# contain.
-
-sub set_subtags {
-  my ($self, $sub_tags) = @_;
-  $self->[TAG_SUBTAGS] = $sub_tags;
-}
-
-# Accessor: Return the name of the tag.
+### Accessor: Return the name of the tag.
 
 sub name {
   my $self = shift;
   return $self->[TAG_NAME];
 }
 
-# Virtual base methods: Open and close the tag.
+### Virtual base methods: Open and close the tag.
 
 sub open  { }
 sub close { }
 
-# Set the tag's contents.  Contents are data fields.
+### Set the tag's contents.  Contents are data fields.
 
 sub set_contents {
   my ($self, @contents) = @_;
-  push @{$self->[TAG_DATA]}, @contents;
+  CORE::push @{$self->[TAG_DATA]}, @contents;
 }
 
-# Get the tag's contents as a list.
+### Get the tag's contents as a list.
 
 sub get_contents {
   my $self = shift;
   return @{$self->[TAG_DATA]};
 }
 
-# Get the tag's contents as a hash.  The list is flattened out.
+### Get the tag's contents as a hash.  The list is flattened out.
 
 sub get_contents_as_hash {
   my $self = shift;
@@ -123,7 +173,7 @@ sub get_contents_as_hash {
       if (ref $contents{$name} eq "") {
         $contents{$name} = [ $contents{$name} ];
       }
-      push @{$contents{$name}}, $value;
+      CORE::push @{$contents{$name}}, $value;
     }
     else {
       $contents{$name} = $value;
@@ -132,9 +182,9 @@ sub get_contents_as_hash {
   return %contents;
 }
 
-# Fetch a single value from a tag.  In scalar context, the last value
-# for an attribute name is returned.  In list context, all the values
-# for the name are returned.
+### Fetch a single value from a tag.  In scalar context, the last
+### value for an attribute name is returned.  In list context, all the
+### values for the name are returned.
 
 sub fetch {
   my ($self, $target_name, @default) = @_;
@@ -143,7 +193,7 @@ sub fetch {
   foreach (@{$self->[TAG_DATA]}) {
     my $name = $_->name();
     next unless "Whip::Tag::$name"->isa("Whip::Tag::$target_name");
-    push @value, $_->value();
+    CORE::push @value, $_->value();
   }
 
   @value = @default unless @value;
@@ -152,14 +202,30 @@ sub fetch {
   return;
 }
 
-# Replace the contents of the tag with a new set of values.
+sub push {
+  my ($self, $target_name, @values) = @_;
+  foreach (@values) {
+    CORE::push @{$self->[TAG_DATA]}, Whip::Attribute->new($target_name, $_);
+  }
+}
+
+### Replace the contents of the tag with a new set of values.  May be
+### obsolete.
 
 sub replace_contents {
   my $self = shift;
+  die;
   $self->[TAG_DATA] = [ ];
   while (my ($name, $value) = splice(@_, 0, 2)) {
-    push @{$self->[TAG_DATA]}, Whip::Attribute->new($name, $value);
+    CORE::push @{$self->[TAG_DATA]}, Whip::Attribute->new($name, $value);
   }
+}
+
+### Emit a data event.
+
+sub emit {
+  my ($self, $type, $value) = @_;
+  $self->[TAG_WHIP]->emit($type, $value);
 }
 
 1;

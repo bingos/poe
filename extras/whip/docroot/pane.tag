@@ -6,25 +6,17 @@ use warnings;
 use strict;
 use Whip::Tag qw(widget);
 
-sub open {
-  my $self = shift;
-
-  $self->set_subtags
-    ( { title => ONE,
-        color => ONE,
-        item  => STAR,
-      },
-    );
+sub get_syntax {
+  ( title => [ SCALAR, "Untitled" ],
+    color => [ SCALAR, "#008000" ],
+    item  => LIST,
+  )
 }
 
 sub close {
-  my $self = shift;
+  my ($self, $title, $color, $items) = @_;
 
-  my $color = $self->fetch("color", "#666666");
-  my $title = $self->fetch("title", "Untitled");
-  my @items = $self->fetch("item");
-
-  $self->replace_contents
+  $self->emit
     ( widget =>
       ( "<table cellpadding='2' cellspacing='3' border='0' width='100%' " .
         "bgcolor='$color'>" .
@@ -35,7 +27,7 @@ sub close {
         "</tr>" .
         "<tr>" .
         "<td valign='top' bgcolor='#ffffff'>" .
-        join("<br>", @items) .
+        join("<br>", @$items) .
         "</td>" .
         "</tr>" .
         "</tbody>" .
