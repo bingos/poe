@@ -1,0 +1,23 @@
+# $Id$
+
+package Whip::Action::main;
+
+use CGI;
+
+sub run {
+  my ($self, $whip) = @_;
+
+  my $req = CGI->new();
+
+  my $query = $req->query_string();
+  $query = "keywords=index" unless length $query;
+
+  if ( $query =~ /^keywords=(\S+)/ ) {
+    $whip->render("$1.page");
+    exit 0;
+  }
+
+  die "page not found";
+}
+
+1;

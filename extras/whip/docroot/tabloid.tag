@@ -1,30 +1,24 @@
 # -*- perl -*-
 # $Id$
 
-# Render a tabloid layout, which consists of one or more columns
-# containing one or more panes.  See whip.pane for that renderer.
-
 package Whip::Tag::tabloid;
-
 use warnings;
 use strict;
+use Whip::Tag qw(widget);
 
-sub build_column_from_things {
-  my $state = shift;
-  $state->delete("column");
-  $state->store(column => join("<br>", $state->fetch("_thing")));
+sub open {
+  my ($self, $whip) = @_;
+
+  $self->set_subtags
+    ( { column => PLUS,
+      },
+    );
 }
 
-my %tags =
-  ( column => \&build_column_from_things,
-  );
+sub close {
+  my $self = shift;
+  my @columns = $self->fetch("column");
 
-sub run {
-  my ($pkg, $state) = @_;
-
-  my $new_state = main::render_thing($state, "whip.tabloid", \%tags);
-
-  my @columns = $new_state->fetch("column");
   my $col_percent = int(100 / @columns);
 
   my $tabloid =
@@ -45,8 +39,7 @@ sub run {
       "</table>"
     );
 
-  $state->store(_output => $tabloid);
-  return $state;
+  $self->replace_contents("widget", $tabloid);
 }
 
 1;

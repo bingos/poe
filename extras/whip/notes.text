@@ -2,6 +2,16 @@
 
 "Whip" is tentatively an acronym for Wiki Hosted In POE.
 
+It's not hosted in POE yet.  I kind of need it right away for POE's
+web site, so I'm cutting corners.
+
+Whip is copyright 2002 by Rocco Caputo.  All rights are reserved.
+Whip is free software.  You may redistribute it and/or modify it under
+the same terms as Perl itself.
+
+Whip's author may be contacted at <troc+whip@pobox.com> until other
+support channels are activated.
+
 =head1 OVERVIEW
 
 Whip itself itself is very small.  It provides just enough features to

@@ -1,36 +1,36 @@
 # -*- perl -*-
 # $Id$
 
-# Render a pane (sort of like a window).  See whip.tabloid for the
-# framework panes are kept in.
-
 package Whip::Tag::pane;
-
 use warnings;
 use strict;
+use Whip::Tag qw(widget);
 
-my %tags =
-  ( title => \&Whip::Tag::from_value,
-    color => \&Whip::Tag::from_value,
-    item  => \&Whip::Tag::wiki_value,
-  );
+sub open {
+  my $self = shift;
 
-sub run {
-  my ($pkg, $state) = @_;
+  $self->set_subtags
+    ( { title => ONE,
+        color => ONE,
+        item  => STAR,
+      },
+    );
+}
 
-  my $new_state = main::render_thing($state, "whip.pane", \%tags);
+sub close {
+  my $self = shift;
 
-  my $color = $new_state->fetch("color", "#666666");
-  my $title = $new_state->fetch("title", "Untitled");
-  my @items = $new_state->fetch("item");
+  my $color = $self->fetch("color", "#666666");
+  my $title = $self->fetch("title", "Untitled");
+  my @items = $self->fetch("item");
 
-  $state->store
-    ( _thing =>
+  $self->replace_contents
+    ( widget =>
       ( "<table cellpadding='2' cellspacing='3' border='0' width='100%' " .
         "bgcolor='$color'>" .
         "<tbody>" .
         "<tr>" .
-        "<td valign='top'><font color='#ffffff'><b>$title</b></font><br> " .
+        "<td valign='top'><font color='#ffffff'><b>$title</b></font>" .
         "</td>" .
         "</tr>" .
         "<tr>" .
@@ -42,8 +42,6 @@ sub run {
         "</table>"
       )
     );
-
-  return $state;
 }
 
 1;
