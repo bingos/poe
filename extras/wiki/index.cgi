@@ -295,7 +295,7 @@ sub InitLinkPatterns {
     $AnyLetter   .= "\xc0-\xff";
   }
   if (!$SimpleLinks) {
-    $AnyLetter .= "_0-9";
+    $AnyLetter .= "_:0-9";
   }
   $UpperLetter .= "]"; $LowerLetter .= "]"; $AnyLetter .= "]";
 
@@ -2572,7 +2572,7 @@ sub OpenNewSection {
 sub OpenNewText {
   my ($name) = @_;  # Name of text (usually "default")
   %Text = ();
-  $Text{'text'} = "Insert Brane Here.\n\n<!--\n\" vim: syntax=wiki\n-->\n";
+  $Text{'text'} = "Empty page.  Click on 'Edit text of this page' below, or try [[$HomePage|the home page]].\n\n<!--\n\" vim: syntax=wiki\n-->\n";
   $Text{'minor'} = 0;      # Default as major edit
   $Text{'newauthor'} = 1;  # Default as new author
   $Text{'summary'} = '';
@@ -2684,7 +2684,7 @@ sub SetPageCache {
 }
 
 sub UpdatePageVersion {
-  &ReportError("Bad page version.\n");
+  &ReportError("Bad page version.");
 }
 
 sub KeepFileName {
@@ -2815,11 +2815,17 @@ sub UserDataFilename {
 # ==== Misc. functions ========================================================
 
 sub ReportError {
-    my ($errmsg) = @_;
+    my @errors = @_;
     my %data;
-    $data{footer} = $q->header. qq{<h2>$errmsg</h2>};
-    my $template = Text::Template->new(TYPE => 'FILE', DELIMITERS => [ '<%','%>' ], SOURCE => "$Templates/footer.html");
-    print $template->fill_in(HASH => \%data);
+
+    my $head = GetHeader("", "Submission error...", "");
+    my $foot = GetFooterText("SubmissionError", "");
+
+    print $head;
+    foreach (@errors) {
+      print "<h2>$_</h2>";
+    }
+    print $foot;
 }
 
 sub ValidId {
@@ -3154,8 +3160,10 @@ sub CalcTime {
   my ($ts) = @_;
   my ($ampm, $mytz);
 
+  # Nasty timezone encoding.
   $ts += $TimeZoneOffset;
-  my ($sec, $min, $hour, $mday, $mon, $year) = localtime($ts);
+  my ($sec, $min, $hour, $mday, $mon, $year) = gmtime($ts);
+  $ScriptTZ = "GMT";
 
   $mytz = "";
   if (($TimeZoneOffset == 0) && ($ScriptTZ ne "")) {
@@ -3843,10 +3851,10 @@ sub DoLinks {
   print &GetHeader("",&QuoteHtml("Full Link List"), ""),
         "<hr>";  # Extra lines to get below the logo
   &PrintLinkList(&GetFullLinkList());
-    print "\n";
+  print "\n";
 
-    my $template = Text::Template->new(TYPE => 'FILE', DELIMITERS => [ '<%','%>' ], SOURCE => "$Templates/footer.html");
-    print $template->fill_in(HASH => {});
+  my $template = Text::Template->new(TYPE => 'FILE', DELIMITERS => [ '<%','%>' ], SOURCE => "$Templates/footer.html");
+  print $template->fill_in(HASH => {});
 }
 
 sub PrintLinkList {
@@ -4045,6 +4053,19 @@ sub DoPost {
   $summary =~ s/[\r\n]//g;
   # Add a newline to the end of the string (if it doesn't have one)
   $string .= "\n"  if (!($string =~ /\n$/));
+
+  # Fucking spammers.
+  if (
+    $string =~ m{
+      ( hakdata
+      | 82\.165\.4\.19
+      | suchmaschinenoptimierung
+      )
+    }ix
+  ) {
+    &ReportError("Error submitting your data.", "Please contact the web master if this persists.");
+    return;
+  }
 
   # Lock before getting old page to prevent races
   &RequestLock() or die "Could not get editing lock";
