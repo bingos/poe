@@ -534,7 +534,7 @@ sub BrowsePage {
   }
   $MainPage = $id;
   $MainPage =~ s|/.*||;  # Only the main page name (remove subpage)
-  $fullHtml = &GetHeader($id, &QuoteHtml($id), $oldId);
+  $fullHtml = &GetHeader($id, &QuoteHtml($id), $oldId, $revision);
 
   if ($revision ne "") {
     # Later maybe add edit time?
@@ -796,7 +796,7 @@ sub DoHistory {
   my ($id) = @_;
   my ($html, $canEdit);
 
-  print &GetHeader("",&QuoteHtml("History of $id"), "") . "<br>";
+  print &GetHeader("",&QuoteHtml("History of $id"), "", "norobots") . "<br>";
   &OpenPage($id);
   &OpenDefaultText();
   $canEdit = &UserCanEdit($id);
@@ -1029,8 +1029,18 @@ sub GetHistoryLink {
   return &ScriptLink("action=history&id=$id", $text);
 }
 
+# If $revision is true, it means we're viewing an old revision of a page.
+# Notify search engine robots not to index the old versions.
+#
+# Search engine spammers rely on old versions of a page being indexed---
+# fixing spam doesn't correct it in the past, so it's also assimilated.
+# Turning off indexing for old pages thwarts their evil schemes.
+# 
+# We also pass in "norobots" from maintenance forms and things to prevent
+# their non-content from being indexed.
+
 sub GetHeader {
-    my ($id, $title, $oldId) = @_;
+    my ($id, $title, $oldId, $revision) = @_;
     my $header = "";
     my $LogoImage = "";
     my $result;
@@ -1095,6 +1105,14 @@ sub GetHeader {
         $data{header} .= &GetGotoBar($id) . "<hr>";
     }
     print $result if $result;
+
+    if ($revision) {
+      $data{meta_robot} = "NOINDEX,NOFOLLOW";
+    }
+    else {
+      $data{meta_robot} = "INDEX,FOLLOW";
+    }
+
     my $template =
       Text::Template->new( TYPE => 'FILE',
                            DELIMITERS => [ '<%','%>' ],
@@ -1286,10 +1304,10 @@ sub GetRedirectPage {
     $html .= " to continue.";
   } else {
     if ($isEdit) {
-      $html  = &GetHeader("","Thanks for editing...", "");
+      $html  = &GetHeader("","Thanks for editing...", "", "norobots");
       $html .= "Thank you for editing <a href=\"$url\">$name</a>.";
     } else {
-      $html  = &GetHeader("","Link to another page...", "");
+      $html  = &GetHeader("","Link to another page...", "", "norobots");
     }
     $html .= "\n<p>Follow the <a href=\"$url\">$name</a> link to continue.";
   }
@@ -2818,7 +2836,7 @@ sub ReportError {
     my @errors = @_;
     my %data;
 
-    my $head = GetHeader("", "Submission error...", "");
+    my $head = GetHeader("", "Submission error...", "", "norobots");
     my $foot = GetFooterText("SubmissionError", "");
 
     print $head;
@@ -3306,7 +3324,7 @@ sub DoEdit {
   my ($summary, $isEdit, $pageTime);
 
   if (!&UserCanEdit($id, 1)) {
-    print &GetHeader("", "Editing Denied", "");
+    print &GetHeader("", "Editing Denied", "", "norobots");
     if (&UserIsBanned()) {
       print "Editing not allowed: user, ip, or network is blocked.",
             "<p>Contact the system administrator for more information.";
@@ -3339,7 +3357,7 @@ sub DoEdit {
   }
   $editRows = &GetParam("editrows", 20);
   $editCols = &GetParam("editcols", 65);
-  print &GetHeader("", &QuoteHtml($header), "");
+  print &GetHeader("", &QuoteHtml($header), "", "norobots");
   if ($revision ne "") {
     print "\n<b>Editing old revision $revision.  Saving this page will"
           . " replace the latest revision with this text.</b><br>"
@@ -3451,7 +3469,7 @@ sub DoEditPrefs {
   $recentName = $RCName;
   $recentName =~ s/_/ /g;
   &DoNewLogin()  if ($UserID < 400);
-  print &GetHeader("", "Editing Preferences", ""),
+  print &GetHeader("", "Editing Preferences", "", "norobots"),
         &GetFormStart(),
         GetHiddenValue("edit_prefs", 1), "\n",
         "<b>User Information:</b>\n",
@@ -3557,7 +3575,7 @@ sub DoUpdatePrefs {
   # All link bar settings should be updated before printing the header
   &UpdatePrefCheckbox("toplinkbar");
   &UpdatePrefCheckbox("linkrandom");
-  print &GetHeader("","Saving Preferences", ""),
+  print &GetHeader("","Saving Preferences", "", "norobots"),
         "<br>";
   if ($UserID < 1001) {
     print "<b>Invalid UserID $UserID, preferences not saved.</b>";
@@ -3706,7 +3724,7 @@ sub UpdatePrefNumber {
 }
 
 sub DoIndex {
-  print &GetHeader("","Index of all pages", ""),
+  print &GetHeader("","Index of all pages", "", "norobots"),
         "<br>";
   &PrintPageList(&AllPagesList());
   print &GetCommonFooter();
@@ -3730,7 +3748,7 @@ sub DoNewLogin {
 }
 
 sub DoEnterLogin {
-    print &GetHeader("", "Login", "").
+    print &GetHeader("", "Login", "", "norobots").
         &GetFormStart().
         &GetHiddenValue("enter_login", 1), "\n",
         "<br>User ID number: ",
@@ -3764,7 +3782,7 @@ sub DoLogin {
       }
     }
   }
-  print &GetHeader("", "Login Results", "");
+  print &GetHeader("", "Login Results", "", "norobots");
   if ($success) {
     print "Login for user ID $uid complete.";
   } else {
@@ -3831,7 +3849,7 @@ sub DoSearch {
     &DoIndex();
     return;
   }
-  print &GetHeader("",&QuoteHtml("Search for: $string"), ""),
+  print &GetHeader("",&QuoteHtml("Search for: $string"), "", "norobots"),
         "<br>";
   &PrintPageList(&SearchTitleAndBody($string));
   print &GetCommonFooter();
@@ -3848,7 +3866,7 @@ sub PrintPageList {
 }
 
 sub DoLinks {
-  print &GetHeader("",&QuoteHtml("Full Link List"), ""),
+  print &GetHeader("",&QuoteHtml("Full Link List"), "", "norobots"),
         "<hr>";  # Extra lines to get below the logo
   &PrintLinkList(&GetFullLinkList());
   print "\n";
@@ -4298,7 +4316,7 @@ sub NewPageCacheClear {
 sub DoUnlock {
   my $LockMessage = "Normal Unlock.";
 
-  print &GetHeader("","Removing edit lock", ""),
+  print &GetHeader("","Removing edit lock", "", "norobots"),
         "<p>This operation may take several seconds...\n";
   if (&ForceReleaseLock('main')) {
     $LockMessage = "Forced Unlock.";
@@ -4341,7 +4359,7 @@ sub WriteDiff {
 
 sub DoMaintain {
   my ($name, $fname, $data);
-  print &GetHeader("","Maintenance on all pages", ""),
+  print &GetHeader("","Maintenance on all pages", "", "norobots"),
         "<br>";
   $fname = "$DataDir/maintain";
   if (!&UserIsAdmin()) {
@@ -4397,7 +4415,7 @@ sub UserIsAdminOrError {
 sub DoEditLock {
   my ($fname);
 
-  print &GetHeader("","Set or Remove global edit lock", "");
+  print &GetHeader("","Set or Remove global edit lock", "", "norobots");
   return  if (!&UserIsAdminOrError());
   $fname = "$DataDir/noedit";
   if (&GetParam("set", 1)) {
@@ -4416,7 +4434,7 @@ sub DoEditLock {
 sub DoPageLock {
   my ($fname, $id);
 
-  print &GetHeader("","Set or Remove page edit lock", "");
+  print &GetHeader("","Set or Remove page edit lock", "", "norobots");
   return  if (!&UserIsAdminOrError());
   if (!&UserIsAdmin()) {
     print "<p>This operation is restricted to administrators only...\n";
@@ -4446,7 +4464,7 @@ sub DoPageLock {
 sub DoEditBanned {
   my ($banList, $status);
 
-  print &GetHeader("", "Editing Banned list", "");
+  print &GetHeader("", "Editing Banned list", "", "norobots");
   return  if (!&UserIsAdminOrError());
   ($status, $banList) = &ReadFile("$DataDir/banlist");
   $banList = ""  if (!$status);
@@ -4472,7 +4490,7 @@ sub DoEditBanned {
 sub DoUpdateBanned {
   my ($newList, $fname);
 
-  print &GetHeader("", "Updating Banned list", "");
+  print &GetHeader("", "Updating Banned list", "", "norobots");
   return  if (!&UserIsAdminOrError());
   $fname = "$DataDir/banlist";
   $newList = &GetParam("banlist", "#Empty file");
@@ -4492,7 +4510,7 @@ sub DoUpdateBanned {
 # ==== Editing/Deleting pages and links =======================================
 
 sub DoEditLinks {
-  print &GetHeader("", "Editing Links", "");
+  print &GetHeader("", "Editing Links", "", "norobots");
   if ($AdminDelete) {
     return  if (!&UserIsAdminOrError());
   } else {
@@ -4546,7 +4564,7 @@ sub UpdateLinksList {
 sub DoUpdateLinks {
   my ($commandList, $doRC, $doText);
 
-  print &GetHeader("", "Updating Links", "");
+  print &GetHeader("", "Updating Links", "", "norobots");
   if ($AdminDelete) {
     return  if (!&UserIsAdminOrError());
   } else {
