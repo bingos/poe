@@ -1,0 +1,65 @@
+Things We Support That Others Dont
+===================================
+      *  <!-- --> comments
+      *  *BOLD*, _underline_, <u>underline</u>
+      *  $WantSearch turns off/on the search box
+      *  $WantTopLinkBar turns off/on the top link bar
+      *  mailto:foo@bar support improved
+      *  link to login form
+      *  indication of who you're logged in as
+      *  config.custom overrides defaults from config
+         (also keeps new config files from clobbering them)
+      *  dynamic $DataDir based on DOCUMENT_ROOT
+      *  hardcoded link, visited, active, and text colors to go along
+         with the white background
+      *  Improved ISBN support via ISBN.nu and an option to disable extras.
+      *  WORKS WITH MODPERL
+           <Files "index.cgi">
+              Options ExecCGI
+              SetHandler perl-script
+              PerlHandler Apache::PerlRun
+              PerlSendHeader Off
+           </Files>
+         and working to support Apache::Registry.
+      * <components></components>
+      * <boxes></boxes> to describe test machines
+      * <tests></tests> (or something) to describe tests
+      * <components></components> to describe POE components
+      * <projects></projects> to describe POE projects
+1.32  * $ReverseTitle supports reversing title elements order
+      * Unduplicates titles - "LP: LP" becomes "LP".
+1.33  * $EnableSelfLinks option to handle the top-of-page search links
+1.34  * $Footer allows you to add a custom footer to every document.
+        It turns out 0.94 usemod does this differently.
+1.37  * http:/{0,2}? links translate properly to ?something now.
+1.39  * $DataDir is detected properly and can be overridden later.
+       and working to support Apache::Registry.
+1.41  * $ForceLcaseFiles will make link/file matching case insensitive
+        by forcing filenames to lowercase.  It tries to find files by
+        their case-significant names first so existing pages aren't
+        orphaned.
+      * Added ./utils/lcase-data.perl to rename data files to lowercase
+        so ForceLcaseFiles works better.
+1.45  * Requires Text::Template now
+      * The html which wraps around the wiki nodes is now in templates.
+        in data/templates , header.html and footer.html comprise this
+        html. happy customizing.
+
+Things Needing Fixes
+====================
+
+      * @HtmlPairs doesn't support nested things.
+        Can't mix <font><b></b></font>, for example.
+
+      * The <boxes></boxes>, etc. "semantic markup" tags should probably
+	be done as a generic facility.  Define the general <foo></foo>
+	syntax, and write a parser for it.  Load a template associated
+	with "foo", and stuff the parsed fields into that.  Return the
+	generated HTML, and never have to code another StoreFoo sub again.
+
+      * It would be sweet once the <foo></foo> semantic template thing is
+        done if the templates could be editable via wiki.  Then there's
+	hardly any call for uploading updates to the site again.
+
+      * It may also be useful to associate a style sheet with each template.
+
