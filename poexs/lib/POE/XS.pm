@@ -23,13 +23,17 @@ POE::XS - a port of POE to C/XS
 =head1 DESCRIPTION
 
 
+=head1 LICENSE
+
+This code is released under the MIT license and is copyright 2004 by the
+authors listed below. See the LICENSE file included with this
+distribution for the full contents of this license.
+
 =head1 AUTHORS
 
 =over
 
 =item * sungo (sungo@pobox.com)
-
-=item * Rocco Caputo (rcaputo@cpan.org)
 
 =back
 
