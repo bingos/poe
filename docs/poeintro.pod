@@ -14,9 +14,7 @@ Matt Cashner (eek@eekeek.org)
 
 $Date$
 
-=head1 DISCUSSION
-
-=head2 What is POE?
+=head1 What is POE?
 
 POE is a giant ball of kinetic energy and Computer Science buzzwords
 wrapped in a very strange and wonderful culture.  POE is a MUD engine
@@ -82,7 +80,7 @@ day.
 
 =back
 
-=head2 Why use POE?
+=head1 Why use POE?
 
 =over 4
 
@@ -120,16 +118,14 @@ some days.
 
 =back 
 
-=head2 General Concepts
+=head1 General Concepts
 
 POE is a completely new way of looking at perl for most folks. It
 destroys the minds of the feeble and empowers the minds of the great.
 There is a sense in which POE is like learning a new programming
 language.  Say goodbye to Kansas, Dorothy, because here we go...
 
-=over 4
-
-=item * Events 
+=head2 Events 
 
 POE is event driven. Wait. What does that mean? To draw a somewhat
 relevant analogy... For most geeks, life is event driven.  Most of the
@@ -151,7 +147,7 @@ number of things. Incoming socket connections, console input, and
 internal timers can all trigger events.  POE::Wheel's also trigger
 events from various input sources.
 
-=item * States 
+=head2 States 
 
 States are a collection of actions which will be "fired" when an event
 happens.  These can be customized for the given parameters of the event.
@@ -163,29 +159,30 @@ parameters, an appropriate interface can be defined.
 POE states are plain ol' perl. Standard perl rules apply. Anything that
 can be in perl, can be done in a state. 
 
-=item * Sessions 
+=head2 Sessions 
 
 A Session is a collection of event handlers that looks a lot like state
 machine. Several sessions can be running at one time. Each session is
 its own unique machine, though communication is possible between
 sessions.
 
-=item * The Heap 
+=head2 The Heap 
 
 Each session has a data storehouse called the C<heap>. The heap can be
 any data structure required. It is unique per session and persistent
 across events.  This is a great place to store session data like
-tickets, user information, or whatever the program needs.
+tickets, user information, or whatever persistent data the program 
+requires.
 
 
 
-=head2 POErl (Syntax) 
+=head1 POE Syntax 
 
 Ok, now for the nitty gritty. This is a very high level introduction to
 POE syntax. Each of the following sections is tied to another man page
 which provides the super indepth view. 
 
-=item * Session Creation (poesess)
+=head2 Session Creation (poesess)
 
     POE::Session->create( 
         inline_states => {
