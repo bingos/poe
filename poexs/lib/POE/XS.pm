@@ -5,7 +5,7 @@ use 5.006001;
 use warnings;
 use strict;
 
-our $VERSION = qw($Revision$)[1];
+our $VERSION = '0.00_01';
 
 use XSLoader;
 

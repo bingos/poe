@@ -27,7 +27,7 @@ my $test_str = join " ", sort @tests;
 
 WriteMakefile(
 	NAME => 'poexs',
-	VERSION_FROM => 'VERSION',
+	VERSION_FROM => 'lib/POE/XS.pm',
 	ABSTRACT => 'C/XS version of POE',
 	AUTHOR => 'The POE Community (poe@perl.org)',
 
