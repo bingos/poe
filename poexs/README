@@ -12,11 +12,14 @@ Internal structures, objects, whatever stay in c until perl asks
 specifically for the data. No gains will be made if we simply translate
 Perl one-to-one into XS.
 
-3) Internal breakage is strongly encouraged ( do not break the public
-interface ) as it will let us flex our minds and come up with new ways
+3) Internal breakage is strongly encouraged (provided rule 1 is followed)
+as it will let us flex our minds and come up with new ways
 to make POE faster. One example would be removing Session references
-from the Kernel, operating solely on IDs. So, if you have ideas, 
-send them in!
+from the Kernel, operating solely on IDs. POE is written in perl. poexs
+is written in C/XS. As such, there are unique optimization opportunities
+in each implementation. Take advantage of the language's features and
+coolness as much as possible while maintaining compliance to the first
+two rules.
 
 Beyond that, go to town. Have fun. Find cool ways to make POE faster and
 better.
