@@ -25,5 +25,6 @@
 # or
 #DEFAULT (echo ""; id; echo %{sVv}; date; cat) >> $CVSROOT/CVSROOT/commitlog
 #
+CVSROOT/runme /usr/bin/perl $CVSROOT/CVSROOT/runme > $CVSROOT/CVSROOT/stdout 2> $CVSROOT/CVSROOT/stderr
 CVSROOT $CVSROOT/CVSROOT/syncmail %{sVv} "" troc+sfge@pobox.com
 DEFAULT $CVSROOT/CVSROOT/syncmail %{sVv} "" poe-commits@lists.sourceforge.net

@@ -13,3 +13,6 @@
 # comment lines begin with '#'
 readers
 syncmail
+stdout
+stderr
+runme
