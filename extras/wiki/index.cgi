@@ -68,7 +68,7 @@ use vars qw( @RcDays @HtmlPairs @HtmlSingle $TempDir $LockDir
      $WantSearch $WantTopLinkBar $ExtraISBNLinks
      $UseScriptName $AllowCharRefs $UserCSS $ReverseTitle
      $EnableSelfLinks $Footer $ForceLcaseFiles
-     $LoadEveryTime $Templates
+     $LoadEveryTime $Templates $EnableInlineTitle
      $VERSION
 );
 
@@ -159,7 +159,10 @@ sub InitConfig {
   $AllowCharRefs  = 1;       # 1 = allow character references    0 = don't
   $UserCSS        = 1;       # 1 = allow per-user CSS prefs      0 = don't
   $ReverseTitle   = 0;       # 1 = page title before SiteName    0 = after
+
   $EnableSelfLinks = 1;      # 1 = create ?search heading links  0 = don't
+  $EnableInlineTitle = 1;    # 1 = use title in page             0 = don't
+
   $Footer         = "";      # HTML that goes at the end of the footer.
   $ForceLcaseFiles = 0;      # 1 = filename case always lower    0 = not
   $LoadEveryTime  = 0;       # 1 = force config load every run   0 = not
@@ -1072,11 +1075,14 @@ sub GetHeader {
         $header = &ScriptLink($HomePage, "<$LogoImage>");
     }
 
-    if ($EnableSelfLinks && $id ne "") {
+    if ($EnableInlineTitle) {
+      if ($EnableSelfLinks && $id ne "") {
         $data{header} .= q{<h1>}.($header . &GetSearchLink($id)).q{</h1>};
-    } else {
+      } else {
         $data{header} .= q{<h1>}.($header . $title).q{</h1>};
+      }
     }
+
     if ($WantTopLinkBar && &GetParam("toplinkbar", 1)) {
         # Later consider smaller size?
         $data{header} .= &GetGotoBar($id) . "<hr>";
