@@ -1,0 +1,8 @@
+Why is poexs laid out like this?
+
+bin/ - scripts and utilities
+docs/ - documentation
+lib/ - Perl modules
+t/ - automated tests
+t/lib - libraries used only in testing
+xs/ - XS modules

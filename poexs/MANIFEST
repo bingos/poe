@@ -1,0 +1,12 @@
+docs/layout.txt
+lib/POE/XS.pm
+Makefile.PL
+MANIFEST
+MANIFEST.SKIP
+META.yml			Module meta-data (added by MakeMaker)
+README
+t/00-compile.t
+VERSION
+xs/Makefile.PL
+xs/POE_XS.xs
+xs/typemap
