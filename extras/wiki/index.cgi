@@ -560,11 +560,11 @@ sub BrowsePage {
     &OpenKeptRevisions('text_default')  if (!$openKept);
     $fullHtml .= &GetDiffHTML($showDiff, $id, $diffRevision, $newText);
   }
-  $fullHtml .= &WikiToHTML($Text{'text'}) . "<hr>\n";
+  $fullHtml .= &WikiToHTML($Text{'text'}) . "\n"; #  . "<hr>\n";
   if ($id eq "$RCName") {
     print $fullHtml;
     &DoRc();
-    print "<hr>\n", &GetFooterText($id, $goodRevision);
+    print &GetFooterText($id, $goodRevision);
     return;
   }
   $fullHtml .= &GetFooterText($id, $goodRevision);
@@ -741,19 +741,24 @@ sub GetRcHtml {
       $html .= "<UL>\n";
       $inlist = 1;
     }
+
     $host = &QuoteHtml($host);
     if (defined($extra{'name'}) && defined($extra{'id'})) {
       $author = &GetAuthorLink($host, $extra{'name'}, $extra{'id'});
     } else {
       $author = &GetAuthorLink($host, "", 0);
     }
+
     $sum = "";
     if (($summary ne "") && ($summary ne "*")) {
       $summary = &QuoteHtml($summary);
       $sum = "<strong>[$summary]</strong> ";
     }
+    $sum = "(no summary, tch tch tch)" unless defined $sum and length $sum;
+
     $edit = "";
     $edit = "<em>(edit)</em> "  if ($isEdit);
+
     $count = "";
     if ((!$all) && ($pagecount{$pagename} > 1)) {
       $count = "($pagecount{$pagename} ";
@@ -764,15 +769,16 @@ sub GetRcHtml {
       }
       $count .= ") ";
     }
+    
     $link = "";
     if ($UseDiff && &GetParam("diffrclink", 1)) {
       $link .= &ScriptLinkDiff(4, $pagename, "(diff)", "") . "  ";
     }
     $link .= &GetPageLink($pagename);
+
     $html .= "<li>$link ";
     # Later do new-RC looping here.
-    $html .=  &CalcTime($ts) . " $count$edit" . " $sum";
-    $html .= ". . . . . $author\n";  # Make dots optional?
+    $html .= &CalcTime($ts) . " $count$edit by $author<br>$sum";
   }
   $html .= "</UL>\n" if ($inlist);
   return $html;
@@ -1180,6 +1186,7 @@ sub GetFooterText {
         $data{footer} .= "<br><b>Warning:</b> Database is stored in temporary"
                       . " directory $DataDir<br>";
     }
+    $data{footer} .= " - Or find pages that link to <b>" . GetSearchLink($id) . "</b>";
     if (length $Footer) {
         $data{footer} .= $Footer;
     }
@@ -1797,10 +1804,10 @@ sub StoreProjects {
 }
 
 my %otl_colors = (
-  "?" => "C0C0C0",
+  "?" => "707070",
   "-" => "008000",
   "=" => "00C000",
-  "+" => "00FF00",
+  "+" => "004000",
   "*" => "000000",
   "#" => "800000",
 );
@@ -1823,6 +1830,7 @@ sub StoreOutline {
 
   while ($source =~ m/^(.*)$/mig) {
     my $line = $1;
+    chomp $line;
 
     # Headings.
     if ($line =~ s/^(\t+)//) {
@@ -1833,38 +1841,46 @@ sub StoreOutline {
     }
 
     # Pipe denotes text.
-    if ($line =~ s/^\| //) {
-      $line =~ s/^\s*$//;
+    if ($line =~ s/^\| ?//) {
 
       if ($type eq "todo") {
       	# Can't use : in todo lists, because it's a special wiki character.
         $line =~ s/:/&#58;/g;
 
-	# This line continues a pipe, and it's not pre-formatted.
-	if (@outline and $outline[-1] =~ /^:/ and $line !~ /^\s/) {
-	  $outline[-1] =~ s/\s+$//;
-	  $outline[-1] .= " $line";
-	}
-	else {
+	# This line is preformatted.  Just add it, but fixed-width, etc.
+	if ($line =~ /^\s/) {
           my $stuff = ":" x ($level + 1);
-	  push @outline, "$stuff<font color='#$last_color'>$line";
+	  $line =~ s/\s/&#160;/g;
+	  push @outline, "$stuff<font color='#$last_color'><tt>$line</tt>";
+	  next;
 	}
-      }
-      else {
-        push @outline, $line;
-      }
-      next;
-    }
 
-    # Empty pipes happen.
-    if ($line =~ s/^\|\s*$//) {
-      push @outline, "";
+	# This line continues a pipe...
+	if (@outline and $outline[-1] =~ /^:/) {
+	  # Previous line was empty...
+	  my $temp = $outline[-1];
+	  $temp =~ s/<.*?>//g;
+	  unless ($temp =~ /^(:|&#160;|\s+)*$/) {
+	    $outline[-1] =~ s/\s+$//;
+	    $outline[-1] .= " $line";
+	    next;
+	  }
+	}
+
+	# This line starts a pipe?
+        my $stuff = ":" x ($level + 1);
+        push @outline, "$stuff<font color='#$last_color'>$line";
+	next;
+      }
+
+      # Some other outline.  Just add it.
+      push @outline, $line;
       next;
     }
 
     if ($type eq "headers") {
       my $stuff = "=" x ($level + 1);
-      push @outline, "$stuff $line $stuff\n";
+      push @outline, "$stuff $line $stuff";
       next;
     }
 
@@ -1875,6 +1891,7 @@ sub StoreOutline {
     }
 
     if ($type eq "todo") {
+      $line =~ s/\s+$//;
       my $stuff = ";" x ($level+1);
       $line =~ s/^([\!-\/\:-\@\[-\`\{-\~])\s+/<tt>$1 <\/tt>/;
       my $bullet = $1;
@@ -1891,7 +1908,7 @@ sub StoreOutline {
       }
 
       $last_color = $color;
-      push @outline, "$stuff <font color='\#$color'>$line</font>";
+      push @outline, "$stuff<font color='\#$color'>$line</font>";
       next;
     }
 
@@ -1909,8 +1926,9 @@ sub StoreOutline {
       }
     }
 
+    # Close <font> tags in text notes.
     foreach (@outline) {
-      s/\s*$/<\/font>\n/ if /^:/;
+      s/\s*$/<\/font>/ if /^:/;
     }
 
     if ($type eq "todo") {
@@ -1921,6 +1939,7 @@ sub StoreOutline {
 	"  \= = Started.  Actively being worked on.",
 	"  \+ = Almost done.",
 	"  \* = Done.  Hooray!",
+	"  X = Canceled.",
 	"  \# = Blocked.  Someone or something is in the way.",
       );
     }
@@ -1942,6 +1961,7 @@ sub StoreOutline {
 #      }
 #    }
 
+#return join("\n  ", @outline, "</pre>");
     return WikiLinesToHtml(join "\n", @outline);
   }
   return "<p>No outline.</p>";
@@ -2024,13 +2044,13 @@ sub StoreComponents {
         $component .=
           ( "<tr bgcolor=#DDDDDD>" .
             "<td width='1%'>" .
-            "<font face='verdana' color=#000000 size=2><b>URL</b></font>" .
+            "<font face='verdana' color=#000000 size=2><b>Download</b></font>" .
             "</td>" .
             "<td width='1%' nowrap>" .
             "<font face='verdana' color=#000000 size=2> <b>:</b> </font>" .
             "</td>" .
             "<td width='98%'>" .
-            $url .
+            "[$url Get it now!]" .
             "</td>" .
             "</tr>"
           );
@@ -2057,20 +2077,33 @@ sub StoreComponents {
       }
 
       $component .=
+        ( "<tr bgcolor=#DDDDDD>" .
+          "<td nowrap>" .
+          "<font face='verdana' color=#000000 size=2>" .
+	  "<b>On CPAN</b>" .
+	  "</font>" .
+	  "</td>" .
+          "<td width='1%' nowrap>" .
+          "<font face='verdana' color=#000000 size=2> <b>:</b> </font>" .
+          "</td>" .
+          "<td width='98%'>" .
+          "<font face='verdana' color=#000000 size=2>"
+        );
+      if ($cpan) {
+        $component .= "Yes!";
+      }
+      else {
+        $component .= "No.";
+      }
+      $component .= (
+        "</font>" .
+        "</td>" .
+        "</tr>"
+      );
+
+      $component .=
         ( "</table>" .
           "</td>" .
-          "</tr>"
-        );
-    }
-
-    if ($cpan) {
-      $component .=
-        ( "<tr bgcolor=#DDDDDD>" .
-          "<td>" .
-          "<font face='verdana' color=#000000 size=2>" .
-          "Available on the CPAN." .
-          "</font>" .
-          "</td>".
           "</tr>"
         );
     }
