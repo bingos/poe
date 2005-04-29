@@ -34,9 +34,9 @@ If the XML is invalid, the report is deleted.
 use warnings;
 use strict;
 
+use lib qw(/home/sungo/perl5/local/share/perl/5.6.1);
 use XML::Simple;
 use CGI_Lite;
-
 my (%tests,%poe);
 my $cgi = CGI_Lite->new();
 
@@ -47,7 +47,8 @@ $cgi->set_file_type('handle');
 # set up the location of the test result files. 
 # This path should probably not be in a place that's generally
 # accessible to your apache instance.
-my $test_dir = '/ext/perl/poe/test-results';
+my $test_dir = '/home/sungo/eekeek.org/poe-tests/';
+
 unless(-d $test_dir) {
     die "$test_dir does not exist or is not a directory";
 }
@@ -150,14 +151,14 @@ sub _generate_ind_test ($) {
                     <th align="center" bgcolor="#e1e1e1">Perl Data</th>
                 </tr>
                 <tr>
-                    <td width="75" valign="top"><font size="-1">
+                    <td width="75%" valign="top"><font size="-1">
     |; 
         
     my $testcount = scalar @{$test->{tests}{test}};
     foreach my $report (@{$test->{tests}{test}}) {
         $report->{skip} ||=0;
         $report->{todo} ||=0;
-        $report->{ok} ||=0;
+        $report->{ok} ||=0; 
         $report->{expected} ||= 0;
         if(($report->{ok} - $report->{skip} - $report->{todo}) == $report->{expected}) {
             $testcount--;
