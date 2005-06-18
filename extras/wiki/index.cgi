@@ -534,7 +534,33 @@ sub BrowsePage {
   }
   $MainPage = $id;
   $MainPage =~ s|/.*||;  # Only the main page name (remove subpage)
-  $fullHtml = &GetHeader($id, &QuoteHtml($id), $oldId, $revision);
+
+  # Need to know if this is a diff (also looking at older revision)
+  # so we can stop search robots from indexing it.
+  $allDiff  = &GetParam("alldiff", 0);
+  if ($allDiff != 0) {
+    $allDiff = &GetParam("defaultdiff", 1);
+  }
+  if (($id eq "$RCName") && &GetParam("norcdiff", 1)) {
+    $allDiff = 0;  # Only show if specifically requested
+  }
+
+  my $header_revision = $revision;
+
+  $showDiff = &GetParam("diff", $allDiff);
+  if ($UseDiff && $showDiff) {
+    $diffRevision = $goodRevision;
+    $diffRevision = &GetParam("diffrevision", $diffRevision);
+    # Later try to avoid the following keep-loading if possible?
+    &OpenKeptRevisions('text_default')  if (!$openKept);
+    $header_revision ||= 1;
+  }
+
+  $fullHtml = &GetHeader($id, &QuoteHtml($id), $oldId, $header_revision);
+
+  if ($UseDiff && $showDiff) {
+    $fullHtml .= &GetDiffHTML($showDiff, $id, $diffRevision, $newText);
+  }
 
   if ($revision ne "") {
     # Later maybe add edit time?
@@ -545,21 +571,7 @@ sub BrowsePage {
                    "(showing current revision instead)</b><br>";
     }
   }
-  $allDiff  = &GetParam("alldiff", 0);
-  if ($allDiff != 0) {
-    $allDiff = &GetParam("defaultdiff", 1);
-  }
-  if (($id eq "$RCName") && &GetParam("norcdiff", 1)) {
-    $allDiff = 0;  # Only show if specifically requested
-  }
-  $showDiff = &GetParam("diff", $allDiff);
-  if ($UseDiff && $showDiff) {
-    $diffRevision = $goodRevision;
-    $diffRevision = &GetParam("diffrevision", $diffRevision);
-    # Later try to avoid the following keep-loading if possible?
-    &OpenKeptRevisions('text_default')  if (!$openKept);
-    $fullHtml .= &GetDiffHTML($showDiff, $id, $diffRevision, $newText);
-  }
+
   $fullHtml .= &WikiToHTML($Text{'text'}) . "\n"; #  . "<hr>\n";
   if ($id eq "$RCName") {
     print $fullHtml;
@@ -963,7 +975,7 @@ sub GetSearchLink {
 }
 
 sub GetPrefsLink {
-  return &ScriptLink("action=editprefs", "Preferences");
+  return &ScriptLink("action=editprefs", "Signup/Preferences");
 }
 
 sub GetLoginLink {
@@ -1174,11 +1186,17 @@ sub GetFooterText {
     $data{footer} = &GetFormStart();
     $data{footer} .= &GetGotoBar($id);
     if (&UserCanEdit($id, 0)) {
-        if ($rev ne "") {
+        my $userName = &GetParam("username", "");
+	if ($userName eq "") {
+	  $data{footer} .= "Must login to edit";
+	}
+	else {
+          if ($rev ne "") {
             $data{footer} .= &GetOldPageLink('edit',   $id, $rev, "Edit revision $rev of this page");
-        } else {
+          } else {
             $data{footer} .= &GetEditLink($id, "Edit text of this page");
-        }
+          }
+	}
         $data{footer} .= " | " . &GetHistoryLink($id, "View other revisions");
     } else {
         $data{footer} .= "This page is read-only";
@@ -2111,7 +2129,7 @@ sub StoreComponents {
         $component .= "Yes!";
       }
       else {
-        $component .= "No.";
+        $component .= "Unfortunately not.";
       }
       $component .= (
         "</font>" .
@@ -2293,7 +2311,7 @@ sub UrlLink {
         # trim the mailto from what we display
         substr($email, 0, 7) = '';
         # change the @ to ' at '; makes humans feel a little better.
-        $email =~ s/\@/ at /;
+        $email =~ s/\@/&nbsp;at&nbsp;/;
         return(qq{&lt;<a href="$name">$email</a>&gt;}, $punct);
     }
 
@@ -2918,6 +2936,7 @@ sub UserCanEdit {
     return 1  if (&UserIsEditor());
     return 0  if (&UserIsBanned());
   }
+
   return 1;
 }
 
@@ -4075,11 +4094,36 @@ sub DoPost {
   # Fucking spammers.
   if (
     $string =~ m{
-      ( hakdata
-      | 82\.165\.4\.19
-      | suchmaschinenoptimierung
+      ( hakdata | 82\.165\.4\.19 | suchmaschinenoptimierung
+      | emmss\.com | chongqing | 211\.158\.6\.107
+      | 0020\.net | 61\.135\.129\.95
+      | kykdz\.com | 211\.154\.211\.\d+
+      | freewebpage\.org | 65\.208\.179\.220
+      | svs\.cn
+      | crestron\.cn
+      | ganzaoji | 218\.244\.47\.24
+      | huola\.com | sexyongpin | mianfei | midiwu | nanting | news123\.org | guilinhotel
+      | shop263.com | 218\.244\.47\.217
+      | www\.wjmgy\.com | 61\.135\.136\.130
+      | www\.etoo\.cn | 210\.192\.124\.153
+      | www\.timead\.net
+      | www\.paite\.net
+      | www\.rr365\.net
+      | www\.ronren\.com
+      | csnec\.net | \d+\.com | bjzyy\.com | lifuchao\.com | pfxb\.com | qzkfw\.com | rxbkfw\.com | xyxy\.com | zhqzw\.com
+      | 210\.51\.188\.148 | 218\.30\.96\.\d+ | 61\.152\.94\.121
+      | \.\d+dragon\.com
+      | u-tokyo\.ac\.jp | mycv\.com | cvdiy\.com | mycv\.cn
+      | hpvsos\.(?:com|net) | aakk\.org | xbcn\.org
+      | bead-diy\.com | royalty-crystal\.com | adlernunu\.blogcn\.com
+      | asiaec\.com | windowstime\.com | pggreen\.com
       )
     }ix
+    or
+    $string =~ m{
+      ( Ss+Ss+
+      )
+    }x
   ) {
     &ReportError("Error submitting your data.", "Please contact the web master if this persists.");
     return;
