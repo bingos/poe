@@ -1,13 +1,21 @@
 use strict;
 use warnings;
+use Config;
+use Getopt::Long;
 use POE qw(Wheel::Run Component::Client::UserAgent);
 use HTTP::Request::Common;
 
 my $make = '/usr/pkg/bin/gmake';
 my $perl = '/usr/bin/perl';
-my $working = '/home/chris/dev/poe/poe/';
-my $pbotutil = '/usr/pkg/bin/pbotutil';
-my $pbotopts = [ '-s', 'shadow', '-c', '#poe', '-u', 'POESmoke', '-m', 'Results of TEST' ];
+my $working;
+my $result;
+
+GetOptions ("workdir=s" => \$working,
+	    "make=s"    => \$make,
+	    "perl=s"	=> \$perl,
+	    "result=s"  => \$result );
+
+die "Must specify --workdir and --result options\n" unless $working and $result;
 
 POE::Component::Client::UserAgent->new();
 
@@ -49,7 +57,7 @@ sub process {
   my $todo = shift @{ $heap->{todo} };
   unless ( $todo ) {
 	my $postback = $_[SESSION]->postback('_response');
-	my %formdata = ( channel => '#poe', nick => 'POEsmoker', summary => 'Results of svn POE Smoke', paste => join( "\n", @{ $heap->{output} } ) );
+	my %formdata = ( channel => '#poe', nick => 'POlEsmoker', summary => "Results of svn $result smoke (" . $Config{archname} . "): " . ( $heap->{status} ? 'Problem with tests' : 'All tests successful' ), paste => join( "\n", @{ $heap->{output} }, "\n\n", Config::myconfig() ) );
 	my $request = HTTP::Request::Common::POST( 'http://scsys.co.uk:8001/paste' => [ %formdata ] );
 	$poe_kernel -> post (useragent => request => { request => $request, response => $postback } );
   	return;

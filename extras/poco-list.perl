@@ -12,7 +12,8 @@ foreach my $dist (sort keys %{$tree->{dist}}) {
     next unless $dist =~ /POE-Component/;
     my $info = $tree->{dist}->{$dist};
     print "Component: $dist (v$info->{version})\n";
-    print "\tAuthor: $info->{author}->{link}\n";
+    my ($author) = $info->{author}->{link} =~ m#~(.+)/$#;
+    print "\tAuthor: ", uc $author, "\n";
     print "\tURL: $info->{link}\n";
     print "\tReleased on: $info->{released}\n";
     print "\tDescription: $info->{description}\n";
