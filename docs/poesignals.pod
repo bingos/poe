@@ -1,0 +1,283 @@
+=head1 NAME
+
+POE::Topic::Signals - Documentation of POE signals
+
+=head1 SYNOPSIS
+
+Signal watcher and generator methods:
+
+  # Watch for a signal, and generate an event when it arrives.
+  $kernel->sig( $signal_name, $event );
+
+  # Stop watching for a signal.
+  $kernel->sig( $signal_name );
+
+  # Handle a signal, preventing the program from terminating.
+  $kernel->sig_handled();
+
+  # Post a signal through POE rather than through the underlying OS.
+  # This only works within the same process.
+  $kernel->signal( $session, $signal_name, @optional_args );
+
+=head1 DESCRIPTION
+
+POE signals are analogous to OS signals.
+
+They can be generated from several sources:
+
+=over 2
+
+=item OS signal
+
+When the underlying OS sends the POE process a signal, the Kernel
+dispatches this to all the sessions. Just like in other programs,
+some of these must be handled, or the process will terminate.
+
+=item user code
+
+You can create fake signals yourself. See the signal method below
+
+=item POE
+
+Not only can you create signals, POE uses a few of these
+"fictitious" signals to notify programs about certain global events.
+
+=back
+
+=head2 Signal Watcher Methods
+
+First some general notes about signal events and handling them.
+
+Sessions only receive signal events that have been registered with
+C<sig()>.  In the past, they also would receive "_signal" events, but
+this is no longer the case.
+
+
+Child sessions are the ones created by another session.  Signals are
+dispatched to children before their parents.  By the time a parent
+receives a signal, all its children have already had a chance to
+handle it.
+
+The Kernel acts as the parent of every session.  Signaling it causes
+every interested session to receive the signal.  This is how operating
+system signals are implemented.
+
+It is possible to post signals in POE that don't exist in the
+operating system.  They are placed into the queue as if they came from
+the operating system, but they are not limited to signals recognized
+by kill().  POE uses a few of these "fictitious" signals to notify
+programs about certain global events.
+
+It is also possible to post signals to particular sessions.  In those
+cases, POE only calls the handlers for that session and its children.
+
+Some signals are considered terminal.  They will terminate the
+sessions they touch if they are not marked as "handled".  A signal is
+considered handled (or not) for all the sessions it touches.
+Therefore, one session can handle a signal for the entire program.
+All the other sessions will still receive notice of the signal, but
+none of them will be terminated if it's handled by the time it's fully
+dispatched.
+
+The sig_handled() method is used to mark signals as handled.
+
+POE also recognizes "non-maskable" signals.  These will terminate a
+program even when they are handled.  For example, POE sends a
+non-maskable UIDESTROY signal to indicate when the program's user
+interface has been shut down.
+
+Signal handling in older versions of Perl is not safe by itself.  POE
+is written to avoid as many signal problems as it can, but they still
+may occur.  SIGCHLD is a special exception: POE polls for child
+process exits using waitpid() instead of a signal handler.  Spawning
+child processes should be completely safe.
+
+Here is a summary of the three signal levels.
+
+=over 2
+
+=item benign
+
+Benign signals just notify sessions that signals have been received.
+They have no side effects if they are not handled.
+
+=item terminal
+
+Terminal signal may stop a program if they go unhandled.  If any event
+handler calls C<sig_handled()>, however, then the program will
+continue to live.
+
+The terminal system signals are: HUP, INT, KILL, QUIT and TERM.  There
+are two terminal fictitious signals, IDLE and DIE. IDLE is used to notify
+leftover sessions when a program has run out of things to do. DIE is
+used to notify sessions that an exception has occurred.
+
+POE's automatic exception handling can be turned off by setting the
+C<CATCH_EXCEPTIONS> constant subroutine in C<POE::Kernel> to 0 like so:
+
+  sub POE::Kernel::CATCH_EXCEPTIONS () { 0 }
+
+
+=item nonmaskable
+
+Nonmaskable signals are similar to terminal signals, but they stop a
+program regardless whether it has been handled.  POE implements two
+nonmaskable signals, both of which are fictitious.
+
+ZOMBIE is fired if the terminal signal IDLE did not wake anything up.
+It is used to stop the remaining "zombie" sessions so that an inactive
+program will exit cleanly.
+
+UIDESTROY is fired when a main or top-level user interface widget has
+been destroyed.  It is used to shut down programs when their
+interfaces have been closed.
+
+=back
+
+Some system signals are handled specially.  These are SIGCHLD/SIGCLD,
+SIGPIPE, and SIGWINCH.
+
+=over 2
+
+=item SIGCHLD/SIGCLD Events
+
+SIGCHLD and SIGCLD both indicate that a child process has terminated.
+The signal name varies from one operating system to another.
+POE::Kernel always sends the program a CHLD signal, regardless of the
+operating system's name for it.  This simplifies your code since you
+don't need to check for both.
+
+The SIGCHLD/SIGCHLD signal event comes with three custom parameters.
+
+C<ARG0> contains 'CHLD', even if SIGCLD was caught.
+C<ARG1> contains the ID of the exiting child process.
+C<ARG2> contains the return value from C<$?>.
+
+=item SIGPIPE Events
+
+Normally, system signals are posted to the Kernel so they can
+propagate to every session.  SIGPIPE is an exception to this rule.  It
+is posted to the session that is currently running.  It still will
+propagate through that session's children, but it will not go beyond
+that parent/child tree.
+
+SIGPIPE is mostly moot since POE will usually return an EPIPE error
+instead.
+
+=item SIGWINCH Events
+
+Window resizes can generate a large number of signals very quickly,
+and this can easily cause perl to dump core.  This should not be a
+problem in newer versions of Perl (after 5.8.0) because they make
+signals safe for the world.
+
+The Event module also claims to handle signals safely.  Its signal
+handlers are written in C++, and they can do more interesting things
+than plain Perl handlers.
+
+=back
+
+Finally, here are POE::Kernel's signal methods themselves.
+
+=over 2
+
+=item sig SIGNAL_NAME, EVENT_NAME
+
+=item sig SIGNAL_NAME
+
+sig() registers or unregisters a EVENT_NAME event for a particular
+SIGNAL_NAME.  Signal names are the same as %SIG uses, with one
+exception: CLD is always delivered as CHLD, so handling CHLD will
+always do the right thing.
+
+  $kernel->sig( INT => 'event_sigint' );
+
+To unregister a signal handler, just leave off the event it should
+generate, or pass it in undefined.
+
+  $kernel->sig( 'INT' );
+  $kernel->sig( INT => undef );
+
+It's possible to register events for signals that the operating system
+will never generate.  These "fictitious" signals can however be
+generated through POE's signal() method instead of kill(2).
+
+The sig() method does not return a meaningful value.
+
+=item sig_handled
+
+sig_handled() informs POE that a signal was handled.  It is only
+meaningful within event handlers that are triggered by signals.
+
+=item signal SESSION, SIGNAL_NAME, OPTIONAL_ARGS
+
+=item signal SESSION, SIGNAL_NAME
+
+signal() posts a signal event to a particular session (and its
+children) through POE::Kernel rather than actually signaling the
+process through the operating system.  Because it injects signal
+events directly into POE's Kernel, its SIGNAL_NAME doesn't have to be
+one the operating system understands.
+
+For example, this posts a fictitious signal to some session:
+
+  $kernel->signal( $session, 'DIEDIEDIE' );
+
+POE::Kernel's signal() method doesn't return a meaningful value.
+
+=item signal_ui_destroy WIDGET
+
+This registers a widget with POE::Kernel such that the Kernel fires a
+UIDESTROY signal when the widget is closed or destroyed.  The exact
+trigger depends on the graphical toolkit currently being used.
+
+  # Fire a UIDESTROY signal when this top-level window is deleted.
+  $heap->{gtk_toplevel_window} = Gtk::Window->new('toplevel');
+  $kernel->signal_ui_destroy( $heap->{gtk_toplevel_window} );
+
+=back
+
+=head2 Signal Handlers
+
+Signal handlers can be passed several arguments, but the first one is
+almost always the name of the signal. For OS signals, this is the root
+name of the signal without the SIG prefix, as it appears in Perl's
+%SIG hash.
+
+An exception to this is the DIE signal, which is sent when POE traps
+an exception. This is passed a single argument, a hashref,
+containing the following data.
+
+=over 2
+
+=item source_session
+
+The session from which the event originated
+
+=item dest_session
+
+The session which was the destination of the event. This is also the
+session that caused the exception.
+
+=item event
+
+Name of the event that caused the exception
+
+=item file
+
+The filename of the code which called the problematic event
+
+=item line
+
+The line number of the code which called the problematic event
+
+=item from_state
+
+The state that was called the problematci event
+
+=item error_str
+
+The value of C<$@>, which contains the error string created by the
+exception.
+
+=back
