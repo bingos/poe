@@ -1,21 +1,54 @@
+# smoker.perl - Smoking is good, mmmkay
+#
+# Author - Chris 'BinGOs' Williams
+#
+# This module may be used, modified, and distributed under the same
+# terms as Perl itself. Please see the license that came with your Perl
+# distribution for details.
+#
+
 use strict;
 use warnings;
 use Config;
+use Cwd;
+use File::Basename;
 use Getopt::Long;
 use POE qw(Wheel::Run Component::Client::UserAgent);
 use HTTP::Request::Common;
 
-my $make = '/usr/pkg/bin/gmake';
-my $perl = '/usr/bin/perl';
-my $working;
-my $result;
+my $make = ( $^O eq 'MSWin32' ? 'nmake.exe' : 'make' );
+my $perl = ( $^O eq 'MSWin32' ? 'perl.exe' : '/usr/bin/perl' );
+my $pasteurl = 'http://paste.scsys.co.uk';
+my $channel = '#poe';
+my $name = 'POlEsmoker';
+my $working = getcwd();
+my $result = fileparse($working);
+my $help;
 
 GetOptions ("workdir=s" => \$working,
 	    "make=s"    => \$make,
 	    "perl=s"	=> \$perl,
+	    "name=s"    => \$name,
+	    "url=s"	=> \$pasteurl,
+	    "channel=s" => \$channel,
+	    "help"	=> \$help,
 	    "result=s"  => \$result );
 
-die "Must specify --workdir and --result options\n" unless $working and $result;
+if ( $help ) {
+  print "Help is available using 'perldoc -F $0'\n";
+  exit 0;
+}
+
+print "Using the following settings:\n";
+print "Make program      = $make\n";
+print "Perl executable   = $perl\n";
+print "working directory = $working\n";
+print "Paste URL         = $pasteurl\n";
+print "Name for paste    = $name\n";
+print "Channel for paste = $channel\n";
+print "Result string     = $result\n";
+
+$pasteurl .= ( ( $pasteurl !~ m,/$, ) ? '/' : '' ) . 'paste';
 
 POE::Component::Client::UserAgent->new();
 
@@ -41,7 +74,7 @@ sub sig_chld {
 sub _start {
   my ($kernel,$heap) = @_[KERNEL,HEAP];
   $kernel->alias_set("Smoker");
-  chdir $working;
+  chdir $working or die "Couldn\'t chdir to $working : $!\n";
   $heap->{status} = 0;
   $heap->{output} = [ ];
   $heap->{todo} = [ [ "$perl Makefile.PL", '--default' ],
@@ -57,8 +90,8 @@ sub process {
   my $todo = shift @{ $heap->{todo} };
   unless ( $todo ) {
 	my $postback = $_[SESSION]->postback('_response');
-	my %formdata = ( channel => '#poe', nick => 'POlEsmoker', summary => "Results of svn $result smoke (" . $Config{archname} . "): " . ( $heap->{status} ? 'Problem with tests' : 'All tests successful' ), paste => join( "\n", @{ $heap->{output} }, "\n\n", Config::myconfig() ) );
-	my $request = HTTP::Request::Common::POST( 'http://scsys.co.uk:8001/paste' => [ %formdata ] );
+	my %formdata = ( channel => $channel, nick => $name, summary => "Results of $result smoke (" . $Config{archname} . "): " . ( $heap->{status} ? 'Problem with tests' : 'All tests successful' ), paste => join( "\n", @{ $heap->{output} }, "\n\n", Config::myconfig() ) );
+	my $request = HTTP::Request::Common::POST( $pasteurl => [ %formdata ] );
 	$poe_kernel -> post (useragent => request => { request => $request, response => $postback } );
   	return;
   }
@@ -110,3 +143,72 @@ sub _response {
   $kernel->post (useragent => 'shutdown');
   undef;
 }
+
+__END__
+
+=head1 NAME
+
+smoker.perl - a small POE script for 'smoke' testing.
+
+=head1 SYNOPSIS
+
+  smoker.perl --workdir /home/foo/svnpoe/ --result 'svn POE' \
+  --name "Foo" --channel '#poe' --url "http://paste.scsys.co.uk" \
+  --make /usr/bin/make --perl /usr/bin/perl
+
+=head1 DESCRIPTION
+
+smoker.perl is a POE based script ( naturally ) that was originally intended to 'smoke' test the POE svn trunk
+and report the results using a pastebot.
+
+It can be used to test any module distribution.
+
+=head1 REQUIRED MODULES
+
+This script requires:
+
+  POE
+  POE::Component::Client::UserAgent
+  HTTP::Request::Common
+
+=head1 COMMAND LINE PARAMETERS
+
+smoker.perl uses L<Getopt::Long>, the following command line parameters are supported:
+
+=over
+
+=item --workdir
+
+The working directory to use where the distribution to be tested is located. The default is to use the current working directory.
+
+=item --perl
+
+The path to the perl executable to use. The default is /usr/bin/perl or perl.exe on MSWin32.
+
+=item --make
+
+The path to the make executable to use. The default is 'make' or 'nmake.exe' on MSWin32.
+
+=item --result
+
+This is string of descriptive text that is put in the pastebot comment. Default is the name of the current working directory.
+
+=item --url
+
+The pastebot url to use. The default is 'http://paste.scsys.co.uk'.
+
+=item --name
+
+The name who the paste will be from. The default is 'POlESmoker'.
+
+=item --channel
+
+The channel the paste will be sent to. The default is '#poe'. 
+
+=back
+
+=head1 AUTHOR
+
+Chris 'BinGOs' Williams
+
+
