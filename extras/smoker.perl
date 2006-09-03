@@ -13,8 +13,9 @@ use Config;
 use Cwd;
 use File::Basename;
 use Getopt::Long;
-use POE qw(Wheel::Run Component::Client::UserAgent);
-use HTTP::Request::Common;
+use POE qw(Wheel::Run);
+#use HTTP::Request::Common;
+use LWP::UserAgent;
 
 my $make = ( $^O eq 'MSWin32' ? 'nmake.exe' : 'make' );
 my $perl = ( $^O eq 'MSWin32' ? 'perl.exe' : '/usr/bin/perl' );
@@ -50,7 +51,7 @@ print "Result string     = $result\n";
 
 $pasteurl .= ( ( $pasteurl !~ m,/$, ) ? '/' : '' ) . 'paste';
 
-POE::Component::Client::UserAgent->new();
+#POE::Component::Client::UserAgent->new();
 
 POE::Session->create(
   package_states => [
@@ -89,10 +90,14 @@ sub process {
   my ($kernel,$heap) = @_[KERNEL,HEAP];
   my $todo = shift @{ $heap->{todo} };
   unless ( $todo ) {
-	my $postback = $_[SESSION]->postback('_response');
+	#my $postback = $_[SESSION]->postback('_response');
 	my %formdata = ( channel => $channel, nick => $name, summary => "Results of $result smoke (" . $Config{archname} . "): " . ( $heap->{status} ? 'Problem with tests' : 'All tests successful' ), paste => join( "\n", @{ $heap->{output} }, "\n\n", Config::myconfig() ) );
-	my $request = HTTP::Request::Common::POST( $pasteurl => [ %formdata ] );
-	$poe_kernel -> post (useragent => request => { request => $request, response => $postback } );
+	#my $request = HTTP::Request::Common::POST( $pasteurl => [ %formdata ] );
+	#$poe_kernel -> post (useragent => request => { request => $request, response => $postback } );
+	my $ua = LWP::UserAgent->new;
+	$ua->env_proxy;
+	my $response = $ua->post( $pasteurl, \%formdata );
+	print STDOUT $response->status_line, "\n";
   	return;
   }
   my $cmd = shift @{ $todo };
@@ -167,9 +172,8 @@ It can be used to test any module distribution.
 
 This script requires:
 
-  POE
-  POE::Component::Client::UserAgent
-  HTTP::Request::Common
+  POE >= 0.35
+  LWP::UserAgent
 
 =head1 COMMAND LINE PARAMETERS
 
