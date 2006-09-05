@@ -48,6 +48,7 @@ print "Paste URL         = $pasteurl\n";
 print "Name for paste    = $name\n";
 print "Channel for paste = $channel\n";
 print "Result string     = $result\n";
+print "Pod tests will be run\n" if $ENV{POE_TEST_POD};
 
 $pasteurl .= ( ( $pasteurl !~ m,/$, ) ? '/' : '' ) . 'paste';
 
