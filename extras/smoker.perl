@@ -99,6 +99,7 @@ sub process {
 	$ua->env_proxy;
 	my $response = $ua->post( $pasteurl, \%formdata );
 	print STDOUT $response->status_line, "\n";
+	$kernel->sig( 'CHLD' );
   	return;
   }
   my $cmd = shift @{ $todo };
