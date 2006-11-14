@@ -14,7 +14,6 @@ use Cwd;
 use File::Basename;
 use Getopt::Long;
 use POE qw(Wheel::Run);
-#use HTTP::Request::Common;
 use LWP::UserAgent;
 
 my $make = ( $^O eq 'MSWin32' ? 'nmake.exe' : 'make' );
@@ -52,8 +51,6 @@ print "Pod tests will be run\n" if $ENV{POE_TEST_POD};
 
 $pasteurl .= ( ( $pasteurl !~ m,/$, ) ? '/' : '' ) . 'paste';
 
-#POE::Component::Client::UserAgent->new();
-
 POE::Session->create(
   package_states => [
 	'main' => [qw(_start _stop _output _wheel_error _wheel_close sig_chld process _response)],
@@ -82,7 +79,7 @@ sub _start {
   $heap->{todo} = [ [ "$perl Makefile.PL", '--default' ],
 		    [ $make ], [ $make, 'test' ], [ $make, 'distclean' ], ];
   $heap->{processing} = { };
-  $kernel->sig( CHLD => 'sig_chld' );
+  #$kernel->sig( CHLD => 'sig_chld' );
   $poe_kernel->yield( 'process' );
   undef;
 }
@@ -91,15 +88,12 @@ sub process {
   my ($kernel,$heap) = @_[KERNEL,HEAP];
   my $todo = shift @{ $heap->{todo} };
   unless ( $todo ) {
-	#my $postback = $_[SESSION]->postback('_response');
 	my %formdata = ( channel => $channel, nick => $name, summary => "Results of $result smoke (" . $Config{archname} . "): " . ( $heap->{status} ? 'Problem with tests' : 'All tests successful' ), paste => join( "\n", @{ $heap->{output} }, "\n\n", Config::myconfig() ) );
-	#my $request = HTTP::Request::Common::POST( $pasteurl => [ %formdata ] );
-	#$poe_kernel -> post (useragent => request => { request => $request, response => $postback } );
 	my $ua = LWP::UserAgent->new;
 	$ua->env_proxy;
 	my $response = $ua->post( $pasteurl, \%formdata );
 	print STDOUT $response->status_line, "\n";
-	$kernel->sig( 'CHLD' );
+	#$kernel->sig( 'CHLD' );
   	return;
   }
   my $cmd = shift @{ $todo };
@@ -112,8 +106,10 @@ sub process {
         CloseEvent => '_wheel_close',
   );
   if ( $wheel ) {
+    my $wheel_pid = $wheel->PID();
     $heap->{wheels}->{ $wheel->ID() } = $wheel;
-    $heap->{processing}->{ $wheel->PID() } = [ $cmd, @{ $todo } ];
+    $heap->{processing}->{ $wheel_pid } = [ $cmd, @{ $todo } ];
+    $kernel->sig_child( $wheel_pid, 'sig_chld' );
   }
   undef;
 }
