@@ -4117,6 +4117,12 @@ sub DoPost {
       | hpvsos\.(?:com|net) | aakk\.org | xbcn\.org
       | bead-diy\.com | royalty-crystal\.com | adlernunu\.blogcn\.com
       | asiaec\.com | windowstime\.com | pggreen\.com
+      | buy-?(carisoprodol|cialis|floricet|levitra|propecia|soma|tramadol|viagra|adipex|ambien)
+      | mujweb\.cz
+      | phentermine | comunalia\.com | gayhomes\.net
+      | chenado\.info
+      | freeforen\.com | hrentut\.org
+      | i\s(?:do\snot|don't)\shave\smoney\s\S+\s\S+\s\S+\s\S+\smy\schildren
       )
     }ix
     or
@@ -4151,6 +4157,9 @@ sub DoPost {
     $newAuthor = ($UserID ne $Section{'id'});       # known user(s)
   } else {
     $newAuthor = ($Section{'ip'} ne $authorAddr);  # hostname fallback
+    &ReleaseLock();
+    &ReportError("Error submitting your data.", "Please be sure to log in first.");
+    return;
   }
   $newAuthor = 1  if ($oldrev == 0);  # New page
   $newAuthor = 0  if (!$newAuthor);   # Standard flag form, not empty
