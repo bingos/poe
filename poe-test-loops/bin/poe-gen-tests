@@ -6,6 +6,10 @@ use File::Path;
 use File::Find;
 use Getopt::Long;
 
+use vars qw($VERSION $REVISION);
+$VERSION = '1.0000'; # NOTE - Should be #.#### (four decimal places)
+$REVISION = do {my($r)=(q$Revision$=~/(\d+)/);sprintf"1.%04d",$r};
+
 my $dir_base;
 my $flag_help;
 my @loop_modules;
@@ -221,21 +225,21 @@ __END__
 
 =head1 NAME
 
-poe-gen-tests - Generate POE tests from templates and configuration.
+poe-gen-tests - generate standard POE tests for third-party modules
 
 =head1 SYNOPSIS
 
-  poe-gen-tests --dirbase t/loops --loop Select --loop Tk
+  poe-gen-tests --dirbase t/loops --loop Glib --loop Kqueue
 
 =head1 DESCRIPTION
 
-This program and the POE::Test::Loop::* modules comprise POE's tests
+This program and the POE::Test::Loop::* modules make up POE's tests
 for POE::Loop subclasses.  These tests are designed to run identically
-regardless of the current event loop.  POE uses them to test the event
-loops it bundles:
+regardless of the current event loop.  POE uses them to test the
+event loops it bundles:
 
   POE::Loop::Gtk
-  POE::Loop::IO_Poll
+  POE::Loop::IO_Poll (--loop IO::Poll)
   POE::Loop::Tk
   POE::Loop::Event
   POE::Loop::Select
@@ -246,7 +250,7 @@ over 420 comprehensive tests for their work.
 =head1 USAGE
 
 The poe-gen-tests utility creates test files for one or more event
-loops beneath the directory specified in --dirbase.  For example:
+loops beneath the directory specified in --dirbase.  For example,
 
   poe-gen-tests --dirbase t/loops --loop Select
 
@@ -276,6 +280,94 @@ generates the following test files:
   t/loops/Select/wheel_sf_unix.t
   t/loops/Select/wheel_tail.t
 
+Per POE conventions, the event loop is named POE::Loop::Something,
+where "Something" is the name of the event loop module with ::
+replaced by underscores.  For example, an Event::Lib loop would be
+named POE::Loop::Event_Lib.
+
+poe-gen-tests needs to know certain things about POE::Loop classes in
+order to test them properly.  It looks for this information in a "=for
+poe_tests" block within the class source code.  For example:
+
+  =for poe_tests
+  
+  {
+    module => "Gtk2",
+    display => 1,
+    not_os => { MSWin32 => 1 },
+  }
+  
+  =cut
+
+So far poe-gen-tests understands these configuration directives:
+
+=over 2
+
+=item display
+
+An optional Boolean indicating whether the event loop requires a
+DISPLAY to be set.
+
+=item module
+
+An optional scalar defining the module, if any, that must be available
+for the test to run.  It's optional because POE::Loop::Select uses the
+built-in select() function and doesn't need to load a module.
+
+=item no_os
+
+A scalar hash reference, keyed on the $^O values of systems where the
+test should never be run.
+
+=back
+
+=head2 Example poe_tests Directives
+
+From POE::Loop::Event:
+
+  =for poe_tests
+
+  {
+    module => "Event",
+    display => 0,
+  }
+
+  =cut
+
+From POE::Loop::Gtk:
+
+  =for poe_tests
+
+  {
+    module => "Gtk",
+    display => 1,
+  }
+
+  =cut
+
+From POE::Loop::IO_Poll
+
+  =for poe_tests
+
+  {
+    module => "IO::Poll",
+    display => 0,
+    not_os => { MSWin32 => 1 },
+  }
+
+  =cut
+
+From POE::Loop::Select
+
+  =for poe_tests
+
+  {
+    module => "",
+    display => 0,
+  }
+
+  =cut
+
 =head1 INSTALL SCRIPT INTEGRATION
 
 Use system() to invoke the script from your Makefile.PL, Build.PL, or
@@ -291,6 +383,23 @@ targets.
 Test files should not be included in the MANIFEST.  They are generated
 during the install process and won't be included by "make dist".
 
+=head1 CLEANING UP
+
+The tests are generated on the target machine, so they don't appear in
+MANIFEST and will not be cleaned up as part of "make clean" or "make
+distclean".  If you'd like to ensure they are, you'll need to add
+something like this to your WriteMakefile() invocation:
+
+  clean => {
+    FILES => "t/loops/*/* t/loops/*",
+  }
+
+This assumes the "t/loops" directory contains only generated tests.
+It's recommended that generated and hand-coded tests not coexist in
+the same directory.
+
+Modify the recipe accordingly if you're not using ExtUtils::MakeMaker.
+
 =head1 SKIPPING NETWORK TESTS
 
 Several tests require a network to be present.  Those tests will be
@@ -300,18 +409,61 @@ skipped by default.  They may be enabled by creating the file
 Tests will look for the file in the current directory, which is the
 distribution's main directory when running "make test" or "prove".
 
-=head1 TODO
+Here's the code POE's Makefile.PL uses to prompt the user whether
+network tests should run:
 
-* Complete usage documentation.
-** How to set the dependency so the tests are pre-installed.
+  # Switch to default behavior if STDIN isn't a tty.
 
-* Set $VERSION in this script.
-** Use that version for the distro.
+  unless (-t STDIN) {
+    warn(
+      "\n",
+      "=============================================\n\n",
+      "STDIN is not a terminal.  Assuming --default.\n\n",
+      "=============================================\n\n",
+    );
+    push @ARGV, "--default";
+  }
+
+  # Remind the user she can use --default.
+
+  unless (grep /^--default$/, @ARGV) {
+    warn(
+      "\n",
+      "=============================================\n\n",
+      "Prompts may be bypassed by running:\n",
+      "   $^X $0 --default\n\n",
+      "=============================================\n\n",
+    );
+  }
+
+  # Should we skip the network tests?
+
+  my $prompt = (
+    "Some of POE's tests require a functional network.\n" .
+    "You can skip these tests if you'd like.\n\n" .
+    "Would you like to skip the network tests?"
+  );
+
+  my $ret = "n";
+  if (grep /^--default$/, @ARGV) {
+    print $prompt, " [$ret] $ret\n\n";
+  }
+  else {
+    $ret = prompt($prompt, "n");
+  }
+
+  my $marker = 'run_network_tests';
+  unlink $marker;
+  if ($ret =~ /^Y$/i) {
+    open(TOUCH,"+>$marker") and close TOUCH;
+  }
+
+  print "\n";
 
 =head1 AUTHOR & COPYRIGHT
 
 Rocco Caputo <rcaputo@cpan.org>.
-Benjamin Smith <bmsmith@cpan.org>.
+Benjamin Smith <bsmith@cpan.org>.
 Countless other people.
 
 These tests are Copyright 1998-2007 by Rocco Caputo, Benjamin Smith,
