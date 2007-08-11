@@ -1,0 +1,322 @@
+#!/usr/bin/perl -w
+
+use strict;
+use File::Spec;
+use File::Path;
+use File::Find;
+use Getopt::Long;
+
+my $dir_base;
+my $flag_help;
+my @loop_modules;
+my $flag_verbose;
+
+my $result = GetOptions(
+  'dirbase=s' => \$dir_base,
+  'loop=s' => \@loop_modules,
+  'verbose' => \$flag_verbose,
+  help => \$flag_help,
+);
+
+if (
+  !$result or !$dir_base or $flag_help or !@loop_modules
+) {
+  die(
+    "$0 usage:\n",
+    "  --dirbase DIR   (required) base directory for tests\n",
+    "  --loop MODULE   (required) loop modules to test\n",
+    "  --verbose   show some extra output\n",
+    "  --help   you're reading it\n",
+  );
+}
+
+### Find the test libraries.
+
+use lib qw(./lib ../lib);
+use POE::Test::DondeEstan;
+my $source_base = POE::Test::DondeEstan->marco();
+
+### Generate loop tests.
+
+foreach my $loop (@loop_modules) {
+  my $loop_dir = $loop;
+  $loop_dir =~ s/::/_/g;
+
+  my $fqmn = find_event_loop_file($loop);
+  unless ($fqmn) {
+    $flag_verbose and print "Couldn't find a loop for $loop ...\n";
+    next;
+  }
+
+  $flag_verbose and print "Found $fqmn\n";
+
+  my $loop_cfg = get_loop_cfg($fqmn);
+  unless (defined $loop_cfg) {
+    $flag_verbose and print "Couldn't find configuration for $loop ...\n";
+    next;
+  }
+
+  # Replace configuration directives with code.
+
+  if (
+    $loop_cfg->{not_os} and exists $loop_cfg->{not_os}{$^O}
+  ) {
+    $loop_cfg->{not_os} = (
+      "\n" .
+      "BEGIN {\n" .
+      "  \$| = 1;\n" .
+      "  print qq(1..0 # Skip This test cannot be run on $^O\\n);\n" .
+      "  CORE::exit(0);\n" .
+      "}\n"
+    );
+  }
+  else {
+    $loop_cfg->{not_os} = "";
+  }
+
+  if ($loop_cfg->{display}) {
+    if ($^O ne "MSWin32") {
+      $loop_cfg->{display} = (
+        "\n" .
+        "BEGIN {\n" .
+        "  unless (\$ENV{DISPLAY}) {\n" .
+        "    \$| = 1;\n" .
+        "    print qq(1..0 # " .
+        "Skip $loop needs a DISPLAY (set one today, okay?)\\n);\n" .
+        "    CORE::exit(0);\n" .
+        "  }\n" .
+        "}\n"
+      );
+    }
+    else {
+      $loop_cfg->{display} = "";
+    }
+  }
+  else {
+    $loop_cfg->{display} = "";
+  }
+
+  if ($loop_cfg->{module}) {
+    $loop_cfg->{module} = (
+      "\n" .
+      "BEGIN {\n" .
+      "  eval 'use $loop_cfg->{module}';\n" .
+      "  if (\$@) {\n" .
+      "    \$| = 1;\n" .
+      "    print qq(1..0 # Skip Could not load $loop_cfg->{module}\\n);\n" .
+      "    CORE::exit(0);\n" .
+      "  }\n" .
+      "}\n"
+    );
+  }
+  else {
+    $loop_cfg->{module} = "";
+  }
+
+  my $source = (
+    "#!/usr/bin/perl -w\n" .
+    "# \$Id\$\n" .
+    "\n" .
+    "use strict;\n" .
+    "--not_os--" .
+    "use lib qw(--base_lib--);\n" .
+    "use Test::More;\n" .
+    "use POSIX qw(_exit);\n" .
+    "--display--" .
+    "--module--" .
+    "\n" .
+    "require '--base_file--';\n" .
+    "\n" .
+    "_exit 0 if \$^O eq 'MSWin32';\n" .
+    "CORE::exit 0;\n"
+  );
+
+  # Full directory where source files are found.
+
+  my $dir_src = File::Spec->catfile($source_base, "Loops");
+  my $dir_dst = File::Spec->catfile($dir_base, $loop_dir);
+
+  # Gather the list of source files.
+  # Each will be used to generate a real test file.
+
+  opendir BASE, $dir_src or die $!;
+  my @base_files = grep /\.pm$/, readdir(BASE);
+  closedir BASE;
+
+  # Initialize the destination directory.  Clear or create as needed.
+
+  $dir_dst =~ tr[/][/]s;
+  $dir_dst =~ s{/+$}{};
+
+  rmtree($dir_dst);
+  mkpath($dir_dst, 0, 0755);
+
+  # For each source file, generate a corresponding one in the
+  # configured destination directory.  Expand various bits to
+  # customize the test.
+
+  foreach my $base_file (@base_files) {
+    my $full_file = File::Spec->catfile($dir_dst, $base_file);
+    $full_file =~ s/\.pm$/.t/;
+
+    # These hardcoded expansions are for the base file to be required,
+    # and the base library directory where it'll be found.
+
+    my $expanded_src = $source;
+    $expanded_src =~ s/--base_file--/$base_file/g;
+    $expanded_src =~ s/--base_lib--/$dir_src/g;
+
+    # The others are plugged in from the directory configuration.
+
+    while (my ($key, $val) = each %$loop_cfg) {
+      $expanded_src =~ s/--\Q$key\E--/$val/g;
+    }
+
+    # Write with lots of error checking.
+
+    open EXPANDED, ">$full_file" or die $!;
+    print EXPANDED $expanded_src;
+    close EXPANDED or die $!;
+  }
+}
+
+exit 0;
+
+sub find_event_loop_file {
+  my $loop_name = shift;
+  $loop_name =~ s/::/_/g;
+
+  my $loop_module = File::Spec->catfile("POE", "Loop", $loop_name) .  ".pm";
+
+  foreach my $inc (@INC) {
+    my $fqmn = File::Spec->catfile($inc, $loop_module);
+    next unless -f $fqmn;
+    return $fqmn;
+  }
+
+  return;
+}
+
+sub get_loop_cfg {
+  my $fqmn = shift;
+
+  my ($in_test_block, @test_source);
+
+  open SOURCE, "<$fqmn" or die $!;
+  while (<SOURCE>) {
+    if ($in_test_block) {
+      $in_test_block = 0, next if /^=cut\s*$/;
+      push @test_source, $_;
+      next;
+    }
+
+    next unless /^=for\s+poe_tests\s*/;
+    $in_test_block = 1;
+  }
+
+  eval join "", @test_source;
+}
+
+__END__
+
+=head1 NAME
+
+poe-gen-tests - Generate POE tests from templates and configuration.
+
+=head1 SYNOPSIS
+
+  poe-gen-tests --dirbase t/loops --loop Select --loop Tk
+
+=head1 DESCRIPTION
+
+This program and the POE::Test::Loop::* modules comprise POE's tests
+for POE::Loop subclasses.  These tests are designed to run identically
+regardless of the current event loop.  POE uses them to test the event
+loops it bundles:
+
+  POE::Loop::Gtk
+  POE::Loop::IO_Poll
+  POE::Loop::Tk
+  POE::Loop::Event
+  POE::Loop::Select
+
+Developers of other POE::Loop modules can use this package to generate
+over 420 comprehensive tests for their work.
+
+=head1 USAGE
+
+The poe-gen-tests utility creates test files for one or more event
+loops beneath the directory specified in --dirbase.  For example:
+
+  poe-gen-tests --dirbase t/loops --loop Select
+
+generates the following test files:
+
+  t/loops/Select/all_errors.t
+  t/loops/Select/comp_tcp.t
+  t/loops/Select/comp_tcp_concurrent.t
+  t/loops/Select/k_alarms.t
+  t/loops/Select/k_aliases.t
+  t/loops/Select/k_detach.t
+  t/loops/Select/k_selects.t
+  t/loops/Select/k_sig_child.t
+  t/loops/Select/k_signals.t
+  t/loops/Select/k_signals_rerun.t
+  t/loops/Select/sbk_signal_init.t
+  t/loops/Select/ses_nfa.t
+  t/loops/Select/ses_session.t
+  t/loops/Select/wheel_accept.t
+  t/loops/Select/wheel_curses.t
+  t/loops/Select/wheel_readline.t
+  t/loops/Select/wheel_readwrite.t
+  t/loops/Select/wheel_run.t
+  t/loops/Select/wheel_sf_ipv6.t
+  t/loops/Select/wheel_sf_tcp.t
+  t/loops/Select/wheel_sf_udp.t
+  t/loops/Select/wheel_sf_unix.t
+  t/loops/Select/wheel_tail.t
+
+=head1 INSTALL SCRIPT INTEGRATION
+
+Use system() to invoke the script from your Makefile.PL, Build.PL, or
+whatever you're using.  For example:
+
+  system(
+    $^X, "poe-gen-tests", "--dirbase", "t/loops", "--loop", "Event::Lib"
+  ) and die $!;
+
+Naturally "Event::Lib" would be replaced by the event loop your module
+targets.
+
+Test files should not be included in the MANIFEST.  They are generated
+during the install process and won't be included by "make dist".
+
+=head1 SKIPPING NETWORK TESTS
+
+Several tests require a network to be present.  Those tests will be
+skipped by default.  They may be enabled by creating the file
+"run_network_tests" in the distribution's main directory.
+
+Tests will look for the file in the current directory, which is the
+distribution's main directory when running "make test" or "prove".
+
+=head1 TODO
+
+* Complete usage documentation.
+** How to set the dependency so the tests are pre-installed.
+
+* Set $VERSION in this script.
+** Use that version for the distro.
+
+=head1 AUTHOR & COPYRIGHT
+
+Rocco Caputo <rcaputo@cpan.org>.
+Benjamin Smith <bmsmith@cpan.org>.
+Countless other people.
+
+These tests are Copyright 1998-2007 by Rocco Caputo, Benjamin Smith,
+and countless contributors.  All rights are reserved.  These tests are
+free software; you may redistribute them and/or modify them under the
+same terms as Perl itself.
+
+=cut

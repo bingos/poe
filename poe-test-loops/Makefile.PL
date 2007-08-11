@@ -1,0 +1,26 @@
+# $Id$
+
+use ExtUtils::MakeMaker;
+
+# Touch auto-generated files so we don't see warnings.
+open(CHANGES, ">>CHANGES") and close CHANGES;
+open(README, ">>README")   and close README;
+
+WriteMakefile(
+  NAME         => 'POE::Test::Loops',
+  AUTHOR       => 'Rocco Caputo <rcaputo@cpan.org>',
+  ABSTRACT     => 'POE::Loop test suite',
+  LICENSE      => 'perl',
+  VERSION      => 1.0,
+  PREREQ_PM    => {
+    'Test::More' => 0,
+  },
+  dist         => {
+    COMPRESS   => 'gzip -9f',
+    SUFFIX     => 'gz',
+    PREOP      => (
+      'svn-log.perl | tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES;' .
+      'perldoc bin/poe-gen-tests > README'
+    ),
+  },
+);
