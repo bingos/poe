@@ -15,6 +15,7 @@ WriteMakefile(
   PREREQ_PM    => {
     'Test::More' => 0,
   },
+  EXE_FILES    => [ 'bin/poe-gen-tests' ],
   dist         => {
     COMPRESS   => 'gzip -9f',
     SUFFIX     => 'gz',
