@@ -383,6 +383,18 @@ targets.
 Test files should not be included in the MANIFEST.  They are generated
 during the install process and won't be included by "make dist".
 
+=head1 GETTING TESTS TO RUN
+
+It's reported that ExtUtils::MakeMaker generates Makefiles that only
+run tests matching t/*.t.  Luckily (or perhaps by design),
+ExtUtils::MakeMaker lets authors specify other test locations:
+
+  tests => {
+    TESTS => "t/*.t t/loops/*/*.t",
+  }
+
+Modify the recipe accordingly if you're not using ExtUtils::MakeMaker.
+
 =head1 CLEANING UP
 
 The tests are generated on the target machine, so they don't appear in
@@ -398,7 +410,7 @@ This assumes the "t/loops" directory contains only generated tests.
 It's recommended that generated and hand-coded tests not coexist in
 the same directory.
 
-Modify the recipe accordingly if you're not using ExtUtils::MakeMaker.
+Once again, you should modify these recipes to taste.
 
 =head1 SKIPPING NETWORK TESTS
 
