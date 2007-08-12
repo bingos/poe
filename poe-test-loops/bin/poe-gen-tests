@@ -43,7 +43,7 @@ my $source_base = POE::Test::DondeEstan->marco();
 ### Generate loop tests.
 
 foreach my $loop (@loop_modules) {
-  my $loop_dir = $loop;
+  my $loop_dir = lc($loop);
   $loop_dir =~ s/::/_/g;
 
   my $fqmn = find_event_loop_file($loop);
@@ -55,66 +55,10 @@ foreach my $loop (@loop_modules) {
   $flag_verbose and print "Found $fqmn\n";
 
   my $loop_cfg = get_loop_cfg($fqmn);
-  unless (defined $loop_cfg) {
-    $flag_verbose and print "Couldn't find configuration for $loop ...\n";
-    next;
-  }
-
-  # Replace configuration directives with code.
-
-  if (
-    $loop_cfg->{not_os} and exists $loop_cfg->{not_os}{$^O}
-  ) {
-    $loop_cfg->{not_os} = (
-      "\n" .
-      "BEGIN {\n" .
-      "  \$| = 1;\n" .
-      "  print qq(1..0 # Skip This test cannot be run on $^O\\n);\n" .
-      "  CORE::exit(0);\n" .
-      "}\n"
+  unless (defined $loop_cfg and length $loop_cfg) {
+    $loop_cfg = (
+      "sub skip_tests { return }"
     );
-  }
-  else {
-    $loop_cfg->{not_os} = "";
-  }
-
-  if ($loop_cfg->{display}) {
-    if ($^O ne "MSWin32") {
-      $loop_cfg->{display} = (
-        "\n" .
-        "BEGIN {\n" .
-        "  unless (\$ENV{DISPLAY}) {\n" .
-        "    \$| = 1;\n" .
-        "    print qq(1..0 # " .
-        "Skip $loop needs a DISPLAY (set one today, okay?)\\n);\n" .
-        "    CORE::exit(0);\n" .
-        "  }\n" .
-        "}\n"
-      );
-    }
-    else {
-      $loop_cfg->{display} = "";
-    }
-  }
-  else {
-    $loop_cfg->{display} = "";
-  }
-
-  if ($loop_cfg->{module}) {
-    $loop_cfg->{module} = (
-      "\n" .
-      "BEGIN {\n" .
-      "  eval 'use $loop_cfg->{module}';\n" .
-      "  if (\$@) {\n" .
-      "    \$| = 1;\n" .
-      "    print qq(1..0 # Skip Could not load $loop_cfg->{module}\\n);\n" .
-      "    CORE::exit(0);\n" .
-      "  }\n" .
-      "}\n"
-    );
-  }
-  else {
-    $loop_cfg->{module} = "";
   }
 
   my $source = (
@@ -122,13 +66,20 @@ foreach my $loop (@loop_modules) {
     "# \$Id\$\n" .
     "\n" .
     "use strict;\n" .
-    "--not_os--" .
+    "\n" .
     "use lib qw(--base_lib--);\n" .
     "use Test::More;\n" .
     "use POSIX qw(_exit);\n" .
-    "--display--" .
-    "--module--" .
     "\n" .
+    "--loop_cfg--\n" .
+    "\n" .
+    "BEGIN {\n" .
+    "  if (my \$why = skip_tests('--test_name--')) {\n" .
+    "    plan skip_all => \$why\n" .
+    "  }\n" .
+    "}\n" .
+    "\n" .
+    "# Run the tests themselves.\n" .
     "require '--base_file--';\n" .
     "\n" .
     "_exit 0 if \$^O eq 'MSWin32';\n" .
@@ -160,6 +111,9 @@ foreach my $loop (@loop_modules) {
   # customize the test.
 
   foreach my $base_file (@base_files) {
+    my $test_name = $base_file;
+    $test_name =~ s/\.pm$//;
+
     my $full_file = File::Spec->catfile($dir_dst, $base_file);
     $full_file =~ s/\.pm$/.t/;
 
@@ -169,12 +123,8 @@ foreach my $loop (@loop_modules) {
     my $expanded_src = $source;
     $expanded_src =~ s/--base_file--/$base_file/g;
     $expanded_src =~ s/--base_lib--/$dir_src/g;
-
-    # The others are plugged in from the directory configuration.
-
-    while (my ($key, $val) = each %$loop_cfg) {
-      $expanded_src =~ s/--\Q$key\E--/$val/g;
-    }
+    $expanded_src =~ s/--loop_cfg--/$loop_cfg/g;
+    $expanded_src =~ s/--test_name--/$test_name/g;
 
     # Write with lots of error checking.
 
@@ -218,7 +168,10 @@ sub get_loop_cfg {
     $in_test_block = 1;
   }
 
-  eval join "", @test_source;
+  shift @test_source while @test_source and $test_source[0] =~ /^\s*$/;
+  pop @test_source while @test_source and $test_source[-1] =~ /^\s*$/;
+
+  return join "", @test_source;
 }
 
 __END__
@@ -229,14 +182,17 @@ poe-gen-tests - generate standard POE tests for third-party modules
 
 =head1 SYNOPSIS
 
-  poe-gen-tests --dirbase t/loops --loop Glib --loop Kqueue
+  poe-gen-tests --dirbase t/loops \
+    --loop Glib \
+    --loop Kqueue \
+    --loop Event::Lib
 
 =head1 DESCRIPTION
 
-This program and the POE::Test::Loop::* modules make up POE's tests
-for POE::Loop subclasses.  These tests are designed to run identically
-regardless of the current event loop.  POE uses them to test the
-event loops it bundles:
+This program and the accompanying POE::Test::Loop::* modules make up
+POE's tests for POE::Loop subclasses.  These tests are designed to run
+identically regardless of the current event loop.  POE uses them to
+test the event loops it bundles:
 
   POE::Loop::Gtk
   POE::Loop::IO_Poll (--loop IO::Poll)
@@ -244,103 +200,92 @@ event loops it bundles:
   POE::Loop::Event
   POE::Loop::Select
 
-Developers of other POE::Loop modules can use this package to generate
-over 420 comprehensive tests for their work.
+Developers of other POE::Loop modules are encouraged use this package
+to generate over 420 comprehensive tests for their own work.
 
 =head1 USAGE
 
-The poe-gen-tests utility creates test files for one or more event
-loops beneath the directory specified in --dirbase.  For example,
+poe-gen-tests creates test files for one or more event loops beneath
+the directory specified in --dirbase.  For example,
 
   poe-gen-tests --dirbase t/loops --loop Select
 
 generates the following test files:
 
-  t/loops/Select/all_errors.t
-  t/loops/Select/comp_tcp.t
-  t/loops/Select/comp_tcp_concurrent.t
-  t/loops/Select/k_alarms.t
-  t/loops/Select/k_aliases.t
-  t/loops/Select/k_detach.t
-  t/loops/Select/k_selects.t
-  t/loops/Select/k_sig_child.t
-  t/loops/Select/k_signals.t
-  t/loops/Select/k_signals_rerun.t
-  t/loops/Select/sbk_signal_init.t
-  t/loops/Select/ses_nfa.t
-  t/loops/Select/ses_session.t
-  t/loops/Select/wheel_accept.t
-  t/loops/Select/wheel_curses.t
-  t/loops/Select/wheel_readline.t
-  t/loops/Select/wheel_readwrite.t
-  t/loops/Select/wheel_run.t
-  t/loops/Select/wheel_sf_ipv6.t
-  t/loops/Select/wheel_sf_tcp.t
-  t/loops/Select/wheel_sf_udp.t
-  t/loops/Select/wheel_sf_unix.t
-  t/loops/Select/wheel_tail.t
+  t/loops/select/all_errors.t
+  t/loops/select/comp_tcp.t
+  t/loops/select/comp_tcp_concurrent.t
+  t/loops/select/k_alarms.t
+  t/loops/select/k_aliases.t
+  t/loops/select/k_detach.t
+  t/loops/select/k_selects.t
+  t/loops/select/k_sig_child.t
+  t/loops/select/k_signals.t
+  t/loops/select/k_signals_rerun.t
+  t/loops/select/sbk_signal_init.t
+  t/loops/select/ses_nfa.t
+  t/loops/select/ses_session.t
+  t/loops/select/wheel_accept.t
+  t/loops/select/wheel_curses.t
+  t/loops/select/wheel_readline.t
+  t/loops/select/wheel_readwrite.t
+  t/loops/select/wheel_run.t
+  t/loops/select/wheel_sf_ipv6.t
+  t/loops/select/wheel_sf_tcp.t
+  t/loops/select/wheel_sf_udp.t
+  t/loops/select/wheel_sf_unix.t
+  t/loops/select/wheel_tail.t
 
-Per POE conventions, the event loop is named POE::Loop::Something,
-where "Something" is the name of the event loop module with ::
-replaced by underscores.  For example, an Event::Lib loop would be
-named POE::Loop::Event_Lib.
+The --loop parameter completes the POE::Loop::... package name.  It
+may be specified with namespaces separated by "::" or "_".  Event::Lib
+and Event_Lib are identical as far as poe-gen-tests is concerned.
 
-poe-gen-tests needs to know certain things about POE::Loop classes in
-order to test them properly.  It looks for this information in a "=for
-poe_tests" block within the class source code.  For example:
+poe-gen-tests looks for a "=for poe_tests" section within the
+POE::Loop class being tested.  If defined, this section should include
+a single function, skip_tests(), that determines whether any given
+test should be skipped.
 
-  =for poe_tests
-  
-  {
-    module => "Gtk2",
-    display => 1,
-    not_os => { MSWin32 => 1 },
+skip_tests() is called with one parameter, the base name of the test
+about to be executed.  It returns false if the test should run, or a
+message that will be displayed to the user explaining why the test
+will be skipped.  This message is passed directly to Test::More's
+plan() along with "skip_all".  The logic is essentially:
+
+  if (my $why = skip_tests("k_signals_rerun")) {
+    plan skip_all => $why;
   }
-  
-  =cut
 
-So far poe-gen-tests understands these configuration directives:
-
-=over 2
-
-=item display
-
-An optional Boolean indicating whether the event loop requires a
-DISPLAY to be set.
-
-=item module
-
-An optional scalar defining the module, if any, that must be available
-for the test to run.  It's optional because POE::Loop::Select uses the
-built-in select() function and doesn't need to load a module.
-
-=item no_os
-
-A scalar hash reference, keyed on the $^O values of systems where the
-test should never be run.
-
-=back
+skip_tests() should load any modules required by the event loop.  See
+most of the examples below.
 
 =head2 Example poe_tests Directives
 
-From POE::Loop::Event:
+From POE::Loop::Event
 
   =for poe_tests
 
-  {
-    module => "Event",
-    display => 0,
+  sub skip_tests {
+    my $test_name = shift;
+    if ($test_name eq "k_signals_rerun" and $^O eq "MSWin32") {
+      return "This test crashes Perl when run with Event on $^O";
+    }
+    return "Event tests require the Event module" if (
+      do { eval "use Event"; $@ }
+    );
   }
 
   =cut
 
-From POE::Loop::Gtk:
+From POE::Loop::Gtk
 
   =for poe_tests
 
-  {
-    module => "Gtk",
-    display => 1,
+  sub skip_tests {
+    return "Gtk needs a DISPLAY (set one today, okay?)" unless (
+      defined $ENV{DISPLAY} and length $ENV{DISPLAY}
+    );
+    return "Gtk tests require the Gtk module" if do { eval "use Gtk"; $@ };
+    return;
   }
 
   =cut
@@ -349,10 +294,11 @@ From POE::Loop::IO_Poll
 
   =for poe_tests
 
-  {
-    module => "IO::Poll",
-    display => 0,
-    not_os => { MSWin32 => 1 },
+  sub skip_tests {
+    return "IO::Poll is not 100% compatible with $^O" if $^O eq "MSWin32";
+    return "IO::Poll tests require the IO::Poll module" if (
+      do { eval "use IO::Poll"; $@ }
+    );
   }
 
   =cut
@@ -361,68 +307,96 @@ From POE::Loop::Select
 
   =for poe_tests
 
-  {
-    module => "",
-    display => 0,
+  sub skip_tests { return }
+
+  =cut
+
+From POE::Loop::Tk
+
+  =for poe_tests
+
+  sub skip_tests {
+    return "Tk needs a DISPLAY (set one today, okay?)" unless (
+      (defined $ENV{DISPLAY} and length $ENV{DISPLAY}) or $^O eq "MSWin32"
+    );
+    my $test_name = shift;
+    if ($test_name eq "k_signals_rerun" and $^O eq "MSWin32") {
+      return "This test crashes Perl when run with Tk on $^O";
+    }
+    return "Tk tests require the Tk module" if do { eval "use Tk"; $@ };
+    return;
   }
 
   =cut
 
 =head1 INSTALL SCRIPT INTEGRATION
 
-Use system() to invoke the script from your Makefile.PL, Build.PL, or
-whatever you're using.  For example:
+The POE::Loop tests started out as part of the POE distribution.  All
+the recommendations and examples that follow are written and tested
+against ExtUtils::MakeMaker because that's what POE uses.  Please
+adjust these recipes according to your taste and preference.
+
+=head2 Calling the Test Generator
+
+Tests need to be generated prior to the user or CPAN shell running
+"make test".  A tidy way to do this might be to create a new Makefile
+target and include that as a dependency for "make test".  POE takes a
+simpler approach, calling the script from its Makefile.PL:
 
   system(
-    $^X, "poe-gen-tests", "--dirbase", "t/loops", "--loop", "Event::Lib"
+    $^X, "poe-gen-tests", "--dirbase", "t/30_loops",
+    "--loop", "Event", "--loop", "Gtk", "--loop", "IO::Poll",
+    "--loop", "Select", "--loop", "Tk",
   ) and die $!;
 
-Naturally "Event::Lib" would be replaced by the event loop your module
-targets.
+The previous approach generates tests at install time, so it's not
+necessary to include the generated files in the MANIFEST.  Test
+directories should also be excluded from the MANIFEST.  poe-gen-tests
+will create the necessary paths.
 
-Test files should not be included in the MANIFEST.  They are generated
-during the install process and won't be included by "make dist".
+It's also possible to generate the tests prior to "make dist".  The
+distribution's MANIFEST must include the generated files in this case.
 
-=head1 GETTING TESTS TO RUN
+Most people will not need to add the generated tests to their
+repositories.
 
-It's reported that ExtUtils::MakeMaker generates Makefiles that only
-run tests matching t/*.t.  Luckily (or perhaps by design),
-ExtUtils::MakeMaker lets authors specify other test locations:
+=head1 Running the Tests
+
+By default, ExtUtils::MakeMaker generates Makefiles that only run
+tests matching t/*.t.  However authors are allowed to specify other
+test locations.  Add the following parameter to WriteMakefile() so
+that the tests generated above will be executed:
 
   tests => {
-    TESTS => "t/*.t t/loops/*/*.t",
+    TESTS => "t/*.t t/30_loops/*/*.t",
   }
-
-Modify the recipe accordingly if you're not using ExtUtils::MakeMaker.
 
 =head1 CLEANING UP
 
-The tests are generated on the target machine, so they don't appear in
-MANIFEST and will not be cleaned up as part of "make clean" or "make
-distclean".  If you'd like to ensure they are, you'll need to add
-something like this to your WriteMakefile() invocation:
+Makefiles will not clean up files that aren't present in the MANIFEST.
+This includes tests generated at install time.  If this bothers you,
+you'll need to add directives to include the generated tests in the
+"clean" and "distclean" targets.
 
   clean => {
-    FILES => "t/loops/*/* t/loops/*",
+    FILES => "t/30_loops/*/* t/30_loops/*",
   }
 
-This assumes the "t/loops" directory contains only generated tests.
+This assumes the "t/30_loops" directory contains only generated tests.
 It's recommended that generated and hand-coded tests not coexist in
 the same directory.
 
-Once again, you should modify these recipes to taste.
+It seems like a good idea to delete the deeper directories and files
+before their parents.
 
-=head1 SKIPPING NETWORK TESTS
+=head1 Skipping Network Tests
 
-Several tests require a network to be present.  Those tests will be
-skipped by default.  They may be enabled by creating the file
-"run_network_tests" in the distribution's main directory.
-
-Tests will look for the file in the current directory, which is the
-distribution's main directory when running "make test" or "prove".
-
-Here's the code POE's Makefile.PL uses to prompt the user whether
-network tests should run:
+Some generated tests require a network to be present and accessible.
+Those tests will be skipped unless the file "run_network_tests" is
+present in the main distribution directory.  You can include that file
+in your distribution's tarball, but it's better create it at install
+time after asking the user.  Here's how POE does it.  Naturally you're
+free to do it some other way.
 
   # Switch to default behavior if STDIN isn't a tty.
 
@@ -441,14 +415,13 @@ network tests should run:
   unless (grep /^--default$/, @ARGV) {
     warn(
       "\n",
-      "=============================================\n\n",
-      "Prompts may be bypassed by running:\n",
-      "   $^X $0 --default\n\n",
-      "=============================================\n\n",
+      "================================================\n\n",
+      "Prompts may be bypassed with the --default flag.\n\n",
+      "================================================\n\n",
     );
   }
 
-  # Should we skip the network tests?
+  # Should we run the network tests?
 
   my $prompt = (
     "Some of POE's tests require a functional network.\n" .
@@ -482,5 +455,7 @@ These tests are Copyright 1998-2007 by Rocco Caputo, Benjamin Smith,
 and countless contributors.  All rights are reserved.  These tests are
 free software; you may redistribute them and/or modify them under the
 same terms as Perl itself.
+
+Thanks to Martijn van Beers for beta testing and suggestions.
 
 =cut
