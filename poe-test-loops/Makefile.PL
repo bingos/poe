@@ -20,7 +20,8 @@ WriteMakefile(
     COMPRESS   => 'gzip -9f',
     SUFFIX     => 'gz',
     PREOP      => (
-      'svn-log.perl | tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES;' .
+      'svn-log.perl --tags ^ptl- | ' .
+      'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES;' .
       'perldoc bin/poe-gen-tests > README'
     ),
   },
