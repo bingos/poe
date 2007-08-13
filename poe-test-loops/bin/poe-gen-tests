@@ -7,8 +7,8 @@ use File::Find;
 use Getopt::Long;
 
 use vars qw($VERSION $REVISION);
-$VERSION = '1.0000'; # NOTE - Should be #.#### (four decimal places)
-$REVISION = do {my($r)=(q$Revision$=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '0.97'; # NOTE - Should be #.## (two decimal places)
+$REVISION = do {my($r)=(q$Revision$=~/(\d+)/);sprintf"0.%04d",$r};
 
 my $dir_base;
 my $flag_help;
