@@ -11,7 +11,7 @@ WriteMakefile(
   AUTHOR       => 'Rocco Caputo <rcaputo@cpan.org>',
   ABSTRACT     => 'POE::Loop test suite',
   LICENSE      => 'perl',
-  VERSION_FROM => 'bin/poe-gen-tests',
+  VERSION_FROM => 'lib/POE/Test/Loops.pm',
   PREREQ_PM    => {
     'Test::More' => 0,
   },

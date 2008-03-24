@@ -5,10 +5,7 @@ use File::Spec;
 use File::Path;
 use File::Find;
 use Getopt::Long;
-
-use vars qw($VERSION $REVISION);
-$VERSION = '0.97'; # NOTE - Should be #.## (two decimal places)
-$REVISION = do {my($r)=(q$Revision$=~/(\d+)/);sprintf"0.%04d",$r};
+use POE::Test::Loops;
 
 my $dir_base;
 my $flag_help;
@@ -451,7 +448,7 @@ Rocco Caputo <rcaputo@cpan.org>.
 Benjamin Smith <bsmith@cpan.org>.
 Countless other people.
 
-These tests are Copyright 1998-2007 by Rocco Caputo, Benjamin Smith,
+These tests are Copyright 1998-2008 by Rocco Caputo, Benjamin Smith,
 and countless contributors.  All rights are reserved.  These tests are
 free software; you may redistribute them and/or modify them under the
 same terms as Perl itself.

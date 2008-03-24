@@ -5,6 +5,7 @@ Makefile.PL
 README
 bin/poe-gen-tests
 lib/POE/Test/DondeEstan.pm
+lib/POE/Test/Loops.pm
 lib/POE/Test/Loops/all_errors.pm
 lib/POE/Test/Loops/comp_tcp.pm
 lib/POE/Test/Loops/comp_tcp_concurrent.pm
