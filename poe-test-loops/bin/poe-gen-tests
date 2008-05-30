@@ -140,7 +140,7 @@ sub find_event_loop_file {
   if ($loop_name =~ /^POE::/) {
     $loop_module = File::Spec->catfile(split(/::/, $loop_name)) . ".pm";
   }
-  else {$loop_name;
+  else {
     $loop_name =~ s/::/_/g;
     $loop_module = File::Spec->catfile("POE", "Loop", $loop_name) .  ".pm";
   }
