@@ -28,7 +28,7 @@ sub generate {
     my $loop_dir = lc($loop);
     $loop_dir =~ s/::/_/g;
 
-    my $fqmn = find_event_loop_file($loop);
+    my $fqmn = _find_event_loop_file($loop);
     unless ($fqmn) {
       $flag_verbose and print "Couldn't find a loop for $loop ...\n";
       next;
@@ -36,7 +36,7 @@ sub generate {
 
     $flag_verbose and print "Found $fqmn\n";
 
-    my $loop_cfg = get_loop_cfg($fqmn);
+    my $loop_cfg = _get_loop_cfg($fqmn);
     unless (defined $loop_cfg and length $loop_cfg) {
       $loop_cfg = (
 	  "sub skip_tests { return }"
@@ -117,7 +117,7 @@ sub generate {
   }
 }
 
-sub find_event_loop_file {
+sub _find_event_loop_file {
   my $loop_name = shift;
 
   my $loop_module;
@@ -138,9 +138,7 @@ sub find_event_loop_file {
   return;
 }
 
-sub get_loop_cfg {
-  my $fqmn = shift;
-
+sub _get_loop_cfg {
   my ($in_test_block, @test_source);
 
   open SOURCE, "<$fqmn" or die $!;
@@ -178,6 +176,14 @@ See L<poe-gen-tests>.
 
 See L<poe-gen-tests>, which is a utility to generate the actual tests
 for your POE::Loop subclass.
+
+=head1 FUNCTIONS
+
+=head2 generate( $DIRBASE, \@LOOPS, $VERBOSE )
+
+Generates the loop tests. DIRBASE is the (relative) directory in which
+a subdirectory for each of the LOOPS is created. If VERBOSE is set to
+a TRUE value some progress reporting is printed
 
 =head1 SEE ALSO
 
