@@ -4,16 +4,12 @@ use strict;
 use Getopt::Long;
 use POE::Test::Loops;
 
-my $dir_base;
-my $flag_help;
-my @loop_modules;
-my $flag_verbose;
-
+my ($dir_base, $flag_help, @loop_modules, $flag_verbose);
 my $result = GetOptions(
   'dirbase=s' => \$dir_base,
   'loop=s' => \@loop_modules,
   'verbose' => \$flag_verbose,
-  help => \$flag_help,
+  'help' => \$flag_help,
 );
 
 if (
@@ -304,6 +300,10 @@ free to do it some other way.
   }
 
   print "\n";
+
+=head1 SEE ALSO
+
+L<POE::Test::Loops> and L<POE::Loop>.
 
 =head1 AUTHOR & COPYRIGHT
 

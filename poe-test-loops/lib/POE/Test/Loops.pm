@@ -39,48 +39,48 @@ sub generate {
     my $loop_cfg = _get_loop_cfg($fqmn);
     unless (defined $loop_cfg and length $loop_cfg) {
       $loop_cfg = (
-	  "sub skip_tests { return }"
-	  );
+				"sub skip_tests { return }"
+			);
     }
 
     my $source = (
-	"#!/usr/bin/perl -w\n" .
-	"# \$Id\$\n" .
-	"\n" .
-	"use strict;\n" .
-	"\n" .
-	"use lib qw(--base_lib--);\n" .
-	"use Test::More;\n" .
-	"use POSIX qw(_exit);\n" .
-	"\n" .
-	"--loop_cfg--\n" .
-	"\n" .
-	"BEGIN {\n" .
-	"  if (my \$why = skip_tests('--test_name--')) {\n" .
-	"    plan skip_all => \$why\n" .
-	"  }\n" .
-	"}\n" .
-	"\n" .
-	"# Run the tests themselves.\n" .
-	"require '--base_file--';\n" .
-	"\n" .
-	"_exit 0 if \$^O eq 'MSWin32';\n" .
-	"CORE::exit 0;\n"
-	);
+			"#!/usr/bin/perl -w\n" .
+			"# \$Id\$\n" .
+			"\n" .
+			"use strict;\n" .
+			"\n" .
+			"use lib qw(--base_lib--);\n" .
+			"use Test::More;\n" .
+			"use POSIX qw(_exit);\n" .
+			"\n" .
+			"--loop_cfg--\n" .
+			"\n" .
+			"BEGIN {\n" .
+			"  if (my \$why = skip_tests('--test_name--')) {\n" .
+			"    plan skip_all => \$why\n" .
+			"  }\n" .
+			"}\n" .
+			"\n" .
+			"# Run the tests themselves.\n" .
+			"require '--base_file--';\n" .
+			"\n" .
+			"_exit 0 if \$^O eq 'MSWin32';\n" .
+			"CORE::exit 0;\n"
+		);
 
-# Full directory where source files are found.
+		# Full directory where source files are found.
 
     my $dir_src = File::Spec->catfile($source_base, "Loops");
     my $dir_dst = File::Spec->catfile($dir_base, $loop_dir);
 
-# Gather the list of source files.
-# Each will be used to generate a real test file.
+		# Gather the list of source files.
+		# Each will be used to generate a real test file.
 
     opendir BASE, $dir_src or die $!;
     my @base_files = grep /\.pm$/, readdir(BASE);
     closedir BASE;
 
-# Initialize the destination directory.  Clear or create as needed.
+		# Initialize the destination directory.  Clear or create as needed.
 
     $dir_dst =~ tr[/][/]s;
     $dir_dst =~ s{/+$}{};
@@ -88,9 +88,9 @@ sub generate {
     rmtree($dir_dst);
     mkpath($dir_dst, 0, 0755);
 
-# For each source file, generate a corresponding one in the
-# configured destination directory.  Expand various bits to
-# customize the test.
+		# For each source file, generate a corresponding one in the
+		# configured destination directory.  Expand various bits to
+		# customize the test.
 
     foreach my $base_file (@base_files) {
       my $test_name = $base_file;
@@ -99,8 +99,8 @@ sub generate {
       my $full_file = File::Spec->catfile($dir_dst, $base_file);
       $full_file =~ s/\.pm$/.t/;
 
-# These hardcoded expansions are for the base file to be required,
-# and the base library directory where it'll be found.
+			# These hardcoded expansions are for the base file to be required,
+			# and the base library directory where it'll be found.
 
       my $expanded_src = $source;
       $expanded_src =~ s/--base_file--/$base_file/g;
@@ -108,7 +108,7 @@ sub generate {
       $expanded_src =~ s/--loop_cfg--/$loop_cfg/g;
       $expanded_src =~ s/--test_name--/$test_name/g;
 
-# Write with lots of error checking.
+			# Write with lots of error checking.
 
       open EXPANDED, ">$full_file" or die $!;
       print EXPANDED $expanded_src;
@@ -159,7 +159,6 @@ sub _get_loop_cfg {
   return join "", @test_source;
 }
 
-
 1;
 
 __END__
@@ -170,20 +169,57 @@ POE::Test::Loops - Reusable tests for POE::Loop authors
 
 =head1 SYNOPSIS
 
-See L<poe-gen-tests>.
+	#!/usr/bin/perl -w
+
+	use strict;
+	use Getopt::Long;
+	use POE::Test::Loops;
+
+	my ($dir_base, $flag_help, @loop_modules, $flag_verbose);
+	my $result = GetOptions(
+		'dirbase=s' => \$dir_base,
+		'loop=s' => \@loop_modules,
+		'verbose' => \$flag_verbose,
+		'help' => \$flag_help,
+	);
+
+	if (
+		!$result or !$dir_base or $flag_help or !@loop_modules
+	) {
+		die(
+			"$0 usage:\n",
+			"  --dirbase DIR   (required) base directory for tests\n",
+			"  --loop MODULE   (required) loop modules to test\n",
+			"  --verbose   show some extra output\n",
+			"  --help   you're reading it\n",
+		);
+	}
+
+	POE::Test::Loops::generate($dir_base, \@loop_modules, $flag_verbose);
+	exit 0;
 
 =head1 DESCRIPTION
 
-See L<poe-gen-tests>, which is a utility to generate the actual tests
-for your POE::Loop subclass.
+POE::Test::Loops contains one function, generate(), which will
+generate all the loop tests for one or more POE::Loop subclasses.
+
+The L</SYNOPSIS> example is a version of L<poe-gen-tests>, which is a
+stand-alone utility to generate the actual tests.  L<poe-gen-tests>
+also documents the POE::Test::Loops system in more detail.
 
 =head1 FUNCTIONS
 
 =head2 generate( $DIRBASE, \@LOOPS, $VERBOSE )
 
-Generates the loop tests. DIRBASE is the (relative) directory in which
-a subdirectory for each of the LOOPS is created. If VERBOSE is set to
-a TRUE value some progress reporting is printed
+Generates the loop tests.  DIRBASE is the (relative) directory in
+which a subdirectory for each of the LOOPS is created.  If VERBOSE is
+set to a TRUE value some progress reporting is printed.
+
+	POE::Test::Loops::generate(
+		"./t",
+		[ "POE::Loop::Yours" ],
+		1,
+	);
 
 =head1 SEE ALSO
 
