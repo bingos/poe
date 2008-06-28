@@ -139,6 +139,8 @@ sub _find_event_loop_file {
 }
 
 sub _get_loop_cfg {
+  my $fqmn = shift;
+
   my ($in_test_block, @test_source);
 
   open SOURCE, "<$fqmn" or die $!;
