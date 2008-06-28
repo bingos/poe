@@ -6,7 +6,7 @@ use strict;
 use vars qw($VERSION);
 
 use vars qw($VERSION $REVISION);
-$VERSION = '0.99'; # NOTE - Should be #.## (two decimal places)
+$VERSION = '1.000'; # NOTE - Should be #.### (three decimal places)
 $REVISION = do {my($r)=(q$Revision$=~/(\d+)/);sprintf"0.%04d",$r};
 
 use File::Spec;
