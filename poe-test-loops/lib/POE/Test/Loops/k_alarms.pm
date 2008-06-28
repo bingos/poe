@@ -20,7 +20,8 @@ BEGIN { use_ok("POE") }
 
 # We need this because queue_peek_alarms was deprecated
 BEGIN {
- package POE::Kernel;
+ package # split to avoid CPAN indexer
+ POE::Kernel;
 
  sub queue_peek_alarms {
   my $self = shift;
