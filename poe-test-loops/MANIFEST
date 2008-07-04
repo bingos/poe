@@ -9,6 +9,7 @@ lib/POE/Test/Loops.pm
 lib/POE/Test/Loops/all_errors.pm
 lib/POE/Test/Loops/comp_tcp.pm
 lib/POE/Test/Loops/comp_tcp_concurrent.pm
+lib/POE/Test/Loops/connect_errors.pm
 lib/POE/Test/Loops/k_alarms.pm
 lib/POE/Test/Loops/k_aliases.pm
 lib/POE/Test/Loops/k_detach.pm
