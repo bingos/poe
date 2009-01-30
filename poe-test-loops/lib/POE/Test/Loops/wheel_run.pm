@@ -546,7 +546,8 @@ for my $chld_program (@chld_programs) {
     skip "$chld_name/pty: The underlying event loop has trouble with ptys on $^O", 2*STD_TEST_COUNT
       if $^O eq "darwin" and (
         exists $INC{"POE/Loop/IO_Poll.pm"} or
-        exists $INC{"POE/Loop/Event.pm"}
+        exists $INC{"POE/Loop/Event.pm"} or
+        $ENV{POE_LOOP_USES_POLL}
       );
 
     create_test_session(

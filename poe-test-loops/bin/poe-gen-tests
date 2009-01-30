@@ -39,7 +39,7 @@ poe-gen-tests - generate standard POE tests for third-party modules
     --loop Glib \
     --loop Kqueue \
     --loop Event::Lib \
-		--loop POE::XS::Loop::Poll
+    --loop POE::XS::Loop::Poll
 
 =head1 DESCRIPTION
 
@@ -69,6 +69,7 @@ generates the following test files:
   t/loops/select/all_errors.t
   t/loops/select/comp_tcp.t
   t/loops/select/comp_tcp_concurrent.t
+  t/loops/select/connect_errors.t
   t/loops/select/k_alarms.t
   t/loops/select/k_aliases.t
   t/loops/select/k_detach.t
@@ -93,8 +94,8 @@ generates the following test files:
 The --loop parameter is either a POE::Loop::... class name or the
 event loop class that will complete the POE::Loop::... package name.
 
-	poe-gen-tests --dirbase t/loops --loop Event::Lib
-	poe-gen-tests --dirbase t/loops --loop POE::Loop::Event_Lib
+  poe-gen-tests --dirbase t/loops --loop Event::Lib
+  poe-gen-tests --dirbase t/loops --loop POE::Loop::Event_Lib
 
 poe-gen-tests looks for a "=for poe_tests" section within the
 POE::Loop class being tested.  If defined, this section should include
@@ -300,6 +301,19 @@ free to do it some other way.
   }
 
   print "\n";
+
+=head1 Skipping Other Tests
+
+POE's loop tests will enable or disable tests based on the event
+loop's capabilities.  Distributions and event loops may set these
+variables to signal which tests are okay to run.
+
+=head2 POE_LOOP_USES_POLL
+
+Some platforms do not support poll() on certain kinds of filehandles.
+Event loops that use poll() should set this environment variable to a
+true value.  It will cause the tests to skip this troublesome
+combination.
 
 =head1 SEE ALSO
 
