@@ -90,9 +90,9 @@ sub part1 {
     inline_states => {
       _start => sub {
         test_new("new(): no args");
-        test_new("new(): passing kernel deprecated", $poe_kernel);
         test_new("new(): handles for both directions", InputHandle => \*STDIN);
         local $SIG{__WARN__} = sub {};
+        test_new("new(): passing kernel deprecated", $poe_kernel);
         test_new("new(): both marks must be given",
           Handle => \*DATA, HighMark => 5,
           HighEvent => 'high', LowEvent => 'low');

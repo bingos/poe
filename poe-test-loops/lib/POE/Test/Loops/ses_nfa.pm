@@ -225,8 +225,9 @@ POE::NFA->spawn(
         $_[KERNEL]->alias_set( 'dynamicstates' );
         $_[MACHINE]->goto_state( 'listen', 'send' );
         $_[KERNEL]->state("test_wheel_event" => sub {
-            POE::Kernel->yield("happened");
-          } );
+            $_[KERNEL]->yield("happened");
+          }
+        );
 
         # test options
         my $orig = $_[MACHINE]->option(default => 1);
@@ -234,7 +235,7 @@ POE::NFA->spawn(
         Test::More::ok($rv, "set default option successfully");
         $rv = $_[MACHINE]->option('default' => $orig);
         Test::More::ok($rv, "reset default option successfully");
-        my $rv = $_[MACHINE]->option('default');
+        $rv = $_[MACHINE]->option('default');
         Test::More::ok(!($rv xor $orig), "reset default option successfully");
 
         # test (post|call)backs

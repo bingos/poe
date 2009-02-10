@@ -364,7 +364,7 @@ POE::Session->create(
       Test::More::ok($rv, "set default option successfully");
       $rv = $_[SESSION]->option('default' => $orig);
       Test::More::ok($rv, "reset default option successfully");
-      my $rv = $_[SESSION]->option('default');
+      $rv = $_[SESSION]->option('default');
       Test::More::ok(!($rv xor $orig), "reset default option successfully");
 
       $_[KERNEL]->yield("idle");
@@ -578,7 +578,6 @@ POE::MySession->create(
       # isnt possible in a sane and normal world. So if this is giving
       # you fits, consider it a sign that your "legacy perl" fetish is
       # bizarre and harmful.
-      my $expected;
       if ($] >= 5.006 or ($] >= 5.004 and $] < 5.00405)) {
         $expected = 3;
       } else {
@@ -629,7 +628,6 @@ ok(
 # 5.004 and 5.005 have some nasty gc issues. Near as I can tell,
 # data inside the heap is surviving the session DESTROY. This
 # isnt possible in a sane and normal world.
-my $expected;
 if($] >= '5.006') {
   $expected = 4;
 }
