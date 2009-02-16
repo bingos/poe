@@ -24,6 +24,7 @@ my $name = 'POlEsmoker';
 my $working = getcwd();
 my $result = fileparse($working);
 my $help;
+my $verbose = 0;
 
 GetOptions ("workdir=s" => \$working,
 	    "make=s"    => \$make,
@@ -32,6 +33,7 @@ GetOptions ("workdir=s" => \$working,
 	    "url=s"	=> \$pasteurl,
 	    "channel=s" => \$channel,
 	    "help"	=> \$help,
+	    "verbose"   => \$verbose,
 	    "result=s"  => \$result );
 
 if ( $help ) {
@@ -122,6 +124,7 @@ sub _stop {
 
 sub _output {
   push @{ $_[HEAP]->{output} }, $_[ARG0];
+  print $_[ARG0], "\n" if $verbose;
   undef;
 }
 
@@ -206,6 +209,10 @@ The name who the paste will be from. The default is 'POlESmoker'.
 =item --channel
 
 The channel the paste will be sent to. The default is '#poe'. 
+
+=item --verbose 
+
+Enable C<verbose> output.
 
 =back
 
