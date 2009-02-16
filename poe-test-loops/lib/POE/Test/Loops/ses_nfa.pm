@@ -10,7 +10,7 @@ sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }
 sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
-use Test::More tests => 28;
+use Test::More tests => 39;
 
 use POE qw(NFA);
 
@@ -21,41 +21,68 @@ use POE qw(NFA);
 package Switch;
 use POE::NFA;
 
+sub new {
+  my $class = shift;
+
+  return bless {}, $class;
+}
+
+sub _default {
+  0;
+}
+
+sub off_enter {
+  Test::More::is($_[OBJECT], 'Switch', '$_[OBJECT] is a package');
+  $_[KERNEL]->post( $_[ARG0] => visibility => 0 );
+}
+
+sub off_pushed {
+  $_[MACHINE]->goto_state( on => enter => $_[SENDER] );
+}
+
+sub enter {
+  Test::More::isa_ok($_[OBJECT], 'Switch', '$_[OBJECT]');
+  $_[KERNEL]->post( $_[ARG0] => visibility => 1 );
+}
+
+sub pushed {
+  $_[MACHINE]->goto_state( off => enter => $_[SENDER] );
+}
+
+my $self = Switch->new;
+
 POE::NFA->spawn(
   inline_states => {
    # The initial state, and its start event.  Make the switch
    # visible by name, and start in the 'off' state.
    initial => {
      start => sub {
+       Test::More::is($_[OBJECT], undef, 'no object');
        $_[KERNEL]->alias_set( 'switch' );
        $_[MACHINE]->goto_state( 'off' );
      },
-     _default => sub { 0 },
+     _default => \&default,
    },
    # The light is off.  When this state is entered, post a
    # visibility event at whatever had caused the light to go off.
    # When it's pushed, have the light go on.
-   off => {
-     enter => sub {
-       $_[KERNEL]->post( $_[ARG0] => visibility => 0 );
+  },
+  package_states => {
+   off => [
+     Switch => {
+       enter => 'off_enter',
+       pushed => 'off_pushed',
+       _default => '_default',
      },
-     pushed => sub {
-       $_[MACHINE]->goto_state( on => enter => $_[SENDER] );
-     },
-     _default => sub { 0 },
-   },
+   ],
+  },
+  object_states => {
    # The light is on.  When this state is entered, post a visibility
    # event at whatever had caused the light to go on.  When it's
    # pushed, have the light go off.
-   on => {
-     enter => sub {
-       $_[KERNEL]->post( $_[ARG0] => visibility => 1 );
-     },
-     pushed => sub {
-       $_[MACHINE]->goto_state( off => enter => $_[SENDER] );
-     },
-     _default => sub { 0 },
-   },
+   on => [
+     $self => [qw(enter pushed _default)],
+   ],
   },
 )->goto_state( initial => 'start' );  # enter the initial state
 
