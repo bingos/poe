@@ -18,7 +18,7 @@ use LWP::UserAgent;
 
 my $make = ( $^O eq 'MSWin32' ? 'nmake.exe' : 'make' );
 my $perl = ( $^O eq 'MSWin32' ? 'perl.exe' : '/usr/bin/perl' );
-my $pasteurl = 'http://paste.scsys.co.uk';
+my $pasteurl = 'http://nopaste.snit.ch';
 my $channel = '#poe';
 my $name = 'POlEsmoker';
 my $working = getcwd();
