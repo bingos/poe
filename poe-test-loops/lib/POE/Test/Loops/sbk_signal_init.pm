@@ -8,6 +8,14 @@
 use warnings;
 use strict;
 
+# perl-5.6.x on Win32 does not support alarm()
+BEGIN {
+  if ( $^O eq 'MSWin32' and $] < 5.008 ) {
+    print "1..0 # Skip perl-5.6.x on $^O does not support alarm()";
+    exit();
+  }
+}
+
 use Test::More tests => 1;
 
 BEGIN {
