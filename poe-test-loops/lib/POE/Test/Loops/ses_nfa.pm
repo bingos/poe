@@ -15,10 +15,8 @@ use Test::More;
 use POE qw(NFA);
 my $NEW_POE;
 BEGIN {
-  warn $POE::VERSION;
   if ($POE::VERSION <= 1.003) {
     $NEW_POE = 0;
-    warn "OLD POE $NEW_POE";
     plan tests => 28;
   } else {
     $NEW_POE = 1;
@@ -82,7 +80,6 @@ my $args = {
 };
 
 if ($NEW_POE) {
-  warn "NEW POE $NEW_POE";
   $args->{package_states} = {
    off => [
      Switch => {
