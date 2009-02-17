@@ -132,17 +132,41 @@ BEGIN {
   if ($^O eq "MSWin32") {
     $error = "$^O cannot multiplex terminals";
   }
-  if (!-t STDIN) {
+  elsif (!-t STDIN) {
     $error = "not running in a terminal";
   }
   else {
     eval "use Term::ReadKey";
     if ($@) {
-      $error = "This test requires Term::ReadKey" if $@;
+      $error = "This test requires Term::ReadKey";
     }
     else {
       eval "use IO::Pty";
-      $error = "This test requires IO::Pty" if $@;
+      if ($@) {
+        $error = "This test requires IO::Pty";
+      }
+      else {
+        eval "use Term::Cap";
+        if ($@) {
+          $error = "This test requires Term::Cap";
+        }
+      }
+    }
+  }
+
+  unless ($error) {
+    use POSIX ();
+
+    my $termios = POSIX::Termios->new();
+    $termios->getattr();
+    my $ospeed = $termios->getospeed() || eval { POSIX::B38400() } || 0;
+
+    my $term = $ENV{TERM} || 'vt100';
+    my $termcap = eval { Term::Cap->Tgetent( { TERM => $term, OSPEED => $ospeed } ) };
+    unless ($termcap) {
+      $error = "Term::Cap failure: $@";
+      $error =~ s/ at \S+ line \d+.*//;
+      $error =~ s/\s+/ /g;
     }
   }
 
@@ -223,7 +247,7 @@ END {
 use POE qw(Filter::Stream Wheel::ReadWrite);
 
 eval "use POE::Wheel::ReadLine";
-if ($@ and $@ =~ /requires a termcap/) {
+if ($@ and $@ =~ /(requires a termcap|failed termcap lookup)/) {
   my $error = $@;
   $error =~ s/ at \S+ line \d+.*//;
   $error =~ s/\s+/ /g;
@@ -265,10 +289,11 @@ sub test_start {
 
   # The ReadLine wheel to drive and test.
 
-  $heap->{readline} = POE::Wheel::ReadLine->new(
-    InputEvent => "got_readline_input",
-    appname => "my_cli",
-  );
+  eval {
+    $heap->{readline} = POE::Wheel::ReadLine->new(
+      InputEvent => "got_readline_input",
+      appname => "my_cli",
+    );
 
   # And start testing.
 
