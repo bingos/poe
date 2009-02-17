@@ -10,9 +10,21 @@ sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }
 sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
-use Test::More tests => 39;
+use Test::More;
 
 use POE qw(NFA);
+my $NEW_POE;
+BEGIN {
+  warn $POE::VERSION;
+  if ($POE::VERSION <= 1.003) {
+    $NEW_POE = 0;
+    warn "OLD POE $NEW_POE";
+    plan tests => 28;
+  } else {
+    $NEW_POE = 1;
+    plan tests => 39;
+  }
+}
 
 ### Plain NFA.  This simulates a pushbutton that toggles a light.
 ### This goes in its own package because POE::Session and POE::NFA
@@ -32,7 +44,8 @@ sub _default {
 }
 
 sub off_enter {
-  Test::More::is($_[OBJECT], 'Switch', '$_[OBJECT] is a package');
+  Test::More::is($_[OBJECT], 'Switch', '$_[OBJECT] is a package')
+    if ($NEW_POE);
   $_[KERNEL]->post( $_[ARG0] => visibility => 0 );
 }
 
@@ -41,7 +54,8 @@ sub off_pushed {
 }
 
 sub enter {
-  Test::More::isa_ok($_[OBJECT], 'Switch', '$_[OBJECT]');
+  Test::More::isa_ok($_[OBJECT], 'Switch', '$_[OBJECT]')
+    if ($NEW_POE);
   $_[KERNEL]->post( $_[ARG0] => visibility => 1 );
 }
 
@@ -51,23 +65,25 @@ sub pushed {
 
 my $self = Switch->new;
 
-POE::NFA->spawn(
+my $args = {
   inline_states => {
    # The initial state, and its start event.  Make the switch
    # visible by name, and start in the 'off' state.
    initial => {
      start => sub {
-       Test::More::is($_[OBJECT], undef, 'no object');
+      Test::More::is($_[OBJECT], undef, 'no object')
+       if ($NEW_POE);
        $_[KERNEL]->alias_set( 'switch' );
        $_[MACHINE]->goto_state( 'off' );
      },
-     _default => \&default,
+     _default => \&_default,
    },
-   # The light is off.  When this state is entered, post a
-   # visibility event at whatever had caused the light to go off.
-   # When it's pushed, have the light go on.
-  },
-  package_states => {
+ },
+};
+
+if ($NEW_POE) {
+  warn "NEW POE $NEW_POE";
+  $args->{package_states} = {
    off => [
      Switch => {
        enter => 'off_enter',
@@ -75,8 +91,8 @@ POE::NFA->spawn(
        _default => '_default',
      },
    ],
-  },
-  object_states => {
+  };
+  $args->{object_states} = {
    # The light is on.  When this state is entered, post a visibility
    # event at whatever had caused the light to go on.  When it's
    # pushed, have the light go off.
@@ -84,7 +100,21 @@ POE::NFA->spawn(
      $self => [qw(enter pushed _default)],
    ],
   },
-)->goto_state( initial => 'start' );  # enter the initial state
+} else {
+  $args->{inline_states}->{off} = {
+    enter => \&off_enter,
+    pushed => \&off_pushed,
+    _default => \&_default,
+  };
+  $args->{inline_states}->{on} = {
+    enter => \&enter,
+    pushed => \&pushed,
+    _default => \&_default,
+  };
+}
+
+POE::NFA->spawn(%$args)
+  ->goto_state( initial => 'start' );  # enter the initial state
 
 ### This NFA uses the stop() method.  Gabriel Kihlman discovered that
 ### POE::NFA lags behind POE::Kernel after 0.24, and stop() wasn't
