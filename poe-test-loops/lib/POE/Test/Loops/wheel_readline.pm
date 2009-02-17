@@ -294,6 +294,7 @@ sub test_start {
       InputEvent => "got_readline_input",
       appname => "my_cli",
     );
+  };
 
   # And start testing.
 
