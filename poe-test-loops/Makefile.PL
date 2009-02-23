@@ -14,6 +14,7 @@ WriteMakefile(
   VERSION_FROM => 'lib/POE/Test/Loops.pm',
   PREREQ_PM    => {
     'Test::More' => 0,
+    'version' => '0.74',
   },
   EXE_FILES    => [ 'bin/poe-gen-tests' ],
   dist         => {
