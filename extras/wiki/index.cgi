@@ -31,7 +31,7 @@
 #    59 Temple Place, Suite 330
 #    Boston, MA 02111-1307 USA
 
-use lib qw(/home/troc/lib/local/share/perl);
+#use lib qw(/home/troc/lib/local/share/perl);
 
 use CGI::Carp qw(fatalsToBrowser);
 use Text::Template;
