@@ -24,8 +24,18 @@ if ($^O eq "cygwin") {
 
 # to work around an issue on MSWin32+old perls
 # it always hangs on the 7th test...
-if ($^O eq 'MSWin32' and $] < 5.0010) {
-  plan skip_all => "This test always hangs on MSWin32+perl older than 5.10.0";
+if ($^O eq 'MSWin32') {
+  if ($] < 5.008) {
+    plan skip_all => "This test always hangs on MSWin32+perl older than 5.8.0";
+  }
+  if ($] < 5.010) {
+    # ARGH, it doesn't lock up on Strawberry 5.8.x but it does on ActiveState 5.8.x!!!
+    # ugly method, but it works for me...
+    require Config;
+    if ($Config::Config{cf_email} =~ /ActiveState/) {
+      plan skip_all => "This test always hangs on MSWin32+ActiveState perl older than 5.10";
+    }
+  }
 }
 
 plan tests => 10;
