@@ -7,14 +7,19 @@
 
 use strict;
 
-BEGIN {
-  unless (-f "run_network_tests") {
-    print "1..0 # Skip Network access (and permission) required to run this test\n";
-    CORE::exit();
-  }
+use Test::More;
+
+unless (-f "run_network_tests") {
+  plan skip_all => "Network access (and permission) required to run this test";
 }
 
-use Test::More tests => 1;
+# to work around an issue on MSWin32+ActiveState 5.6.1
+# it will always timeout via our alarm, and if we remove it - the OS never times out!
+if ($^O eq 'MSWin32' and $] < 5.008) {
+  plan skip_all => "This test always fails on MSWin32+perl older than 5.8.0";
+}
+
+plan tests => 3;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }
@@ -26,19 +31,24 @@ use POE qw( Wheel::ReadWrite Component::Client::TCP );
 
 my $unused_port;
 {
-	use IO::Socket::INET;
-	my $reserved = IO::Socket::INET->new(
-		LocalAddr => '127.0.0.1',
-		LocalPort => 0,
-		ReuseAddr => 0,
-	);
-	$unused_port = (sockaddr_in(getsockname($reserved)))[0];
+  use IO::Socket::INET;
+  my $reserved = IO::Socket::INET->new(
+    LocalAddr => '127.0.0.1',
+    #LocalPort => 0,    # 0 is the default, and as a bonus this works on MSWin32+ActiveState 5.6.1
+    ReuseAddr => 0,
+  );
+  if (defined $reserved) {
+    $unused_port = (sockaddr_in(getsockname($reserved)))[0];
+    pass("found unused port: $unused_port");
+  } else {
+    fail("found unused port error: $@");
+  }
 }
 
 # Timeout.
 
 POE::Session->create(
-	inline_states => {
+  inline_states => {
     _start => sub {
       $poe_kernel->alias_set('watcher');
       $_[HEAP]{alarm} = $poe_kernel->alarm_set(timeout => time() + 10);
@@ -74,5 +84,7 @@ POE::Component::Client::TCP->new(
 # Run the tests.
 
 POE::Kernel->run();
+
+pass("run() returned successfully");
 
 1;

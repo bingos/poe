@@ -22,6 +22,12 @@ if ($^O eq "cygwin") {
   plan skip_all => "Cygwin file open/locking semantics thwart this test.";
 }
 
+# to work around an issue on MSWin32+old perls
+# it always hangs on the 7th test...
+if ($^O eq 'MSWin32' and $] < 5.0010) {
+  plan skip_all => "This test always hangs on MSWin32+perl older than 5.10.0";
+}
+
 plan tests => 10;
 
 use POE qw(
