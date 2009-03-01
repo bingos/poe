@@ -27,7 +27,8 @@ sub listener_start {
   my $heap = $_[HEAP];
 
   my $listening_socket = IO::Socket::INET->new(
-    LocalPort => 0,
+    LocalAddr => '127.0.0.1',
+    #LocalPort => 0,    # 0 is the default, and as a bonus this works on MSWin32+ActiveState 5.6.1
     Listen    => 5,
     Proto     => 'tcp',
     Reuse     => 'yes',
@@ -37,7 +38,7 @@ sub listener_start {
     pass("created listening socket");
   }
   else {
-    fail("created listening socket");
+    fail("created listening socket error: $@");
     fail("listening socket accepted connections");
     return;
   }
@@ -60,10 +61,12 @@ sub listener_start {
 }
 
 sub listener_stop {
-  ok(
-    $_[HEAP]->{accept_count} == 5,
-    "listening socket accepted connections"
-  );
+  if (defined $bound_port) {
+    ok(
+      $_[HEAP]->{accept_count} == 5,
+      "listening socket accepted connections"
+    );
+  }
 }
 
 sub listener_got_connection {
@@ -109,14 +112,16 @@ POE::Session->create(
   }
 );
 
-for (my $connector_count=0; $connector_count < 5; $connector_count++) {
-  POE::Session->create(
-    inline_states => {
-      _start         => \&connector_start,
-      got_connection => \&connector_got_connection,
-      got_error      => \&connector_got_error,
-    }
-  );
+if (defined $bound_port) {
+  for (my $connector_count=0; $connector_count < 5; $connector_count++) {
+    POE::Session->create(
+      inline_states => {
+        _start         => \&connector_start,
+        got_connection => \&connector_got_connection,
+        got_error      => \&connector_got_error,
+      }
+    );
+  }
 }
 
 $poe_kernel->run();
