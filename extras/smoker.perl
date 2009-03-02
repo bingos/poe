@@ -16,6 +16,8 @@ use Getopt::Long;
 use POE qw(Wheel::Run);
 use LWP::UserAgent;
 
+$|=1;
+
 my $make = ( $^O eq 'MSWin32' ? 'nmake.exe' : 'make' );
 my $perl = ( $^O eq 'MSWin32' ? 'perl.exe' : '/usr/bin/perl' );
 my $pasteurl = 'http://nopaste.snit.ch';
