@@ -1,71 +1,65 @@
 <html>
-    <head>
-        <title><% $doctitle %></title>
-            
-    <meta name="ROBOTS" content="<% $meta_robot %>" />
+	<head>
+		<title><% $doctitle %></title>
+		<meta name="ROBOTS" content="<% $meta_robot %>" />
+		<link rel="SHORTCUT ICON" href="/favicon.ico" />
+		<link rel="stylesheet" type="text/css" href="purplehaze.css" />
+		<link rel="alternate stylesheet" type="text/css" href="blue.css" title="blue" />
+	</head>
+	<body>
+		<div id="top"></div>
 
-    <link rel="SHORTCUT ICON" href="/favicon.ico" />
-    <link rel="stylesheet" type="text/css" href="purplehaze.css" />
-    <link rel="alternate stylesheet" type="text/css" href="blue.css" title="blue" />
+		<!-- ###### Header ###### -->
 
-        <style type="text/css">
-            <% $CSS %>
-        </style>
+		<div id="header">
+			<span class="headerTitle"><a href="http://poe.perl.org">POE: Perl Object Environment</a></span>
+			<div class="headerLinks">
+				<a href="http://poe.perl.org">home</a>|
+				<a href="http://sf.net/projects/poe/">sf.net</a>|
+				<a href="http://perl.com">perl.com</a>
+			</div>
+		</div>
 
-    <title>POE: Perl Object Environment</title>
-  </head>
+		<!-- ###### Side Boxes ###### -->
 
-  <body>
-    <div id="top"></div>
-  
-    <!-- ###### Header ###### -->
+		<div class="sideBox LHS">
+			<div>Resources</div>
+			<a href="http://poe.perl.org/?What_POE_Is">Introduction</a>
+			<a href="http://poe.perl.org/?POE_Cookbook">Cookbook</a>
+			<a href="http://poe.perl.org/?POE_Documentation">Documentation</a>
+			<a href="http://poe.perl.org/?Where_to_Get_POE">Download</a>
+			<a href="http://poe.perl.org/?POE_FAQ">FAQ</a>
+		</div>
 
-    <div id="header">
-      <span class="headerTitle"><a href="http://poe.perl.org">POE: Perl Object Environment</a></span>
-      <div class="headerLinks">
-        <a href="http://poe.perl.org">home</a>|
-        <a href="http://sf.net/projects/poe/">sf.net</a>|
-        <a href="http://perl.com">perl.com</a>
-      </div>
-    </div>
+		<div class="sideBox LHS">
+			<div>Success Stories</div>
+			<a href="http://poe.perl.org/?People_Using_POE">Consultants</a>
+			<a href="http://poe.perl.org/?Organizations_Using_POE">Companies</a>
+			<a href="http://poe.perl.org/?Projects_Using_POE">Projects</a>
+		</div>
 
-    <!-- ###### Side Boxes ###### -->
+		<div class="sideBox LHS">
+			<div>Search</div>
+			<form method="post" action="" enctype="application/x-www-form-urlencoded" class="sideForm">
+			<input type="text" name="search" class="sideSearch" />
+			<input type="hidden" name="dosearch" value="1" />
+			</form>
+		</div>
 
-    <div class="sideBox LHS">
-      <div>Resources</div>
-      <a href="http://poe.perl.org/?What_POE_Is">Introduction</a>
-      <a href="http://poe.perl.org/?POE_Cookbook">Cookbook</a>
-      <a href="http://poe.perl.org/?POE_Documentation">Documentation</a>
-      <a href="http://poe.perl.org/?Where_to_Get_POE">Download</a>
-      <a href="http://poe.perl.org/?POE_FAQ">FAQ</a>
-    </div>
+		<div class="delBox">
+			<script type="text/javascript">
+				if (typeof window.Delicious == "undefined") window.Delicious = {};
+				Delicious.BLOGBADGE_DEFAULT_CLASS = 'delicious-blogbadge-custom';
+			</script>
+			<div class="delicious-blogbadge-tall"><script src="http://images.del.icio.us/static/js/blogbadge.js"></script></div>
+		</div>
 
-    <div class="sideBox LHS">
-      <div>Success Stories</div>
-      <a href="http://poe.perl.org/?People_Using_POE">Consultants</a>
-      <a href="http://poe.perl.org/?Organizations_Using_POE">Companies</a>
-      <a href="http://poe.perl.org/?Projects_Using_POE">Projects</a>
-    </div>
+		<div class="ohloBox LHS">
+			<script type="text/javascript" src="http://www.ohloh.net/p/8105/widgets/project_thin_badge.js"></script>
+		</div>
 
-    <div class="sideBox LHS">
-      <div>Search</div>
-      <form method="post" action="" enctype="application/x-www-form-urlencoded" class="sideForm">
-      <input type="text" name="search" class="sideSearch" />
-      <input type="hidden" name="dosearch" value="1" />
-      </form>
-    </div>
+		<!-- ###### Body Text ###### -->
 
-    <div class="delBox">
-      <script type="text/javascript">
-        if (typeof window.Delicious == "undefined") window.Delicious = {};
-        Delicious.BLOGBADGE_DEFAULT_CLASS = 'delicious-blogbadge-custom';
-      </script>
-      <div class="delicious-blogbadge-tall"><script src="http://images.del.icio.us/static/js/blogbadge.js"></script></div>
-    </div>
-
-    <!-- ###### Body Text ###### -->
-
-    <div id="bodyText">
-    <% $redirect %>
-    <% $header %>
-
+		<div id="bodyText">
+			<% $redirect %>
+			<% $header %>
