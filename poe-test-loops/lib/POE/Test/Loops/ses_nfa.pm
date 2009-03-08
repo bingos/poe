@@ -11,12 +11,11 @@ sub POE::Kernel::TRACE_DEFAULT  () { 1 }
 sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
 use Test::More;
-use version;
 
 use POE qw(NFA);
 my $NEW_POE;
 BEGIN {
-  if (version->new($POE::VERSION) <= 1.003) {
+  if (eval "$POE::VERSION" <= 1.003) {
     $NEW_POE = 0;
     plan tests => 28;
   } else {
