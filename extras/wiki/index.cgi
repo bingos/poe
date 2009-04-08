@@ -4250,7 +4250,7 @@ sub render_script_link_as_html {
 
 sub render_unnamed_page_link_as_html {
 	my ($id) = @_;
-	return render_page_link_named($id, $id);
+	return render_named_page_link_as_html($id, $id);
 }
 
 sub render_named_page_link_as_html {
