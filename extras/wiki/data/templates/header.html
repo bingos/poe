@@ -1,65 +1,41 @@
 <html>
 	<head>
-		<title><% $doctitle %></title>
-		<meta name="ROBOTS" content="<% $meta_robot %>" />
+		<title>[% doctitle %]</title>
+		<meta name="ROBOTS" content="[% meta_robot %]" />
 		<link rel="SHORTCUT ICON" href="/favicon.ico" />
-		<link rel="stylesheet" type="text/css" href="purplehaze.css" />
-		<link rel="alternate stylesheet" type="text/css" href="blue.css" title="blue" />
+		<link rel="stylesheet" type="text/css" href="global.css" />
+
 	</head>
 	<body>
-		<div id="top"></div>
+		<div id="container">
 
-		<!-- ###### Header ###### -->
-
-		<div id="header">
-			<span class="headerTitle"><a href="http://poe.perl.org">POE: Perl Object Environment</a></span>
-			<div class="headerLinks">
-				<a href="http://poe.perl.org">home</a>|
-				<a href="http://sf.net/projects/poe/">sf.net</a>|
-				<a href="http://perl.com">perl.com</a>
+			<div id="header">
+				<h1><a href="http://poe.perl.org">[% doctitle %]</a></h1>
+				<p>Perl, Objects &amp; Events</p>
+				<form id="search" method="post" action="" enctype="application/x-www-form-urlencoded">
+				<input type="text" value="Search..." name="search" />
+				<input type="hidden" name="dosearch" value="1" />
+				<input class="button" type="submit" value="GO" name="Submit" />
+				</form>
 			</div>
-		</div>
 
-		<!-- ###### Side Boxes ###### -->
+			<div id="navigation">
+				<ul id="navlist">
+					<li><a href="/">Home</a></li>
+					<li><a href="/?What_POE_Is">About</a></li>
+					<li><a href="/?POE_Cookbook">Cookbook</a></li>
+					<li><a href="/?POE_Documentation">Documentation</a></li>
+					<li><a href="/?Where_to_Get_POE">Downloads</a></li>
+					<li><a href="/?POE_FAQ">FAQ</a></li>
+					<li><a href="/?tbd">Support</a></li>
+					<li><a href="/?tbd">Contact Us</a></li>
+					<li><a href="/?tbd">Individual Users</a></li>
+					<li><a href="/?tbd">Corporate Users</a></li>
+					<li><a href="/?tbd">Related Projects</a></li>
+					<li><a href="/?tbd">Colophon</a></li>
+				</ul>
+			</div>
 
-		<div class="sideBox LHS">
-			<div>Resources</div>
-			<a href="http://poe.perl.org/?What_POE_Is">Introduction</a>
-			<a href="http://poe.perl.org/?POE_Cookbook">Cookbook</a>
-			<a href="http://poe.perl.org/?POE_Documentation">Documentation</a>
-			<a href="http://poe.perl.org/?Where_to_Get_POE">Download</a>
-			<a href="http://poe.perl.org/?POE_FAQ">FAQ</a>
-		</div>
-
-		<div class="sideBox LHS">
-			<div>Success Stories</div>
-			<a href="http://poe.perl.org/?People_Using_POE">Consultants</a>
-			<a href="http://poe.perl.org/?Organizations_Using_POE">Companies</a>
-			<a href="http://poe.perl.org/?Projects_Using_POE">Projects</a>
-		</div>
-
-		<div class="sideBox LHS">
-			<div>Search</div>
-			<form method="post" action="" enctype="application/x-www-form-urlencoded" class="sideForm">
-			<input type="text" name="search" class="sideSearch" />
-			<input type="hidden" name="dosearch" value="1" />
-			</form>
-		</div>
-
-		<div class="delBox">
-			<script type="text/javascript">
-				if (typeof window.Delicious == "undefined") window.Delicious = {};
-				Delicious.BLOGBADGE_DEFAULT_CLASS = 'delicious-blogbadge-custom';
-			</script>
-			<div class="delicious-blogbadge-tall"><script src="http://images.del.icio.us/static/js/blogbadge.js"></script></div>
-		</div>
-
-		<div class="ohloBox LHS">
-			<script type="text/javascript" src="http://www.ohloh.net/p/8105/widgets/project_thin_badge.js"></script>
-		</div>
-
-		<!-- ###### Body Text ###### -->
-
-		<div id="bodyText">
-			<% $redirect %>
-			<% $header %>
+			<div id="content">
+				[% redirect %]
+				[% header %]

@@ -1,19 +1,28 @@
 #!/sw/perl/5a0/bin/perl
 #!/usr/bin/perl
-# UseModWiki version 0.91 (February 12, 2001)
-# Copyright (C) 2001-2002 Matt Cashner, Rocco Caputo, and Richard
-# Soderberg The POE crew strikes again.
 #
 # $Id$
 #
+# This wiki has no name.  It's based on:
+# UseModWiki version 0.91 (February 12, 2001)
+# By the time it's done, it should bear little resemblance.
+#
+# Copyright (C) 2003-2009 Rocco Caputo.
+#
+# Copyright (C) 2001-2002 Matt Cashner, Rocco Caputo, and Richard
+# Soderberg The POE crew strikes again.
+#
 # Copyright (C) 2000-2001 Clifford A. Adams
 #    <caadams@frontiernet.net> or <usemod@usemod.com>
+#
 # Based on the GPLed AtisWiki 0.3  (C) 1998 Markus Denker
 #    <marcus@ira.uka.de>
+#
 # ...which was based on
 #    the LGPLed CVWiki CVS-patches (C) 1997 Peter Merel
 #    and The Original WikiWikiWeb  (C) Ward Cunningham
 #        <ward@c2.com> (code reused with permission)
+#
 # ThinLine options by Jim Mahoney <mahoney@marlboro.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -21,10 +30,10 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the
@@ -39,7 +48,7 @@ use strict;
 
 use CGI;
 use CGI::Carp qw(fatalsToBrowser);
-use Text::Template;
+use Template;
 use POSIX qw(strftime);
 
 use constant UID_MINLEGAL     => 1001;
@@ -60,41 +69,37 @@ use constant DUMP_TIDY => 0;
 # Configuration/constant variables.  Must be C<use vars> because
 # they're overridden with a do() function.
 
-use vars qw( @RcDays @HtmlPairs @HtmlSingle $TempDir $LockDir
-	$DataDir $HtmlDir $UserDir $KeepDir $PageDir
-	$InterFile $RcFile $RcOldFile $IndexFile $FullUrl
-	$SiteName $HomePage $LogoUrl $RcDefault $IndentLimit
-	$RecentTop $EditAllowed $UseDiff $UseSubpage
-	$UseCache $RawHtml $SimpleLinks $NonEnglish
-	$LogoLeft $KeepDays $HtmlTags $HtmlLinks $UseDiffLog
-	$KeepMajor $KeepAuthor
-	$NotifyDefault $ScriptTZ $BracketText
-	$UseAmPm $UseConfig $UseIndex $RedirType $AdminPass
-	$EditPass $UseHeadings $NetworkFile $BracketWiki
-	$FreeLinks $WikiLinks $AdminDelete $FreeLinkPattern
-	$RCName $ShowEdits $ThinLine $LinkPattern
-	$InterLinkPattern $InterSitePattern $UrlProtocols
-	$UrlPattern $ImageExtensions $RFCPattern $ISBNPattern
-	$FS $FS1 $FS2 $FS3 $CookieName $SiteBase $GlobalCSS
-	$WantSearch $WantTopLinkBar $ExtraISBNLinks
-	$UseScriptName $AllowCharRefs $UserCSS $ReverseTitle
-	$EnableSelfLinks $Footer $ForceLcaseFiles
+use vars qw(
+	@RcDays @HtmlPairs @HtmlSingle $TempDir $LockDir $DataDir $HtmlDir
+	$UserDir $KeepDir $PageDir $InterFile $RcFile $RcOldFile $IndexFile
+	$FullUrl $SiteName $HomePage $LogoUrl $RcDefault $IndentLimit
+	$RecentTop $EditAllowed $UseDiff $UseSubpage $UseCache $RawHtml
+	$SimpleLinks $NonEnglish $LogoLeft $KeepDays $HtmlTags $HtmlLinks
+	$UseDiffLog $KeepMajor $KeepAuthor $NotifyDefault $ScriptTZ
+	$BracketText $UseAmPm $UseConfig $UseIndex $RedirType $AdminPass
+	$EditPass $UseHeadings $NetworkFile $BracketWiki $FreeLinks
+	$WikiLinks $AdminDelete $FreeLinkPattern $RCName $ShowEdits
+	$ThinLine $LinkPattern $InterLinkPattern $InterSitePattern
+	$UrlProtocols $UrlPattern $ImageExtensions $RFCPattern $ISBNPattern
+	$FS $FS1 $FS2 $FS3 $CookieName $SiteBase $GlobalCSS $WantSearch
+	$WantTopLinkBar $ExtraISBNLinks $UseScriptName $AllowCharRefs
+	$UserCSS $ReverseTitle $EnableSelfLinks $Footer $ForceLcaseFiles
 	$LoadEveryTime $Templates $EnableInlineTitle
-	$VERSION
 );
 
 # Other global variables.  Must be C<use vars> because they're
 # overridden with a do() function.
 
-use vars qw( %Page %Section %Text %InterSite %SaveUrl %SaveNumUrl
-	%KeptRevisions %UserCookie %SetCookie %UserData
-	%IndexHash $InterSiteInit $SaveUrlIndex $SaveNumUrlIndex
-	$MainPage $OpenPageName @KeptList @IndexList $IndexInit
-	$q $UserID $TimeZoneOffset $ScriptName $BrowseCode
-	$OtherCode $ShowNotify
+use vars qw(
+	%Page %Section %Text %InterSite %SaveUrl %SaveNumUrl %KeptRevisions
+	%UserCookie %SetCookie %UserData %IndexHash $InterSiteInit
+	$SaveUrlIndex $SaveNumUrlIndex $MainPage $OpenPageName @KeptList
+	@IndexList $IndexInit $q $UserID $TimeZoneOffset $ScriptName
+	$BrowseCode $OtherCode $ShowNotify
 );
 
-$VERSION = (qw($Revision$))[1];    # CVS Version. NO TOUCHIE
+# Automatically filled in by version control.
+my $VERSION = (qw($Revision$))[1];
 
 ##############################
 ### INITIALIZATION SECTION ###
@@ -478,7 +483,8 @@ sub is_valid_page_id_or_error {
 	return 1;
 }
 
-# TODO - I suspect that timezone handling is broken.
+# TODO - I suspect that timezone handling is broken, but it's not
+# fatally so.
 
 sub render_date_as_text {
 	my ($ts) = @_;
@@ -1753,13 +1759,10 @@ sub do_login {
 	my %data;
 	$data{footer} = "<hr>\n" . render_goto_bar_as_html("") . $q->endform;
 
-	my $template = Text::Template->new(
-		TYPE       => 'FILE',
-		DELIMITERS => ['<%', '%>'],
-		SOURCE     => "$Templates/footer.html"
-	);
-
-	print $template->fill_in(HASH => \%data);
+	my $template = Template->new( { ABSOLUTE => 1 } );
+	my $output = "";
+	$template->process("$Templates/footer.html", \%data, \$output);
+	print $output;
 }
 
 sub get_new_user_id {
@@ -2299,6 +2302,152 @@ sub dispatch_change_request {
 # response generators that render the return values of the actions
 # into appropriate HTML.  This will let us templatize the responses.
 
+# Miscellaneous.
+# TODO - Categorize properly.
+
+sub action_lock_or_unlock_entire_site_edits {
+	print render_page_header_as_html(
+		"", "Set or Remove global edit lock", "", "norobots"
+	);
+
+	return unless user_is_admin_or_render_error();
+
+	my $fname = "$DataDir/noedit";
+
+	if (get_request_param("set", 1)) {
+		write_string_to_file($fname, "editing locked.");
+	}
+	else {
+		unlink($fname);
+	}
+
+	if (-f $fname) {
+		print "<p>Edit lock created.<br>";
+	}
+	else {
+		print "<p>Edit lock removed.<br>";
+	}
+
+	print render_common_footer_as_html();
+}
+
+sub action_lock_or_unlock_page_edits {
+	print render_page_header_as_html("", "Set or Remove page edit lock", "", "norobots");
+	return unless user_is_admin_or_render_error();
+
+	unless (user_is_admin()) {
+		print "<p>This operation is restricted to administrators only...\n";
+		print render_common_footer_as_html();
+		return;
+	}
+
+	my $id = get_request_param("id", "");
+
+	if ($id eq "") {
+		print "<p>Missing page id to lock/unlock...\n";
+		return;
+	}
+
+	return unless is_valid_page_id_or_error($id);    # Later consider nicer error?
+
+	my $fname = get_page_lock_filename($id);
+	if (get_request_param("set", 1)) {
+		write_string_to_file($fname, "editing locked.");
+	}
+	else {
+		unlink($fname);
+	}
+
+	if (-f $fname) {
+		print "<p>Lock for $id created.<br>";
+	}
+	else {
+		print "<p>Lock for $id removed.<br>";
+	}
+
+	print render_common_footer_as_html();
+}
+
+sub action_remove_temporary_locks {
+
+	# XXX = All diff and recent-list operations should be done within
+	# locks.
+
+	my $LockMessage = "Normal Unlock.";
+
+	print(
+		render_page_header_as_html("", "Removing edit lock", "", "norobots"),
+		"<p>This operation may take several seconds...\n"
+	);
+
+	if (force_release_lock('main')) {
+		$LockMessage = "Forced Unlock.";
+	}
+
+	# Later display status of other locks?
+	force_release_lock('cache');
+	force_release_lock('diff');
+	force_release_lock('index');
+
+	print "<br><h2>$LockMessage</h2>", render_common_footer_as_html();
+}
+
+sub action_run_periodic_maintenance {
+	print(
+		render_page_header_as_html(
+			"", "Maintenance on all pages", "", "norobots"
+		),
+		"<br>"
+	);
+
+	my $fname = "$DataDir/maintain";
+	unless (user_is_admin()) {
+		if ((-f $fname) && ((-M $fname) < 0.5)) {
+			print(
+				"Maintenance not done.  ",
+				"(Maintenance can only be done once every 12 hours.)  ",
+				"Remove the \"maintain\" file or wait.",
+				render_common_footer_as_html()
+			);
+			return;
+		}
+	}
+
+	request_main_lock() or die "Could not get maintain-lock";
+
+	foreach my $name (get_all_pages_for_entire_site()) {
+		open_or_create_page($name);
+		open_default_text();
+		expire_keep_file();
+		print ".... " if $name =~ m!/!;
+		print render_unnamed_page_link_as_html($name), "<br>\n";
+	}
+
+	write_string_to_file(
+		$fname, "Maintenance done at " . render_date_time_as_text($^T)
+	);
+	release_main_lock();
+
+	# Do any rename/deletion commands.
+	# (Must be outside lock because it will grab its own lock)
+
+	$fname = "$DataDir/editlinks";
+	if (-f $fname) {
+		my $data = read_file_or_die($fname);
+		print "<hr>Processing rename/delete commands:<br>\n";
+
+		# Always update RC and links
+		run_page_and_link_update_script($data, 1, 1);
+
+		unlink("$fname.old");
+		rename($fname, "$fname.old");
+	}
+
+	print render_common_footer_as_html();
+}
+
+# Browse pages.
+
 sub redirect_browse_page {
 	my ($id, $oldId, $isEdit) = @_;
 
@@ -2461,147 +2610,6 @@ sub action_page_history {
 	}
 
 	print $html, render_common_footer_as_html();
-}
-
-sub action_lock_or_unlock_entire_site_edits {
-	print render_page_header_as_html(
-		"", "Set or Remove global edit lock", "", "norobots"
-	);
-
-	return unless user_is_admin_or_render_error();
-
-	my $fname = "$DataDir/noedit";
-
-	if (get_request_param("set", 1)) {
-		write_string_to_file($fname, "editing locked.");
-	}
-	else {
-		unlink($fname);
-	}
-
-	if (-f $fname) {
-		print "<p>Edit lock created.<br>";
-	}
-	else {
-		print "<p>Edit lock removed.<br>";
-	}
-
-	print render_common_footer_as_html();
-}
-
-sub action_lock_or_unlock_page_edits {
-	print render_page_header_as_html("", "Set or Remove page edit lock", "", "norobots");
-	return unless user_is_admin_or_render_error();
-
-	unless (user_is_admin()) {
-		print "<p>This operation is restricted to administrators only...\n";
-		print render_common_footer_as_html();
-		return;
-	}
-
-	my $id = get_request_param("id", "");
-
-	if ($id eq "") {
-		print "<p>Missing page id to lock/unlock...\n";
-		return;
-	}
-
-	return unless is_valid_page_id_or_error($id);    # Later consider nicer error?
-
-	my $fname = get_page_lock_filename($id);
-	if (get_request_param("set", 1)) {
-		write_string_to_file($fname, "editing locked.");
-	}
-	else {
-		unlink($fname);
-	}
-
-	if (-f $fname) {
-		print "<p>Lock for $id created.<br>";
-	}
-	else {
-		print "<p>Lock for $id removed.<br>";
-	}
-
-	print render_common_footer_as_html();
-}
-
-sub action_remove_temporary_locks {
-
-	# XXX = All diff and recent-list operations should be done within
-	# locks.
-
-	my $LockMessage = "Normal Unlock.";
-
-	print(
-		render_page_header_as_html("", "Removing edit lock", "", "norobots"),
-		"<p>This operation may take several seconds...\n"
-	);
-
-	if (force_release_lock('main')) {
-		$LockMessage = "Forced Unlock.";
-	}
-
-	# Later display status of other locks?
-	force_release_lock('cache');
-	force_release_lock('diff');
-	force_release_lock('index');
-
-	print "<br><h2>$LockMessage</h2>", render_common_footer_as_html();
-}
-
-sub action_run_periodic_maintenance {
-	print(
-		render_page_header_as_html(
-			"", "Maintenance on all pages", "", "norobots"
-		),
-		"<br>"
-	);
-
-	my $fname = "$DataDir/maintain";
-	unless (user_is_admin()) {
-		if ((-f $fname) && ((-M $fname) < 0.5)) {
-			print(
-				"Maintenance not done.  ",
-				"(Maintenance can only be done once every 12 hours.)  ",
-				"Remove the \"maintain\" file or wait.",
-				render_common_footer_as_html()
-			);
-			return;
-		}
-	}
-
-	request_main_lock() or die "Could not get maintain-lock";
-
-	foreach my $name (get_all_pages_for_entire_site()) {
-		open_or_create_page($name);
-		open_default_text();
-		expire_keep_file();
-		print ".... " if $name =~ m!/!;
-		print render_unnamed_page_link_as_html($name), "<br>\n";
-	}
-
-	write_string_to_file(
-		$fname, "Maintenance done at " . render_date_time_as_text($^T)
-	);
-	release_main_lock();
-
-	# Do any rename/deletion commands.
-	# (Must be outside lock because it will grab its own lock)
-
-	$fname = "$DataDir/editlinks";
-	if (-f $fname) {
-		my $data = read_file_or_die($fname);
-		print "<hr>Processing rename/delete commands:<br>\n";
-
-		# Always update RC and links
-		run_page_and_link_update_script($data, 1, 1);
-
-		unlink("$fname.old");
-		rename($fname, "$fname.old");
-	}
-
-	print render_common_footer_as_html();
 }
 
 # Edit ban list.
@@ -2799,13 +2807,10 @@ sub action_open_preferences_editor {
 		$q->endform
 	);
 
-	my $template = Text::Template->new(
-		TYPE       => 'FILE',
-		DELIMITERS => ['<%', '%>'],
-		SOURCE     => "$Templates/footer.html"
-	);
-
-	print $template->fill_in(HASH => \%data);
+	my $template = Template->new( { ABSOLUTE => 1 } );
+	my $output = "";
+	$template->process("$Templates/footer.html", \%data, \$output);
+	print $output;
 }
 
 sub action_write_updated_preferences {
@@ -3181,13 +3186,10 @@ sub action_open_page_editor {
 		$q->endform
 	);
 
-	my $template = Text::Template->new(
-		TYPE       => 'FILE',
-		DELIMITERS => ['<%', '%>'],
-		SOURCE     => "$Templates/footer.html"
-	);
-
-	print $template->fill_in(HASH => \%data);
+	my $template = Template->new( { ABSOLUTE => 1 } );
+	my $output = "";
+	$template->process("$Templates/footer.html", \%data, \$output);
+	print $output;
 }
 
 sub action_write_updated_page {
@@ -3656,14 +3658,11 @@ sub render_links_page_as_html {
 		"\n"
 	);
 
-	my $template = Text::Template->new(
-		TYPE       => 'FILE',
-		DELIMITERS => ['<%', '%>'],
-		SOURCE     => "$Templates/footer.html"
-	);
+	my $template = Template->new( { ABSOLUTE => 1 } );
+	my $output = "";
+	$template->process("$Templates/footer.html", {}, \$output);
 
-	$html .= $template->fill_in(HASH => {});
-	return $html;
+	return $html . $output;
 }
 
 ######################
@@ -4545,15 +4544,11 @@ sub render_page_header_as_html {
 		$data{meta_robot} = "INDEX,FOLLOW";
 	}
 
-	my $template = Text::Template->new(
-		TYPE       => 'FILE',
-		DELIMITERS => ['<%', '%>'],
-		SOURCE     => "$Templates/header.html"
-	);
-
-	$result = $template->fill_in(HASH => \%data);
-
-	return $result;
+	my $template = Template->new( { ABSOLUTE => 1 } );
+	my $output = "";
+	$template->process("$Templates/header.html", \%data, \$output);
+	warn $output;
+	return $output;
 }
 
 sub render_complex_page_footer_as_html {
@@ -4626,27 +4621,20 @@ sub render_complex_page_footer_as_html {
 
 	#$data{footer} .= $q->endform;
 
-	my $template = Text::Template->new(
-		TYPE       => 'FILE',
-		DELIMITERS => ['<%', '%>'],
-		SOURCE     => "$Templates/footer.html"
-	);
-
-	my $result = $template->fill_in(HASH => \%data);
-
-	return $result;
+	my $template = Template->new( { ABSOLUTE => 1 } );
+	my $output = "";
+	$template->process("$Templates/footer.html", \%data, \$output);
+	return $output;
 }
 
 sub render_simple_page_footer_as_html {
 	my $footer   = shift;
-	my $template = Text::Template->new(
-		TYPE       => 'FILE',
-		DELIMITERS => ['<%', '%>'],
-		SOURCE     => "$Templates/footer.html"
-	);
-	my $result = $template->fill_in(HASH => {footer => $footer});
 
-	return $result;
+	my $template = Template->new( { ABSOLUTE => 1 } );
+	my $output = "";
+	$template->process("$Templates/footer.html", { footer => $footer }, \$output);
+
+	return $output;
 }
 
 sub render_common_footer_as_html {
@@ -4660,15 +4648,10 @@ sub render_common_footer_as_html {
 		$q->endform
 	);
 
-	my $template = Text::Template->new(
-		TYPE       => 'FILE',
-		DELIMITERS => ['<%', '%>'],
-		SOURCE     => "$Templates/footer.html"
-	);
-
-	my $result = $template->fill_in(HASH => \%data);
-
-	return $result;
+	my $template = Template->new( { ABSOLUTE => 1 } );
+	my $output = "";
+	$template->process("$Templates/footer.html", \%data, \$output);
+	return $output;
 }
 
 sub render_form_start_as_html {
