@@ -57,6 +57,10 @@ use constant UID_ENOUSERFILE  => 112;
 use constant UID_EBADCOOKIE   => 113;
 use constant UID_MINPOSSIBLE  => 1;
 
+use constant REDIR_CGIPM  => 1;
+use constant REDIR_SCRIPT => 2;
+use constant REDIR_NONE   => 3;
+
 $| = 1;      # Do not buffer output
 
 # == Configuration ============================================================
@@ -69,34 +73,97 @@ use constant DUMP_TIDY => 0;
 # Configuration/constant variables.  Must be C<use vars> because
 # they're overridden with a do() function.
 
-use vars qw(
-	@RcDays @HtmlPairs @HtmlSingle $TempDir $LockDir $DataDir $HtmlDir
-	$UserDir $KeepDir $PageDir $InterFile $RcFile $RcOldFile $IndexFile
-	$FullUrl $SiteName $HomePage $LogoUrl $RcDefault $IndentLimit
-	$RecentTop $EditAllowed $UseDiff $UseSubpage $UseCache $RawHtml
-	$SimpleLinks $NonEnglish $LogoLeft $KeepDays $HtmlTags $HtmlLinks
-	$UseDiffLog $KeepMajor $KeepAuthor $NotifyDefault $ScriptTZ
-	$BracketText $UseAmPm $UseConfig $UseIndex $RedirType $AdminPass
-	$EditPass $UseHeadings $NetworkFile $BracketWiki $FreeLinks
-	$WikiLinks $AdminDelete $FreeLinkPattern $RCName $ShowEdits
-	$ThinLine $LinkPattern $InterLinkPattern $InterSitePattern
-	$UrlProtocols $UrlPattern $ImageExtensions $RFCPattern $ISBNPattern
-	$FS $FS1 $FS2 $FS3 $CookieName $SiteBase $GlobalCSS $WantSearch
-	$WantTopLinkBar $ExtraISBNLinks $UseScriptName $AllowCharRefs
-	$UserCSS $ReverseTitle $EnableSelfLinks $Footer $ForceLcaseFiles
-	$LoadEveryTime $Templates $EnableInlineTitle
+our (%config, $dir_data);
+
+# Field separators are used in the URL-style patterns below.
+my $FS  = "\xb3";       # The FS character is a superscript "3"
+my $FS1 = $FS . "1";    # The FS values are used to separate fields
+my $FS2 = $FS . "2";    # in stored hashtables and other data structures.
+my $FS3 = $FS . "3";    # The FS character is not allowed in user data.
+
+my $pattern_image_extensions = (
 );
+
+my (
+	$pattern_link, $pattern_inter_link, $pattern_inter_site,
+	$pattern_free_link, $pattern_url_schemes, $pattern_url,
+	$pattern_image_extensions, $pattern_rfc, $pattern_isbn,
+);
+
+use constant RS_CGI                 => 'cgi';
+use constant RS_INDEX_HASH          => 'index_hash';
+use constant RS_INDEX_LIST          => 'index_list';
+use constant RS_KEPT_REVISION_HASH  => 'kept_revision_hash';
+use constant RS_KEPT_REVISION_LIST  => 'kept_revision_list';
+use constant RS_MAIN_PAGE           => 'main_page';
+use constant RS_OPEN_PAGE_ID        => 'open_page_id';
+use constant RS_PAGE                => 'page';
+use constant RS_SAVED_HTML          => 'saved_html';
+use constant RS_SAVED_URL_IDX       => 'saved_url_idx';
+use constant RS_SCRIPT_NAME         => 'script_name';
+use constant RS_SECTION             => 'section';
+use constant RS_SET_COOKIE          => 'set_cookie';
+use constant RS_TEXT                => 'text';
+use constant RS_TIME_ZONE_OFFSET    => 'time_zone_offset';
+use constant RS_USER_COOKIE         => 'user_cookie';
+use constant RS_USER_DATA           => 'user_data';
+use constant RS_USER_ID             => 'user_id';
+
+use constant SECT_DATA							=> 'data';
+use constant SECT_KEEP_TS						=> 'keepts';
+use constant SECT_PAGE_ID						=> 'name';
+use constant SECT_REVISION					=> 'revision';
+use constant SECT_TIMESTAMP_CHANGE  => 'ts';
+use constant SECT_TIMESTAMP_CREATE	=> 'tscreate';
+use constant SECT_USER_HOST					=> 'host';
+use constant SECT_USER_ID						=> 'id';
+use constant SECT_USER_IP						=> 'ip';
+use constant SECT_USER_NAME					=> 'username';
+use constant SECT_VERSION						=> 'version';
+
+use constant PAGE_REVISION					=> 'revision';
+use constant PAGE_TEXT_DEFAULT			=> 'text_default';
+use constant PAGE_TIMESTAMP_CHANGE  => 'ts';
+use constant PAGE_TIMESTAMP_CREATE	=> 'tscreate';
+use constant PAGE_VERSION						=> 'version';
+
+use constant TEXT_IS_MINOR_REV			=> 'minor';
+use constant TEXT_IS_NEW_AUTHOR			=> 'newauthor';
+use constant TEXT_SUMMARY						=> 'summary';
+use constant TEXT_TEXT							=> 'text';
+
+use constant SCOOK_ID								=> 'id';
+use constant SCOOK_RANDKEY					=> 'randkey';
+use constant SCOOK_REV							=> 'rev';
+
+use constant UCOOK_ID								=> 'id';
+use constant UCOOK_RANDKEY					=> 'randkey';
+
+use constant USER_ADMIN_PASSWORD		=> 'adminpw';
+use constant USER_CREATE_IP					=> 'createip';
+use constant USER_CSS								=> 'css';
+use constant USER_ID								=> 'id';
+use constant USER_NAME							=> 'username';
+use constant USER_PASSWORD					=> 'password';
+use constant USER_RANDKEY						=> 'randkey';
+use constant USER_TIMESTAMP_CREATE	=> 'createtime';
+use constant USER_TIMEZONE_OFFSET		=> 'tzoffset';
+
+my (
+	%inter_site_map, %request_state,
+);
+
+#use vars qw(
+#	   $NotifyDefault 
+#	  $UseConfig
+#);
 
 # Other global variables.  Must be C<use vars> because they're
 # overridden with a do() function.
 
-use vars qw(
-	%Page %Section %Text %InterSite %SaveUrl %SaveNumUrl %KeptRevisions
-	%UserCookie %SetCookie %UserData %IndexHash $InterSiteInit
-	$SaveUrlIndex $SaveNumUrlIndex $MainPage $OpenPageName @KeptList
-	@IndexList $IndexInit $q $UserID $TimeZoneOffset $ScriptName
-	$BrowseCode $OtherCode $ShowNotify
-);
+#use vars qw(
+#	$BrowseCode $OtherCode
+#);
 
 # Automatically filled in by version control.
 my $VERSION = (qw($Revision$))[1];
@@ -104,248 +171,129 @@ my $VERSION = (qw($Revision$))[1];
 ##############################
 ### INITIALIZATION SECTION ###
 
-sub init_config {
-
-	# Main wiki directory depends on where the wiki is installed.
+sub init_wiki {
+	# Locate the main wiki directory.
 
 	if (
 		defined($ENV{SERVER_NAME}) and
 		$ENV{SERVER_NAME} =~ /^(?:10\.0\.0\.|127\.)/
 	) {
-		$DataDir = "/home/troc/Sites/poeperlorg/data";
+		$dir_data = "/home/troc/Sites/poeperlorg/data";
 	}
 	elsif (defined $ENV{DOCUMENT_ROOT}) {
-		$DataDir = $ENV{DOCUMENT_ROOT};
-		$DataDir .= '/' unless substr($DataDir, -1, 1) eq '/';
-		$DataDir .= 'data';
+		$dir_data = $ENV{DOCUMENT_ROOT};
+		$dir_data .= '/' unless substr($dir_data, -1, 1) eq '/';
+		$dir_data .= 'data';
 	}
 
-	# 1 = use config file,    0 = do not look for config
-	$UseConfig = 1;
+	# Load configuration.
 
-	# Default configuration (used if UseConfig is 0)
-	$GlobalCSS  = "";    # path to global css style sheet
-	$WantSearch = 1;     # 1 = Show search box; 0 = Dont show search box;
-	$WantTopLinkBar = 1; # 1 = show top link bar; 0 = never show top link bar
-	$CookieName = "Wiki";             # Name for this wiki (for multi-wiki sites)
-	$SiteName   = "Wiki";             # Name of site (used for titles)
-	$HomePage   = "HomePage";         # Home page (change space to _)
-	$RCName     = "RecentChanges";    # Name of changes page (change space to _)
-	$LogoUrl    = "";                 # URL for site logo ("" for no logo)
-	$ENV{PATH}  = "/usr/bin/";        # Path used to find "diff"
-	$ScriptTZ   = "";                 # Local time zone ("" means do not print)
-	$RcDefault  = 30;                 # Default number of RecentChanges days
-	@RcDays     = qw(1 3 7 30 90);    # Days for links on RecentChanges
-	$KeepDays   = 14;                 # Days to keep old revisions
-	$SiteBase   = "";                 # Full URL for <BASE> header
-	$FullUrl    = "";                 # Set if the auto-detected URL is wrong
-	$RedirType  = 1;                  # 1 = CGI.pm, 2 = script, 3 = no redirect
-	$AdminPass  = "";                 # Set to non-blank to enable password(s)
-	$EditPass   = "";                 # Like AdminPass, but for editing only
+	if (-f "$dir_data/config") {
+		if (open(CONFIG, "<", "$dir_data/config")) {
+			local $/;
 
-	# Major options:
-	$UseSubpage    = 1;    # 1 = use subpages,       0 = do not use subpages
-	$UseCache      = 0;    # 1 = cache HTML pages,   0 = generate every page
-	$EditAllowed   = 1;    # 1 = editing allowed,    0 = read-only
-	$RawHtml       = 0;    # 1 = allow <HTML> tag,   0 = no raw HTML in pages
-	$HtmlTags      = 0;    # 1 = "unsafe" HTML tags, 0 = only minimal tags
-	$UseDiff       = 1;    # 1 = use diff features,  0 = do not use diff
-	$FreeLinks     = 1;    # 1 = use [[word]] links, 0 = LinkPattern only
-	$WikiLinks     = 1;    # 1 = use LinkPattern,    0 = use [[word]] only
-	$AdminDelete   = 1;    # 1 = Admin only page,    0 = Editor can delete pages
-	$UseScriptName = 0;    # 1 = use SCRIPT_NAME     0 = don't (supports http://wiki/?Link)
-
-	# Minor options:
-	$LogoLeft    = 0;    # 1 = logo on left,       0 = logo on right
-	$RecentTop   = 1;    # 1 = recent on top,      0 = recent on bottom
-	$UseDiffLog  = 1;    # 1 = save diffs to log,  0 = do not save diffs
-	$KeepMajor   = 1;    # 1 = keep major rev,     0 = expire all revisions
-	$KeepAuthor  = 1;    # 1 = keep author rev,    0 = expire all revisions
-	$ShowEdits   = 0;    # 1 = show minor edits,   0 = hide edits by default
-	$HtmlLinks   = 0;    # 1 = allow A HREF links, 0 = no raw HTML links
-	$SimpleLinks = 0;    # 1 = only letters,       0 = allow _ and numbers
-	$NonEnglish  = 0;    # 1 = extra link chars,   0 = only A-Za-z chars
-	$ThinLine    = 0;    # 1 = fancy <hr> tags,    0 = classic wiki <hr>
-	$BracketText = 1;    # 1 = allow [URL text],   0 = no link descriptions
-	$UseAmPm     = 1;    # 1 = use am/pm in times, 0 = use 24-hour times
-	$UseIndex    = 0;    # 1 = use index file,     0 = slow/reliable method
-	$UseHeadings = 1;    # 1 = allow = h1 text =,  0 = no header formatting
-	$NetworkFile = 1;    # 1 = allow remote file:, 0 = no file:// links
-	$BracketWiki = 0;    # 1 = [WikiLnk txt] link, 0 = no local descriptions
-
-	$ShowNotify     = 1;         # 1 = show notify option            0 = don't
-
-	$ExtraISBNLinks = 1;    # 1 = display extra ISBN links.     0 = don't
-	$AllowCharRefs  = 1;    # 1 = allow character references    0 = don't
-	$UserCSS        = 1;    # 1 = allow per-user CSS prefs      0 = don't
-	$ReverseTitle   = 0;    # 1 = page title before SiteName    0 = after
-
-	$EnableSelfLinks   = 1; # 1 = create ?search heading links  0 = don't
-	$EnableInlineTitle = 1; # 1 = use title in page             0 = don't
-
-	$Footer          = "";  # HTML that goes at the end of the footer.
-	$ForceLcaseFiles = 0;   # 1 = filename case always lower    0 = not
-	$LoadEveryTime   = 0;   # 1 = force config load every run   0 = not
-
-	# HTML tag lists, enabled if $HtmlTags is set.  Scripting is
-	# currently possible with these tags, so they are *not* particularly
-	# "safe".
-
-	# Single tags (that do not require a closing /tag)
-	@HtmlSingle = qw(br p hr li dt dd tr td th);
-
-	# Tags that must be in <tag> ... </tag> pairs.  All single tags can
-	# also be pairs.
-	@HtmlPairs = (
-		qw(
-			b big blockquote boxes
-			caption center cite code
-			div dl
-			em
-			font
-			h1 h2 h3 h4 h5 h6
-			i
-			ol
-			perl
-			s small span strike strong sub sup
-			table tt
-			u ul
-			var
-		),
-		@HtmlSingle
-	);
-
-	# == You should not have to change anything below this line. ================
-
-	$IndentLimit = 20;                      # Maximum depth of nested lists
-	$PageDir     = "$DataDir/page";         # Stores page data
-	$HtmlDir     = "$DataDir/html";         # Stores HTML versions
-	$UserDir     = "$DataDir/user";         # Stores user data
-	$KeepDir     = "$DataDir/keep";         # Stores kept (old) page data
-	$TempDir     = "$DataDir/temp";         # Temporary files and locks
-	$LockDir     = "$TempDir/lock";         # DB is locked if this exists
-	$InterFile   = "$DataDir/intermap";     # Interwiki site->url map
-	$RcFile      = "$DataDir/rclog";        # New RecentChanges logfile
-	$RcOldFile   = "$DataDir/oldrclog";     # Old RecentChanges logfile
-	$IndexFile   = "$DataDir/pageidx";      # List of all pages
-	$Templates   = "$DataDir/templates/";
-}
-
-sub init_wiki {
-	init_config();
-
-	if ($UseConfig) {
-		if (-f "$DataDir/config") {
-			if (open(CONFIG, "$DataDir/config")) {
-				local $/;
-
-				eval scalar <CONFIG>;
-				die "eval $DataDir/config failed: $@" if $@;
-				close(CONFIG);
-			}
-			else {
-				die "couldn't open config: $!";
-			}
+			eval scalar <CONFIG>;
+			die "eval $dir_data/config failed: $@" if $@;
+			close(CONFIG);
 		}
 		else {
-			die "couldn't find $DataDir/config: $!";
+			die "couldn't open config: $!";
 		}
-
-		# A safe place for our changes.
-		if (-f "$DataDir/config.custom") {
-			if (open(CUSTOM, "$DataDir/config.custom")) {
-				local $/;
-
-				eval scalar <CUSTOM>;
-				die "eval $DataDir/config.custom failed: $@" if $@;
-				close(CUSTOM);
-			}
-			else {
-				warn "couldn't open $DataDir/config.custom: $!";
-			}
-		}
+	}
+	else {
+		die "couldn't find $dir_data/config: $!";
 	}
 
 	# Validate configuration.
 
-	die "no document root; set \$DataDir manually" unless defined $DataDir;
-	die "document root $DataDir doesn't exist" unless -e $DataDir;
-	unless (-d $DataDir || -l $DataDir) {
-		die "document root $DataDir isn't a directory";
+	die "no document root; set \$dir_data manually" unless defined $dir_data;
+	die "document root $dir_data doesn't exist" unless -e $dir_data;
+	unless (-d $dir_data || -l $dir_data) {
+		die "document root $dir_data isn't a directory";
 	}
 
-	init_link_patterns();
-}
+	# Initialize link patterns.
 
-sub init_link_patterns {
+	my $pattern_upper_letter = "[A-Z";
+	my $pattern_lower_letter = "[a-z";
+	my $pattern_any_letter   = "[A-Za-z";
 
-	# Field separators are used in the URL-style patterns below.
-	$FS  = "\xb3";       # The FS character is a superscript "3"
-	$FS1 = $FS . "1";    # The FS values are used to separate fields
-	$FS2 = $FS . "2";    # in stored hashtables and other data structures.
-	$FS3 = $FS . "3";    # The FS character is not allowed in user data.
-
-	my $UpperLetter = "[A-Z";
-	my $LowerLetter = "[a-z";
-	my $AnyLetter   = "[A-Za-z";
-
-	if ($NonEnglish) {
-		$UpperLetter .= "\xc0-\xde";
-		$LowerLetter .= "\xdf-\xff";
-		$AnyLetter   .= "\xc0-\xff";
+	if ($config{allow_non_english_links}) {
+		$pattern_upper_letter .= "\xc0-\xde";
+		$pattern_lower_letter .= "\xdf-\xff";
+		$pattern_any_letter   .= "\xc0-\xff";
 	}
 
-	unless ($SimpleLinks) {
-		$AnyLetter .= "_:0-9";
-	}
+	$pattern_any_letter .= "_:0-9" if $config{allow_complex_links};
 
-	$UpperLetter .= "]";
-	$LowerLetter .= "]";
-	$AnyLetter   .= "]";
+	$pattern_upper_letter .= "]";
+	$pattern_lower_letter .= "]";
+	$pattern_any_letter   .= "]";
 
 	# Main link pattern: lowercase between uppercase, then anything
-	my $LpA = (
-		$UpperLetter . "+" . $LowerLetter . "+" . $UpperLetter . $AnyLetter . "*"
+	my $pattern_link_wiki = (
+		$pattern_upper_letter . "+" .
+		$pattern_lower_letter . "+" .
+		$pattern_upper_letter . $pattern_any_letter . "*"
 	);
 
 	# Optional subpage link pattern: uppercase, lowercase, then anything
-	my $LpB = $UpperLetter . "+" . $LowerLetter . "+" . $AnyLetter . "*";
+	my $pattern_link_subpage = (
+		$pattern_upper_letter . "+" .
+		$pattern_lower_letter . "+" .
+		$pattern_any_letter . "*"
+	);
 
-	if ($UseSubpage) {
+	if ($config{use_subpages}) {
 
 		# Loose pattern: If subpage is used, subpage may be simple name
-		$LinkPattern = "((?:(?:$LpA)?\\/$LpB)|$LpA)";
+		$pattern_link = (
+			"(" .
+			"(?:(?:$pattern_link_wiki)?\\/$pattern_link_subpage)" .
+			"|$pattern_link_wiki" .
+			")"
+		);
 
-		# Strict pattern: both sides must be the main LinkPattern
-		# $LinkPattern = "((?:(?:$LpA)?\\/)?$LpA)";
+		# Strict pattern: both sides must be the main pattern_link
+		# $pattern_link = "((?:(?:$pattern_link_wiki)?\\/)?$pattern_link_wiki)";
 	}
 	else {
-		$LinkPattern = "($LpA)";
+		$pattern_link = "($pattern_link_wiki)";
 	}
 
-	my $QDelim = '(?:"")?';    # Optional quote delimiter (not in output)
-	$LinkPattern .= $QDelim;
+	# Optional quote delimiter (not in output)
+	my $pattern_quote_delimiter = '(?:"")?';
+	$pattern_link .= $pattern_quote_delimiter;
 
 	# Inter-site convention: sites must start with uppercase letter
 	# (Uppercase letter avoids confusion with URLs)
-	$InterSitePattern = $UpperLetter . $AnyLetter . "+";
-	$InterLinkPattern = "((?:$InterSitePattern:[^\\]\\s\"<>$FS]+)$QDelim)";
 
-	if ($FreeLinks) {
+	$pattern_inter_site = $pattern_upper_letter . $pattern_any_letter . "+";
 
-		# Note: the - character must be first in $AnyLetter definition
-		if ($NonEnglish) {
-			$AnyLetter = "[-,.:' _0-9A-Za-z\xc0-\xff]";
+	$pattern_inter_link = (
+		"((?:$pattern_inter_site:[^\\]\\s\"<>$FS]+)$pattern_quote_delimiter)"
+	);
+
+	if ($config{allow_free_links}) {
+
+		# Note: the - character must be first in $pattern_any_letter definition
+		if ($config{allow_non_english_links}) {
+			$pattern_any_letter = "[-,.:' _0-9A-Za-z\xc0-\xff]";
 		}
 		else {
-			$AnyLetter = "[-,.:' _0-9A-Za-z]";
+			$pattern_any_letter = "[-,.:' _0-9A-Za-z]";
 		}
 	}
-	$FreeLinkPattern = "($AnyLetter+)";
-	if ($UseSubpage) {
-		$FreeLinkPattern = "((?:(?:$AnyLetter+)?\\/)?$AnyLetter+)";
+
+	$pattern_free_link = "($pattern_any_letter+)";
+
+	if ($config{use_subpages}) {
+		$pattern_free_link = (
+			"((?:(?:$pattern_any_letter+)?\\/)?$pattern_any_letter+)"
+		);
 	}
-	$FreeLinkPattern .= $QDelim;
+
+	$pattern_free_link .= $pattern_quote_delimiter;
 
 	# Url-style links are delimited by one of:
 	#   1.  Whitespace                           (kept in output)
@@ -355,16 +303,22 @@ sub init_link_patterns {
 	#   5.  A $FS (field separator) character    (kept in output)
 	#   6.  A double double-quote ("")           (removed from output)
 
-	$UrlProtocols = (
+	$pattern_url_schemes = (
 		"http|https|ftp|afs|news|nntp|mid|cid|mailto|wais|" .
 		"prospero|telnet|gopher"
 	);
 
-	$UrlProtocols .= '|file' if $NetworkFile;
-	$UrlPattern      = "((?:(?:$UrlProtocols):[^\\]\\s\"<>$FS]+)$QDelim)";
-	$ImageExtensions = "(gif|jpg|png|bmp|jpeg)";
-	$RFCPattern      = "RFC\\s?(\\d+)";
-	$ISBNPattern     = "ISBN:?([0-9- xX]{10,})";
+	$pattern_url_schemes .= '|file' if $config{allow_file_scheme};
+
+	$pattern_url = (
+		"((?:(?:$pattern_url_schemes):[^\\]\\s\"<>$FS]+)$pattern_quote_delimiter)"
+	);
+
+	$pattern_image_extensions = "(gif|jpg|png|bmp|jpeg)";
+
+	$pattern_rfc      = "RFC\\s?(\\d+)";
+
+	$pattern_isbn     = "ISBN:?([0-9- xX]{10,})";
 }
 
 ########################
@@ -380,7 +334,7 @@ sub replace_whitespace {
 sub read_file {
 	my ($fileName) = @_;
 
-	if (open(IN, "<$fileName")) {
+	if (open(IN, "<", $fileName)) {
 		local $/;
 
 		my $data = <IN>;
@@ -394,7 +348,7 @@ sub read_file {
 sub append_string_to_file {
 	my ($file, $string) = @_;
 
-	open(OUT, ">>$file") or die("cant write $file: $!");
+	open(OUT, ">>", $file) or die("cant write $file: $!");
 	print OUT $string;
 	close(OUT) or die "close failed (append_string_to_file) on $file: $!";
 }
@@ -409,7 +363,7 @@ sub create_directory {
 sub write_string_to_file {
 	my ($file, $string) = @_;
 
-	open(OUT, ">$file") or die("cant write $file: $!");
+	open(OUT, ">", $file) or die("cant write $file: $!");
 	print OUT $string;
 	close(OUT) or die "close failed (write_string_to_file) on $file: $!";
 }
@@ -434,7 +388,7 @@ sub is_valid_page_id {
 		return "Page name may not contain space characters: $id";
 	}
 
-	if ($UseSubpage) {
+	if ($config{use_subpages}) {
 		if ($id =~ m!.*/.*/!) {
 			return "Too many / characters in page $id";
 		}
@@ -448,22 +402,22 @@ sub is_valid_page_id {
 		}
 	}
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		$id =~ s/ /_/g;
-		unless ($UseSubpage) {
+		unless ($config{use_subpages}) {
 			if ($id =~ /\//) {
 				return "Invalid Page $id (/ not allowed)";
 			}
 		}
 
-		unless ($id =~ m!$FreeLinkPattern!) {
+		unless ($id =~ m!$pattern_free_link!) {
 			return "Invalid Page $id";
 		}
 
 		return "";
 	}
 	else {
-		unless ($id =~ /^$LinkPattern$/o) {
+		unless ($id =~ /^$pattern_link$/o) {
 			return "Invalid Page $id";
 		}
 	}
@@ -493,7 +447,7 @@ sub render_date_as_text {
 
 sub render_time_as_text {
 	my ($ts) = @_;
-	return strftime("%r GMT", gmtime()) if $UseAmPm;
+	return strftime("%r GMT", gmtime()) if $config{use_12_hour_times};
 	return strftime("%T GMT", gmtime());
 }
 
@@ -505,15 +459,15 @@ sub render_date_time_as_text {
 sub request_lock_dir {
 	my ($name, $tries, $wait, $errorDie) = @_;
 
-	create_directory($TempDir);
-	my $lockName = $LockDir . $name;
+	create_directory($config{dir_temp});
+	my $lockName = $config{dir_locks} . $name;
 	my $n        = 0;
 
 	while (mkdir($lockName, 0555) == 0) {
 
 		# TODO - POSIX or Errno instead
 		if ($! != 17) {
-			die("can't make $LockDir: $!\n") if $errorDie;
+			die("can't make $config{dir_locks}: $!\n") if $errorDie;
 			return 0;
 		}
 
@@ -526,7 +480,7 @@ sub request_lock_dir {
 
 sub release_lock_dir {
 	my ($name) = @_;
-	rmdir($LockDir . $name);
+	rmdir($config{dir_locks} . $name);
 }
 
 sub request_main_lock {
@@ -545,7 +499,7 @@ sub force_release_lock {
 	# 5 tries, 3 second wait, do not die on error
 	my $forced = !request_lock_dir($name, 5, 3, 0);
 
-  # Release the lock, even if we didn't get it.
+	# Release the lock, even if we didn't get it.
 	release_lock_dir($name);
 
 	# Return whether lock was forced.
@@ -562,7 +516,7 @@ sub quote_html {
 	$html =~ s/--&gt;/-->/g;
 
 	# Allow character references?
-	$html =~ s/&amp;([\#a-zA-Z0-9]+);/&$1;/g if $AllowCharRefs;
+	$html =~ s/&amp;([\#a-zA-Z0-9]+);/&$1;/g if $config{allow_char_refs};
 
 	return $html;
 }
@@ -575,7 +529,7 @@ sub unquote_html {
 	$html =~ s/&gt;/>/g;
 
 	# Allow character references?
-	$html =~ s/&\#(\d+);/chr($1)/ge if $AllowCharRefs;
+	$html =~ s/&\#(\d+);/chr($1)/ge if $config{allow_char_refs};
 
 	return $html;
 }
@@ -583,16 +537,16 @@ sub unquote_html {
 sub get_interwiki_url {
 	my ($site) = @_;
 
-	unless ($InterSiteInit) {
-		$InterSiteInit = 1;
-		my ($status, $data) = read_file($InterFile);
+	unless (keys %inter_site_map) {
+		my ($status, $data) = read_file($config{file_inter_wiki_map});
 
 		return "" unless $status;
 
-		%InterSite = split(/\s+/, $data);    # Later consider defensive code
+		# Later consider defensive code.
+		%inter_site_map = split(/\s+/, $data);
 	}
 
-	return $InterSite{$site} if defined $InterSite{$site};
+	return $inter_site_map{$site} if defined $inter_site_map{$site};
 	return;
 }
 
@@ -629,12 +583,16 @@ sub search_title_and_body {
 		open_or_create_page($name);
 		open_default_text();
 
-		if (($Text{'text'} =~ /$string/i) || ($name =~ /$string/i)) {
+		if (
+			($request_state{+RS_TEXT}{+TEXT_TEXT} =~ /$string/i)
+			||
+			($name =~ /$string/i)
+		) {
 			push(@found, $name);
 			next;
 		}
 
-		if ($FreeLinks && ($name =~ m/_/)) {
+		if ($config{allow_free_links} && ($name =~ m/_/)) {
 			my $freeName = $name;
 			$freeName =~ s/_/ /g;
 			push(@found, $name) if $freeName =~ /$string/i;
@@ -654,7 +612,7 @@ sub search_body {
 	foreach my $name (get_all_pages_for_entire_site()) {
 		open_or_create_page($name);
 		open_default_text();
-		if ($Text{'text'} =~ /$string/i) {
+		if ($request_state{+RS_TEXT}{+TEXT_TEXT} =~ /$string/i) {
 			push(@found, $name);
 		}
 	}
@@ -669,15 +627,16 @@ sub search_body {
 
 sub try_html_cache {
 
-	return 0 unless $UseCache;
-	my $query = $ENV{'QUERY_STRING'};
+	return 0 unless $config{use_html_cache};
 
-	if (($query eq "") && ($ENV{'REQUEST_METHOD'} eq "GET")) {
-		$query = $HomePage;    # Allow caching of home page.
+	my $query = $ENV{QUERY_STRING};
+
+	if (($query eq "") && ($ENV{REQUEST_METHOD} eq "GET")) {
+		$query = $config{home_page};    # Allow caching of home page.
 	}
 
-	unless ($query =~ /^$LinkPattern$/o) {
-		unless ($FreeLinks && ($query =~ /^$FreeLinkPattern/o)) {
+	unless ($query =~ /^$pattern_link$/o) {
+		unless ($config{allow_free_links} && ($query =~ /^$pattern_free_link/o)) {
 			return 0;            # Only use cache for simple links
 		}
 	}
@@ -685,7 +644,7 @@ sub try_html_cache {
 	my $idFile = get_html_cache_filename_for_id($query);
 
 	if (-f $idFile) {
-		open(INFILE, "<$idFile") or return 0;
+		open(INFILE, "<", $idFile) or return 0;
 		local $/;
 		my $text = <INFILE>;
 		close INFILE;
@@ -699,7 +658,7 @@ sub try_html_cache {
 sub get_html_cache_filename_for_id {
 	my ($id) = @_;
 	return normalize_filename(
-		$HtmlDir . "/" . get_directory_for_page_id($id) . "/$id.htm"
+		$config{dir_html_cache} . "/" . get_directory_for_page_id($id) . "/$id.htm"
 	);
 }
 
@@ -714,7 +673,7 @@ sub update_html_cache {
 	my ($id, $html) = @_;
 
 	my $idFile = get_html_cache_filename_for_id($id);
-	create_page_directory($HtmlDir, $id);
+	create_page_directory($config{dir_html_cache}, $id);
 
 	if (request_cache_lock()) {
 		write_string_to_file($idFile, $html);
@@ -730,7 +689,7 @@ sub update_html_cache {
 sub get_filename_for_page_id {
 	my ($id) = @_;
 	return normalize_filename(
-		$PageDir . "/" . get_directory_for_page_id($id) . "/$id.db"
+		$config{dir_page} . "/" . get_directory_for_page_id($id) . "/$id.db"
 	);
 }
 
@@ -738,28 +697,33 @@ sub open_or_create_page {
 	my ($id) = @_;
 
 	# No need to open, if it's already open.
-	return if $OpenPageName eq $id;
+	return if $request_state{+RS_OPEN_PAGE_ID} eq $id;
 
-	%Section  = ();
-	%Text     = ();
+	# Reset the text and section.
+	$request_state{+RS_TEXT}    = {};
+	$request_state{+RS_SECTION} = {};
+
 	my $fname = get_filename_for_page_id($id);
 
 	if (-f $fname) {
 		my $data = read_file_or_die($fname);
-		%Page = split(/$FS1/o, $data, -1);    # -1 keeps trailing null fields
+		# -1 keeps trailing null fields.
+		$request_state{+RS_PAGE} = { split(/$FS1/o, $data, -1) };
 	}
 	else {
-		%Page = (
-			version   => 3,                     # Data format version
-			revision  => 0,                     # Number of edited times
-			tscreate  => $^T,                   # Set once at creation
-			ts        => $^T,                   # Updated every edit
-		);
+		$request_state{+RS_PAGE} = {
+			+PAGE_VERSION   => 3,    # Data format version
+			+PAGE_REVISION  => 0,    # Number of edited times
+			+PAGE_TIMESTAMP_CREATE => $^T,  # Set once at creation
+			+PAGE_TIMESTAMP_CHANGE => $^T,  # Updated every edit
+		};
 	}
 
-	print render_error_page_as_html("Bad page version.") if $Page{'version'} != 3;
+	print render_error_page_as_html("Bad page version.") if (
+		$request_state{+RS_PAGE}{+PAGE_VERSION} != 3
+	);
 
-	$OpenPageName = $id;
+	$request_state{+RS_OPEN_PAGE_ID} = $id;
 }
 
 sub save_page_to_file {
@@ -767,13 +731,13 @@ sub save_page_to_file {
 	# NB - Must always call save_page_to_file() within a lock.
 	# TODO - Ensure it is so.
 
-	my $file = get_filename_for_page_id($OpenPageName);
+	my $file = get_filename_for_page_id($request_state{+RS_OPEN_PAGE_ID});
 
-	$Page{'revision'} += 1;    # Number of edited times
-	$Page{'ts'} = $^T;         # Updated every edit
+	$request_state{+RS_PAGE}{+PAGE_REVISION}++;
+	$request_state{+RS_PAGE}{+PAGE_TIMESTAMP_CHANGE} = $^T;
 
-	create_page_directory($PageDir, $OpenPageName);
-	write_string_to_file($file, join($FS1, %Page));
+	create_page_directory($config{dir_page}, $request_state{+RS_OPEN_PAGE_ID});
+	write_string_to_file($file, join($FS1, %{$request_state{+RS_PAGE}}));
 }
 
 sub create_page_directory {
@@ -822,19 +786,24 @@ sub rename_page_and_links {
 		return;
 	}
 
-	create_page_directory($PageDir, $new);    # It might not exist yet
+	create_page_directory($config{dir_page}, $new);    # It might not exist yet
 	rename($oldfname, $newfname);
-	create_page_directory($KeepDir, $new);
+	create_page_directory($config{dir_kept_revisions}, $new);
 
 	my $oldkeep = normalize_filename(
-		$KeepDir . "/" .  get_directory_for_page_id($old) . "/$old.kp"
+		$config{dir_kept_revisions} . "/" .
+		get_directory_for_page_id($old) . "/" .
+		"$old.kp"
 	);
 	my $newkeep = normalize_filename(
-		$KeepDir . "/" .  get_directory_for_page_id($new) . "/$new.kp"
+		$config{dir_kept_revisions} . "/" .
+		get_directory_for_page_id($new) . "/" .
+		"$new.kp"
 	);
+
 	unlink($newkeep) if (-f $newkeep);    # Clean up if needed.
 	rename($oldkeep, $newkeep);
-	unlink($IndexFile) if ($UseIndex);
+	unlink($config{file_page_index}) if $config{use_page_index_file};
 	edit_recent_changes(2, $old, $new) if ($doRC);
 	rename_text_links($old, $new) if ($doText);
 }
@@ -856,11 +825,14 @@ sub delete_page {
 	unlink($fname) if -f $fname;
 
 	$fname = normalize_filename(
-		$KeepDir . "/" . get_directory_for_page_id($page) . "/$page.kp"
+		$config{dir_kept_revisions} . "/" .
+		get_directory_for_page_id($page) . "/" .
+		"$page.kp"
 	);
+
 	unlink($fname) if -f $fname;
 
-	unlink($IndexFile) if $UseIndex;
+	unlink($config{file_page_index}) if $config{use_page_index_file};
 
 	edit_recent_changes(1, $page, "") if $doRC;
 
@@ -871,7 +843,7 @@ sub get_page_lock_filename {
 	my ($id) = @_;
 
 	return normalize_filename(
-		$PageDir . "/" . get_directory_for_page_id($id) . "/$id.lck"
+		$config{dir_page} . "/" . get_directory_for_page_id($id) . "/$id.lck"
 	);
 }
 
@@ -881,7 +853,7 @@ sub get_links_from_a_page {
 	open_or_create_page($name);
 	open_default_text();
 
-	my $text = $Text{'text'};
+	my $text = $request_state{+RS_TEXT}{+TEXT_TEXT};
 
 	$text =~ s/<html>((.|\n)*?)<\/html>/ /ig;
 	$text =~ s/<nowiki>(.|\n)*?\<\/nowiki>/ /ig;
@@ -893,28 +865,28 @@ sub get_links_from_a_page {
 	my @links;
 	if ($interlink) {
 		$text =~ s/''+/ /g;    # Quotes can adjacent to inter-site links
-		$text =~ s/$InterLinkPattern/push(@links, strip_trailing_punct_from_url($1)), ' '/geo;
+		$text =~ s/$pattern_inter_link/push(@links, strip_trailing_punct_from_url($1)), ' '/geo;
 	}
 	else {
-		$text =~ s/$InterLinkPattern/ /go;
+		$text =~ s/$pattern_inter_link/ /go;
 	}
 
 	if ($urllink) {
 		$text =~ s/''+/ /g;    # Quotes can adjacent to URLs
-		$text =~ s/$UrlPattern/push(@links, strip_trailing_punct_from_url($1)), ' '/geo;
+		$text =~ s/$pattern_url/push(@links, strip_trailing_punct_from_url($1)), ' '/geo;
 	}
 	else {
-		$text =~ s/$UrlPattern/ /go;
+		$text =~ s/$pattern_url/ /go;
 	}
 
 	if ($pagelink) {
-		if ($FreeLinks) {
-			$text =~ s/\[\[$FreeLinkPattern\|[^\]]+\]\]/push(@links, replace_whitespace($1)),' '/geo;
-			$text =~ s/\[\[$FreeLinkPattern\]\]/push(@links, replace_whitespace($1)), ' '/geo;
+		if ($config{allow_free_links}) {
+			$text =~ s/\[\[$pattern_free_link\|[^\]]+\]\]/push(@links, replace_whitespace($1)),' '/geo;
+			$text =~ s/\[\[$pattern_free_link\]\]/push(@links, replace_whitespace($1)), ' '/geo;
 		}
 
-		if ($WikiLinks) {
-			$text =~ s/$LinkPattern/push(@links, strip_trailing_punct_from_url($1)), ' '/geo;
+		if ($config{allow_camelcase_links}) {
+			$text =~ s/$pattern_link/push(@links, strip_trailing_punct_from_url($1)), ' '/geo;
 		}
 	}
 
@@ -946,24 +918,30 @@ sub rename_text_links {
 	foreach my $page (get_all_pages_for_entire_site()) {
 		my $changed = 0;
 		open_or_create_page($page);
-		foreach my $section (keys %Page) {
+		foreach my $section (keys %{$request_state{+RS_PAGE}}) {
 			if ($section =~ /^text_/) {
 				open_or_create_section($section);
-				%Text    = split(/$FS3/o, $Section{'data'}, -1);
-				my $oldText = $Text{'text'};
+				$request_state{+RS_TEXT} = {
+					split(/$FS3/o, $request_state{+RS_SECTION}{+SECT_DATA}, -1)
+				};
+				my $oldText = $request_state{+RS_TEXT}{+TEXT_TEXT};
 				my $newText = substitute_text_links($old, $new, $oldText);
 				if ($oldText ne $newText) {
-					$Text{'text'} = $newText;
-					$Section{'data'} = join($FS3, %Text);
-					$Page{$section} = join($FS2, %Section);
+					$request_state{+RS_TEXT}{+TEXT_TEXT} = $newText;
+					$request_state{+RS_SECTION}{+SECT_DATA} = join(
+						$FS3, %{$request_state{+RS_TEXT}}
+					);
+					$request_state{+RS_PAGE}{$section} = join(
+						$FS2, %{$request_state{+RS_SECTION}}
+					);
 					$changed = 1;
 				}
 			}
 			elsif ($section =~ /^cache_diff/) {
-				my $oldText = $Page{$section};
+				my $oldText = $request_state{+RS_PAGE}{$section};
 				my $newText = substitute_text_links($old, $new, $oldText);
 				if ($oldText ne $newText) {
-					$Page{$section} = $newText;
+					$request_state{+RS_PAGE}{$section} = $newText;
 					$changed = 1;
 				}
 			}
@@ -973,7 +951,7 @@ sub rename_text_links {
 
 		if ($changed) {
 			my $file = get_filename_for_page_id($page);
-			write_string_to_file($file, join($FS1, %Page));
+			write_string_to_file($file, join($FS1, %{$request_state{+RS_PAGE}}));
 		}
 
 		rename_keep_text($page, $old, $new);
@@ -984,11 +962,12 @@ sub substitute_text_links {
 	my ($old, $new, $text) = @_;
 
 	# Much of this is taken from the common markup
-	%SaveUrl      = ();
-	$SaveUrlIndex = 0;
+
+	$request_state{+RS_SAVED_HTML} = [];
+
 	$text =~ s/$FS//g;    # Remove separators (paranoia)
 
-	if ($RawHtml) {
+	if ($config{allow_raw_html}) {
 		$text =~ s/(<html>((.|\n)*?)<\/html>)/store_raw_html($1)/ige;
 	}
 
@@ -1002,24 +981,27 @@ sub substitute_text_links {
 	$text =~ s/(<components>((.|\n)*?)<\/components>)/render_components_as_html($1)/smige;
 	$text =~ s/(<nowiki>((.|\n)*?)<\/nowiki>)/store_raw_html($1)/ige;
 
-	if ($FreeLinks) {
-		$text =~ s/\[\[$FreeLinkPattern\|([^\]]+)\]\]/render_sub_free_link_as_stored_html($1,$2,$old,$new)/geo;
-		$text =~ s/\[\[$FreeLinkPattern\]\]/render_sub_free_link_as_stored_html($1,"",$old,$new)/geo;
+	if ($config{allow_free_links}) {
+		$text =~ s/\[\[$pattern_free_link\|([^\]]+)\]\]/render_sub_free_link_as_stored_html($1,$2,$old,$new)/geo;
+		$text =~ s/\[\[$pattern_free_link\]\]/render_sub_free_link_as_stored_html($1,"",$old,$new)/geo;
 	}
 
-	if ($BracketText) {    # Links like [URL text of link]
-		$text =~ s/(\[$UrlPattern\s+([^\]]+?)\])/store_raw_html($1)/geo;
-		$text =~ s/(\[$InterLinkPattern\s+([^\]]+?)\])/store_raw_html($1)/geo;
+	# Links like [URL text of link]
+	if ($config{allow_link_descriptions}) {
+		$text =~ s/(\[$pattern_url\s+([^\]]+?)\])/store_raw_html($1)/geo;
+		$text =~ s/(\[$pattern_inter_link\s+([^\]]+?)\])/store_raw_html($1)/geo;
 	}
 
-	$text =~ s/(\[?$UrlPattern\]?)/store_raw_html($1)/geo;
-	$text =~ s/(\[?$InterLinkPattern\]?)/store_raw_html($1)/geo;
+	$text =~ s/(\[?$pattern_url\]?)/store_raw_html($1)/geo;
+	$text =~ s/(\[?$pattern_inter_link\]?)/store_raw_html($1)/geo;
 
-	if ($WikiLinks) {
-		$text =~ s/$LinkPattern/render_sub_wiki_link_as_stored_html($1, $old, $new)/geo;
+	if ($config{allow_camelcase_links}) {
+		$text =~ s/$pattern_link/render_sub_wiki_link_as_stored_html($1, $old, $new)/geo;
 	}
 
-	$text =~ s/$FS(\d+)$FS/$SaveUrl{$1}/geo;    # Restore saved text
+	# Restore saved text.
+	$text =~ s/$FS(\d+)$FS/$request_state{+RS_SAVED_HTML}[$1]/geo;
+
 	return $text;
 }
 
@@ -1032,8 +1014,8 @@ sub append_recent_changes_log {
 	my ($id, $summary, $isEdit, $editTime, $name, $rhost) = @_;
 
 	my %extra;
-	$extra{'id'} = $UserID if ($UserID > 0);
-	$extra{'name'} = $name if ($name ne "");
+	$extra{id} = $request_state{+RS_USER_ID} if ($request_state{+RS_USER_ID} > 0);
+	$extra{name} = $name if ($name ne "");
 	my $extraTemp = join($FS2, %extra);
 
 	# The two fields at the end of a line are kind and extension-hash
@@ -1041,7 +1023,9 @@ sub append_recent_changes_log {
 		$FS3, $editTime, $id, $summary, $isEdit, $rhost, "0", $extraTemp
 	);
 
-	open(OUT, ">>$RcFile") or die "$RCName log error: $!";
+	open(OUT, ">>", $config{file_recent_changes_log}) or die(
+		"$config{rc_name} log error: $!"
+	);
 	print OUT $rc_line . "\n";
 	close(OUT);
 }
@@ -1049,8 +1033,12 @@ sub append_recent_changes_log {
 sub edit_recent_changes {
 	my ($action, $old, $new) = @_;
 
-	edit_recent_changes_file($RcFile,    $action, $old, $new);
-	edit_recent_changes_file($RcOldFile, $action, $old, $new);
+	edit_recent_changes_file(
+		$config{file_recent_changes_log}, $action, $old, $new
+	);
+	edit_recent_changes_file(
+		$config{file_old_recent_changes_log}, $action, $old, $new
+	);
 }
 
 sub edit_recent_changes_file {
@@ -1058,13 +1046,10 @@ sub edit_recent_changes_file {
 
 	my ($status, $fileData) = read_file($fname);
 	unless ($status) {
-
-		# Save error text if needed.
-		my $errorText = (
-			"<p><strong>Could not open $RCName log file:" .
+		print(
+			"<p><strong>Could not open $config{rc_name} log file:" .
 			"</strong> $fname<p>Error was:\n<pre>$!</pre>\n"
 		);
-		print $errorText;    # Maybe handle differently later?
 		return;
 	}
 
@@ -1113,8 +1098,8 @@ sub get_all_pages_from_filesystem {
 	my @dirs = qw(A B C D E F G H I J K L M N O P Q R S T U V W X Y Z other);
 
 	foreach my $dir (@dirs) {
-		while (<$PageDir/$dir/*.db $PageDir/$dir/*/*.db>) {
-			s!^$PageDir/!!;
+		while (<$config{dir_page}/$dir/*.db $config{dir_page}/$dir/*/*.db>) {
+			s!^$config{dir_page}/!!;
 			m!^[^/]+/(\S*).db!;
 			my $id = $1;
 			push(@pages, $id);
@@ -1125,43 +1110,50 @@ sub get_all_pages_from_filesystem {
 }
 
 sub get_all_pages_for_entire_site {
-	return get_all_pages_from_filesystem() unless $UseIndex;
+	return get_all_pages_from_filesystem() unless $config{use_page_index_file};
 
 	my $refresh = get_request_param("refresh", 0);
 
-	if ($IndexInit && !$refresh) {
+	if (@{$request_state{+RS_INDEX_LIST}} && !$refresh) {
 
 		# May need to change for mod_perl eventually (cache consistency)
 		# Possibly check timestamp of file then?
-		return @IndexList;
+		return @{$request_state{+RS_INDEX_LIST}};
 	}
 
-	if ((!$refresh) && (-f $IndexFile)) {
-		my ($status, $rawIndex) = read_file($IndexFile);
+	if ((!$refresh) && (-f $config{file_page_index})) {
+		my ($status, $rawIndex) = read_file($config{file_page_index});
 		if ($status) {
-			%IndexHash = split(/\s+/, $rawIndex);
-			@IndexList = sort(keys %IndexHash);
-			$IndexInit = 1;
-			return @IndexList;
+			$request_state{+RS_INDEX_HASH} = {
+				split(/\s+/, $rawIndex)
+			};
+			$request_state{+RS_INDEX_LIST} = [
+				sort(keys %{$request_state{+RS_INDEX_HASH}})
+			];
+			return @{$request_state{+RS_INDEX_LIST}};
 		}
 
 		# If open fails just refresh the index.
 	}
 
-	@IndexList = ();
-	%IndexHash = ();
+	$request_state{+RS_INDEX_LIST} = [];
+	$request_state{+RS_INDEX_HASH} = {};
 
-	request_index_lock() or return @IndexList;    # Maybe generate? (high load?)
-	@IndexList = get_all_pages_from_filesystem();
+	# Maybe generate? (high load?)
+	request_index_lock() or return @{$request_state{+RS_INDEX_LIST}};
+	$request_state{+RS_INDEX_LIST} = [ get_all_pages_from_filesystem() ];
 
-	foreach (@IndexList) {
-		$IndexHash{$_} = 1;
+	foreach (@{$request_state{+RS_INDEX_LIST}}) {
+		${$request_state{+RS_INDEX_HASH}}{$_} = 1;
 	}
 
-	write_string_to_file($IndexFile, join(" ", %IndexHash));
-	$IndexInit = 1;
+	write_string_to_file(
+		$config{file_page_index},
+		join(" ", %{$request_state{+RS_INDEX_HASH}})
+	);
+
 	release_index_lock();
-	return @IndexList;
+	return @{$request_state{+RS_INDEX_LIST}};
 }
 
 sub get_links_for_entire_site {
@@ -1249,7 +1241,7 @@ sub run_page_and_link_update_script {
 	request_main_lock() or die(
 		"run_page_and_link_update_script could not get main lock"
 	);
-	unlink($IndexFile) if $UseIndex;
+	unlink($config{file_page_index}) if $config{use_page_index_file};
 
 	foreach (split(/\n/, $commandList)) {
 		s/\s+$//g;
@@ -1268,7 +1260,7 @@ sub run_page_and_link_update_script {
 	}
 
 	clear_cached_pages_linking_to(".");    # Clear cache (needs testing?)
-	unlink($IndexFile) if ($UseIndex);
+	unlink($config{file_page_index}) if $config{use_page_index_file};
 	release_main_lock();
 }
 
@@ -1280,27 +1272,30 @@ sub run_page_and_link_update_script {
 sub create_new_section {
 	my ($name, $data) = @_;
 
-	%Section = (
-		name      => $name,
-		version   => 1,     # Data format version.
-		revision  => 0,     # Number of times edited.
-		tscreate  => $^T,   # Set once at creation.
-		ts        => $^T,   # Updated every edit.
-		ip        => $ENV{REMOTE_ADDR},
-		host      => '',    # Updated only for real edits (may be slow)
-		id        => $UserID,
-		username  => get_request_param('username', ''),
-		data      => $data
-	);
+	$request_state{+RS_SECTION} = {
+		+SECT_PAGE_ID           => $name,
+		+SECT_VERSION           => 1,     # Data format version.
+		+SECT_REVISION          => 0,     # Number of times edited.
+		+SECT_TIMESTAMP_CREATE  => $^T,   # Set once at creation.
+		+SECT_TIMESTAMP_CHANGE  => $^T,   # Updated every edit.
+		+SECT_USER_IP           => $ENV{REMOTE_ADDR},
+		+SECT_USER_HOST         => '',    # Updated for real edits (may be slow)
+		+SECT_USER_ID           => $request_state{+RS_USER_ID},
+		+SECT_USER_NAME         => get_request_param('username', ''),
+		+SECT_DATA              => $data
+	};
 
-	$Page{$name} = join($FS2, %Section);    # Replace with save?
+	# TODO - Replace with save?
+	$request_state{+RS_PAGE}{$name} = join($FS2, %{$request_state{+RS_SECTION}});
 }
 
 sub open_or_create_section {
 	my ($name) = @_;
 
-	if (defined $Page{$name}) {
-		%Section = split(/$FS2/o, $Page{$name}, -1);
+	if (defined $request_state{+RS_PAGE}{$name}) {
+		$request_state{+RS_SECTION} = {
+			split(/$FS2/o, $request_state{+RS_PAGE}{$name}, -1)
+		};
 	}
 	else {
 		create_new_section($name, "");
@@ -1310,13 +1305,16 @@ sub open_or_create_section {
 sub save_section { # TODO
 	my ($name, $data) = @_;
 
-	$Section{'revision'} += 1;    # Number of edited times
-	$Section{'ts'}       = $^T;                         # Updated every edit
-	$Section{'ip'}       = $ENV{REMOTE_ADDR};
-	$Section{'id'}       = $UserID;
-	$Section{'username'} = get_request_param("username", "");
-	$Section{'data'}     = $data;
-	$Page{$name} = join($FS2, %Section);
+	$request_state{+RS_SECTION}{+SECT_REVISION}++;
+	$request_state{+RS_SECTION}{+SECT_TIMESTAMP_CHANGE} = $^T;
+	$request_state{+RS_SECTION}{+SECT_USER_IP} = $ENV{REMOTE_ADDR};
+	$request_state{+RS_SECTION}{+SECT_USER_ID} = $request_state{+RS_USER_ID};
+	$request_state{+RS_SECTION}{+SECT_USER_NAME} = get_request_param(
+		"username", ""
+	);
+	$request_state{+RS_SECTION}{+SECT_DATA} = $data;
+
+	$request_state{+RS_PAGE}{$name} = join($FS2, %{$request_state{+RS_SECTION}});
 }
 
 ############
@@ -1327,25 +1325,28 @@ sub save_section { # TODO
 sub open_or_create_text {
 	my ($name) = @_;
 
-	if (defined $Page{"text_$name"}) {
+	if (defined $request_state{+RS_PAGE}{"text_$name"}) {
 		open_or_create_section("text_$name");
-		%Text = split(/$FS3/o, $Section{'data'}, -1);
+		$request_state{+RS_TEXT} = {
+			split(/$FS3/o, $request_state{+RS_SECTION}{+SECT_DATA}, -1)
+		};
 	}
 	else {
-		%Text = (
-			text => (
+		$request_state{+RS_TEXT} = {
+			+TEXT_TEXT => (
 				"Empty page.\n\n" .
-				"Edit this page (below), or try [[$HomePage|the home page]].\n\n" .
+				"Edit this page (below), " .
+				"or try [[$config{home_page}|the home page]].\n\n" .
 				"<!--\n" .
 				"\" vim: syntax=wiki\n" .
 				"-->\n"
 			),
-			minor => 0,       # Default as major edit.
-			newauthor => 1,   # Default as new author.
-			summary   => '',  # TODO - Can we default the summary?
-		);
+			+TEXT_IS_MINOR_REV  => 0,   # Default as major edit.
+			+TEXT_IS_NEW_AUTHOR => 1,   # Default as new author.
+			+TEXT_SUMMARY       => '',  # TODO - Can we default the summary?
+		};
 
-		create_new_section("text_$name", join($FS3, %Text));
+		create_new_section("text_$name", join($FS3, %{$request_state{+RS_TEXT}}));
 	}
 }
 
@@ -1356,7 +1357,7 @@ sub open_default_text {
 sub save_text { # TODO
 	my ($name) = @_;
 
-	save_section("text_$name", join($FS3, %Text));
+	save_section("text_$name", join($FS3, %{$request_state{+RS_TEXT}}));
 }
 
 sub save_default_text { # TODO
@@ -1369,38 +1370,47 @@ sub save_default_text { # TODO
 # XXX - ALL FUNCTION THAT WRITE TO DISK MUST DO SO WITHIN LOCKS.
 
 sub open_kept_list { # TODO
-	@KeptList = ();
+	$request_state{+RS_KEPT_REVISION_LIST} = [];
 	my $fname    = get_keep_path_for_open_page();
 	return unless -f $fname;
 
 	my $data = read_file_or_die($fname);
-	@KeptList = split(/$FS1/o, $data, -1);    # -1 keeps trailing null fields
+
+	# -1 keeps trailing null fields.
+	$request_state{+RS_KEPT_REVISION_LIST} = [ split(/$FS1/o, $data, -1) ];
 }
 
 sub open_kept_revisions { # TODO
 	my ($name) = @_;    # Name of section
 
-	%KeptRevisions = ();
+	$request_state{+RS_KEPT_REVISION_HASH} = {};
 	open_kept_list();
 
-	foreach (@KeptList) {
+	foreach (@{$request_state{+RS_KEPT_REVISION_LIST}}) {
 		my %tempSection = split(/$FS2/o, $_, -1);
-		next if ($tempSection{'name'} ne $name);
+		next if $tempSection{+SECT_USER_NAME} ne $name;
 
-		$KeptRevisions{$tempSection{'revision'}} = $_;
+		$request_state{+RS_KEPT_REVISION_HASH}{$tempSection{+SECT_REVISION}} = $_;
 	}
 }
 
 sub open_kept_revision { # TODO
 	my ($revision) = @_;
 
-	%Section = split(/$FS2/o, $KeptRevisions{$revision}, -1);
-	%Text    = split(/$FS3/o, $Section{'data'},          -1);
+	$request_state{+RS_SECTION} = {
+		split(/$FS2/o, $request_state{+RS_KEPT_REVISION_HASH}{$revision}, -1)
+	};
+
+	$request_state{+RS_TEXT} = {
+		split(/$FS3/o, $request_state{+RS_SECTION}{+SECT_DATA}, -1)
+	};
 }
 
 sub get_keep_path_for_open_page {
 	return normalize_filename(
-		$KeepDir . "/" . get_directory_for_page_id($OpenPageName) . "/$OpenPageName.kp"
+		$config{dir_kept_revisions} . "/" .
+		get_directory_for_page_id($request_state{+RS_OPEN_PAGE_ID}) . "/" .
+		$request_state{+RS_OPEN_PAGE_ID} . ".kp"
 	);
 }
 
@@ -1408,12 +1418,17 @@ sub save_keep_section { # TODO
 	my $file = get_keep_path_for_open_page();
 	my $data;
 
-	return if ($Section{'revision'} < 1);    # Don't keep "empty" revision
+	# Don't keep "empty" revision.
+	return if $request_state{+RS_SECTION}{+SECT_REVISION} < 1;
 
-	$Section{'keepts'} = $^T;
-	$data = $FS1 . join($FS2, %Section);
+	$request_state{+RS_SECTION}{+SECT_KEEP_TS} = $^T;
+	$data = $FS1 . join($FS2, %{$request_state{+RS_SECTION}});
 
-	create_page_directory($KeepDir, $OpenPageName);
+	create_page_directory(
+		$config{dir_kept_revisions},
+		$request_state{+RS_OPEN_PAGE_ID}
+	);
+
 	append_string_to_file($file, $data);
 }
 
@@ -1425,20 +1440,21 @@ sub expire_keep_file { # TODO
 
 	$data = read_file_or_die($fname);
 	@kplist = split(/$FS1/o, $data, -1);    # -1 keeps trailing null fields
-	return if (length(@kplist) < 1);    # Also empty
+	return if @kplist < 1;                  # Also empty
 
-	shift(@kplist) if ($kplist[0] eq "");    # First can be empty
-	return if (length(@kplist) < 1);         # Also empty
+	shift(@kplist) if $kplist[0] eq "";     # First can be empty
+	return if @kplist < 1;                  # Also empty
 
 	%tempSection = split(/$FS2/o, $kplist[0], -1);
-	unless (defined $tempSection{'keepts'}) {
+	unless (defined $tempSection{keepts}) {
 		# die("Bad keep file." . join("|", %tempSection));
 		return;
 	}
 
-	$expirets = $^T - ($KeepDays * 24 * 60 * 60);
+	$expirets = $^T - $config{keep_seconds};
 
-	return if ($tempSection{'keepts'} >= $expirets);    # Nothing old enough
+	# Nothing old enough.
+	return if $tempSection{keepts} >= $expirets;
 
 	my $anyExpire = 0;
 	my $anyKeep   = 0;
@@ -1448,21 +1464,24 @@ sub expire_keep_file { # TODO
 
 	foreach (reverse @kplist) {
 		%tempSection = split(/$FS2/o, $_, -1);
-		my $sectName    = $tempSection{'name'};
-		my $sectRev     = $tempSection{'revision'};
+		my $sectName    = $tempSection{+SECT_USER_NAME};
+		my $sectRev     = $tempSection{+SECT_REVISION};
 		my $expire      = 0;
 
-		if ($sectName eq "text_default") {
-			if ( ($KeepMajor && ($sectRev == $oldMajor))
-				|| ($KeepAuthor && ($sectRev == $oldAuthor))) {
+		if ($sectName eq PAGE_TEXT_DEFAULT) {
+			if (
+				($config{keep_major_revs} and ($sectRev == $oldMajor))
+				or
+				($config{keep_author_revs} and ($sectRev == $oldAuthor))
+			) {
 				$expire = 0;
 			}
-			elsif ($tempSection{'keepts'} < $expirets) {
+			elsif ($tempSection{keepts} < $expirets) {
 				$expire = 1;
 			}
 		}
 		else {
-			if ($tempSection{'keepts'} < $expirets) {
+			if ($tempSection{keepts} < $expirets) {
 				$expire = 1;
 			}
 		}
@@ -1483,12 +1502,12 @@ sub expire_keep_file { # TODO
 
 	return unless $anyExpire;    # No sections expired
 
-	open(OUT, ">$fname") or die("cant write $fname: $!");
+	open(OUT, ">", $fname) or die("cant write $fname: $!");
 
 	foreach (@kplist) {
 		%tempSection = split(/$FS2/o, $_, -1);
-		my $sectName    = $tempSection{'name'};
-		my $sectRev     = $tempSection{'revision'};
+		my $sectName    = $tempSection{+SECT_USER_NAME};
+		my $sectRev     = $tempSection{+SECT_REVISION};
 
 		if ($keepFlag{$sectRev . "," . $sectName}) {
 			print OUT $FS1, $_;
@@ -1502,7 +1521,9 @@ sub rename_keep_text { # TODO
 	my ($page, $old, $new) = @_;
 
 	my $fname = normalize_filename(
-		$KeepDir . "/" . get_directory_for_page_id($page) . "/$page.kp"
+		$config{dir_kept_revisions} . "/"
+		. get_directory_for_page_id($page) . "/" .
+		"$page.kp"
 	);
 	return unless -f $fname;
 
@@ -1517,7 +1538,7 @@ sub rename_keep_text { # TODO
 
 	my %tempSection = split(/$FS2/o, $kplist[0], -1);
 
-	unless (defined $tempSection{'keepts'}) {
+	unless (defined $tempSection{keepts}) {
 		return;
 	}
 
@@ -1525,12 +1546,16 @@ sub rename_keep_text { # TODO
 	my $changed = 0;
 	foreach (@kplist) {
 		%tempSection = split(/$FS2/o, $_, -1);
-		my $sectName = $tempSection{'name'};
+		my $sectName = $tempSection{+SECT_USER_NAME};
 
 		if ($sectName =~ /^(text_)/) {
-			%Text = split(/$FS3/o, $tempSection{'data'}, -1);
-			my $newText = substitute_text_links($old, $new, $Text{'text'});
-			$changed = 1 if ($Text{'text'} ne $newText);
+			$request_state{+RS_TEXT} = {
+				split(/$FS3/o, $tempSection{+SECT_DATA}, -1)
+			};
+			my $newText = substitute_text_links(
+				$old, $new, $request_state{+RS_TEXT}{+TEXT_TEXT}
+			);
+			$changed = 1 if ($request_state{+RS_TEXT}{+TEXT_TEXT} ne $newText);
 		}
 
 		# Later add other section types? (maybe)
@@ -1538,15 +1563,19 @@ sub rename_keep_text { # TODO
 
 	return unless $changed;    # No sections changed
 
-	open(OUT, ">$fname") or return;
+	open(OUT, ">", $fname) or return;
 	foreach (@kplist) {
 		%tempSection = split(/$FS2/o, $_, -1);
-		my $sectName = $tempSection{'name'};
+		my $sectName = $tempSection{+SECT_USER_NAME};
 		if ($sectName =~ /^(text_)/) {
-			%Text = split(/$FS3/o, $tempSection{'data'}, -1);
-			my $newText = substitute_text_links($old, $new, $Text{'text'});
-			$Text{'text'} = $newText;
-			$tempSection{'data'} = join($FS3, %Text);
+			$request_state{+RS_TEXT} = {
+				split(/$FS3/o, $tempSection{+SECT_DATA}, -1)
+			};
+			my $newText = substitute_text_links(
+				$old, $new, $request_state{+RS_TEXT}{+TEXT_TEXT}
+			);
+			$request_state{+RS_TEXT}{+TEXT_TEXT} = $newText;
+			$tempSection{+SECT_DATA} = join($FS3, %{$request_state{+RS_TEXT}});
 			print OUT $FS1, join($FS2, %tempSection);
 		}
 		else {
@@ -1563,12 +1592,12 @@ sub rename_keep_text { # TODO
 
 sub get_page_cache {
 	my ($name) = @_;
-	return $Page{"cache_$name"};
+	return $request_state{+RS_PAGE}{"cache_$name"};
 }
 
 sub set_page_cache {
 	my ($name, $data) = @_;
-	$Page{"cache_$name"} = $data;
+	$request_state{+RS_PAGE}{"cache_$name"} = $data;
 }
 
 sub request_cache_lock {
@@ -1584,7 +1613,7 @@ sub release_cache_lock {
 sub clear_cached_pages_linking_to {
 	my ($id) = @_;
 
-	return unless $UseCache;
+	return unless $config{use_html_cache};
 
 	# If subpage, search for just the subpage.
 	$id =~ s!.+/!/!;
@@ -1600,22 +1629,27 @@ sub clear_cached_pages_linking_to {
 # XXX - ALL FUNCTION THAT WRITE TO DISK MUST DO SO WITHIN LOCKS.
 
 sub load_user_data {
-	%UserData = ();
-	my ($status, $data) = read_file(get_user_data_filename($UserID));
+	$request_state{+RS_USER_DATA} = {};
+	my ($status, $data) = read_file(
+		get_user_data_filename($request_state{+RS_USER_ID})
+	);
 
 	unless ($status) {
-		$UserID = UID_ENOUSERFILE;
+		$request_state{+RS_USER_ID} = UID_ENOUSERFILE;
 		return;
 	}
 
-	%UserData = split(/$FS1/o, $data, -1);    # -1 keeps trailing null fields
+	# -1 keeps trailing null fields.
+	$request_state{+RS_USER_DATA} = { split(/$FS1/o, $data, -1) };
 }
 
 sub get_user_data_filename {
 	my ($id) = @_;
 
 	return "" if ($id < 1);
-	return normalize_filename($UserDir . "/" . ($id % 10) . "/$id.db");
+	return normalize_filename(
+		$config{dir_user_data} . "/" . ($id % 10) . "/$id.db"
+	);
 }
 
 sub user_can_edit {
@@ -1624,19 +1658,19 @@ sub user_can_edit {
 	# Optimized for the "everyone can edit" case (don't check passwords)
 	if (($id ne "") and (-f get_page_lock_filename($id))) {
 
-    # Admins can always edit.
+		# Admins can always edit.
 		return 1 if user_is_admin();
 
 		# Later option for editor-level to edit these pages?
 		return 0;
 	}
 
-	unless ($EditAllowed) {
+	unless ($config{allow_editing}) {
 		return 1 if user_is_editor();
 		return 0;
 	}
 
-	if (-f "$DataDir/noedit") {
+	if (-f "$dir_data/noedit") {
 		return 1 if user_is_editor();
 		return 0;
 	}
@@ -1652,17 +1686,17 @@ sub user_can_edit {
 
 sub user_is_banned {
 
-	my ($status, $data) = read_file("$DataDir/banlist");
+	my ($status, $data) = read_file("$dir_data/banlist");
 
 	# No file exists, so no ban.
 	return 0 unless $status;
 
-	my $ip   = $ENV{'REMOTE_ADDR'};
+	my $ip   = $ENV{REMOTE_ADDR};
 	my $host = get_remote_host(0);
 
 	foreach (split(/\n/, $data)) {
 
-    # Skip empty, spaces, or comments
+		# Skip empty, spaces, or comments
 		next if /^\s*$/ || /^\s*#/;
 
 		return 1 if $ip   =~ /$_/i;
@@ -1675,12 +1709,12 @@ sub user_is_banned {
 sub user_is_admin {
 
 	# Nobody is admin if there's no admin password.
-	return 0 if $AdminPass eq "";
+	return 0 if $config{admin_pass} eq "";
 
 	my $userPassword = get_request_param("adminpw", "");
 	return 0 if ($userPassword eq "");
 
-	foreach (split(/\s+/, $AdminPass)) {
+	foreach (split(/\s+/, $config{admin_pass})) {
 		next if ($_ eq "");
 		return 1 if $userPassword eq $_;
 	}
@@ -1693,12 +1727,12 @@ sub user_is_editor {
 	return 1 if user_is_admin();
 
 	# However, nobody else may be an editor if there's no password.
-	return 0 if $EditPass eq "";
+	return 0 if $config{edit_pass} eq "";
 
 	my $userPassword = get_request_param("adminpw", "");
 	return 0 if $userPassword eq "";
 
-	foreach (split(/\s+/, $EditPass)) {
+	foreach (split(/\s+/, $config{edit_pass})) {
 		next if ($_ eq "");
 		return 1 if $userPassword eq $_;
 	}
@@ -1712,17 +1746,21 @@ sub do_new_login {
 	# "replace=1" parameter?
 
 	create_user_directories();
-	$SetCookie{'id'}      = get_new_user_id();
-	$SetCookie{'randkey'} = int(rand(1000000000));
-	$SetCookie{'rev'}     = 1;
-	%UserCookie           = %SetCookie;
-	$UserID               = $SetCookie{'id'};
+	$request_state{+RS_SET_COOKIE}{+SCOOK_ID}      = get_new_user_id();
+	$request_state{+RS_SET_COOKIE}{+SCOOK_RANDKEY} = int(rand(1000000000));
+	$request_state{+RS_SET_COOKIE}{+SCOOK_REV}     = 1;
+	$request_state{+RS_USER_COOKIE} = {
+		%{$request_state{+RS_SET_COOKIE}}
+	};
+	$request_state{+RS_USER_ID} = $request_state{+RS_SET_COOKIE}{+SCOOK_ID};
 
 	# The cookie will be transmitted in the next header.
 
-	%UserData               = %UserCookie;
-	$UserData{'createtime'} = $^T;
-	$UserData{'createip'}   = $ENV{REMOTE_ADDR};
+	$request_state{+RS_USER_DATA} = {
+		%{$request_state{+RS_USER_COOKIE}}
+	};
+	$request_state{+RS_USER_DATA}{+USER_TIMESTAMP_CREATE} = $^T;
+	$request_state{+RS_USER_DATA}{+USER_CREATE_IP}   = $ENV{REMOTE_ADDR};
 
 	save_user_data();
 }
@@ -1734,15 +1772,18 @@ sub do_login {
 	my $password = get_request_param("p_password", "");
 
 	if (($uid > 199) && ($password ne "") && ($password ne "*")) {
-		$UserID = $uid;
+		$request_state{+RS_USER_ID} = $uid;
 		load_user_data();
-		if ($UserID > 199) {
-			if (defined($UserData{'password'})
-				&& ($UserData{'password'} eq $password)) {
-				$SetCookie{'id'}      = $uid;
-				$SetCookie{'randkey'} = $UserData{'randkey'};
-				$SetCookie{'rev'}     = 1;
-				$success              = 1;
+		if ($request_state{+RS_USER_ID} > 199) {
+			if (
+				defined($request_state{+RS_USER_DATA}{+USER_PASSWORD})
+				&&
+				($request_state{+RS_USER_DATA}{+USER_PASSWORD} eq $password)
+			) {
+				$request_state{+RS_SET_COOKIE}{+SCOOK_ID}      = $uid;
+				$request_state{+RS_SET_COOKIE}{+SCOOK_RANDKEY} = $request_state{+RS_USER_DATA}{+USER_RANDKEY};
+				$request_state{+RS_SET_COOKIE}{+SCOOK_REV}     = 1;
+				$success = 1;
 			}
 		}
 	}
@@ -1757,11 +1798,15 @@ sub do_login {
 	}
 
 	my %data;
-	$data{footer} = "<hr>\n" . render_goto_bar_as_html("") . $q->endform;
+	$data{footer} = (
+		"<hr>\n" .
+		render_goto_bar_as_html("") .
+		$request_state{+RS_CGI}->endform
+	);
 
 	my $template = Template->new( { ABSOLUTE => 1 } );
 	my $output = "";
-	$template->process("$Templates/footer.html", \%data, \$output);
+	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
 	print $output;
 }
 
@@ -1793,17 +1838,17 @@ sub get_new_user_id {
 
 sub save_user_data {
 	create_user_directories();
-	my $userFile = get_user_data_filename($UserID);
-	my $data = join($FS1, %UserData);
+	my $userFile = get_user_data_filename($request_state{+RS_USER_ID});
+	my $data = join($FS1, %{$request_state{+RS_USER_DATA}});
 	write_string_to_file($userFile, $data);
 }
 
 sub create_user_directories {
-	unless (-d "$UserDir/0") {
-		create_directory($UserDir);
+	unless (-d "$config{dir_user_data}/0") {
+		create_directory($config{dir_user_data});
 
 		foreach my $n (0 .. 9) {
-			my $subdir = "$UserDir/$n";
+			my $subdir = "$config{dir_user_data}/$n";
 			create_directory($subdir);
 		}
 	}
@@ -1831,7 +1876,7 @@ sub set_user_pref_from_request_text {
 	my $temp = get_request_param("p_$param", "*");
 
 	return if ($temp eq "*");
-	$UserData{$param} = $temp;
+	$request_state{+RS_USER_DATA}{$param} = $temp;
 }
 
 sub set_user_pref_from_request_number {
@@ -1845,7 +1890,7 @@ sub set_user_pref_from_request_number {
 	return if ($temp eq "");
 	return if (($temp < $min) || ($temp > $max));
 
-	$UserData{$param} = $temp;
+	$request_state{+RS_USER_DATA}{$param} = $temp;
 
 	# Later consider returning status?
 }
@@ -1855,8 +1900,8 @@ sub set_user_pref_from_request_bool {
 
 	my $temp = get_request_param("p_$param", "*");
 
-	$UserData{$param} = 1 if ($temp eq "on");
-	$UserData{$param} = 0 if ($temp eq "*");
+	$request_state{+RS_USER_DATA}{$param} = 1 if ($temp eq "on");
+	$request_state{+RS_USER_DATA}{$param} = 0 if ($temp eq "*");
 
 	# It is possible to skip updating by using another value, like "2"
 }
@@ -1869,7 +1914,7 @@ sub set_user_pref_from_request_bool {
 sub write_diff_log {
 	my ($id, $editTime, $diffString) = @_;
 
-	open(OUT, ">>$DataDir/diff_log") or die "cant write diff_log";
+	open(OUT, ">>", "$dir_data/diff_log") or die "cant write diff_log";
 	print OUT "------\n" . $id . "|" . $editTime . "\n", $diffString;
 	close(OUT);
 }
@@ -1882,12 +1927,12 @@ sub update_diffs {
 	my $oldMajor  = get_page_cache('oldmajor');
 	my $oldAuthor = get_page_cache('oldauthor');
 
-	write_diff_log($id, $editTime, $editDiff) if $UseDiffLog;
+	write_diff_log($id, $editTime, $editDiff) if $config{use_diff_log};
 
 	set_page_cache('diff_default_minor', $editDiff);
 
 	if ($isEdit || !$newAuthor) {
-		open_kept_revisions('text_default');
+		open_kept_revisions(PAGE_TEXT_DEFAULT);
 	}
 
 	if ($isEdit) {
@@ -1944,10 +1989,12 @@ sub find_kept_differences {
 	my ($newText, $oldRevision, $lock) = @_;
 
 	my $oldText = "";
-	if (defined($KeptRevisions{$oldRevision})) {
-		my %sect = split(/$FS2/o, $KeptRevisions{$oldRevision}, -1);
-		my %data = split(/$FS3/o, $sect{'data'}, -1);
-		$oldText = $data{'text'};
+	if (defined($request_state{+RS_KEPT_REVISION_HASH}{$oldRevision})) {
+		my %sect = split(
+			/$FS2/o, $request_state{+RS_KEPT_REVISION_HASH}{$oldRevision}, -1
+		);
+		my %data = split(/$FS3/o, $sect{+SECT_DATA}, -1);
+		$oldText = $data{text};
 	}
 
 	# Old revision not found, so no diff.
@@ -1959,9 +2006,9 @@ sub find_kept_differences {
 sub find_differences {
 	my ($old, $new, $lock) = @_;
 
-	create_directory($TempDir);
-	my $oldName = "$TempDir/old_diff";
-	my $newName = "$TempDir/new_diff";
+	create_directory($config{dir_temp});
+	my $oldName = "$config{dir_temp}/old_diff";
+	my $newName = "$config{dir_temp}/new_diff";
 
 	if ($lock) {
 		request_diff_lock() or return "";
@@ -1972,8 +2019,7 @@ sub find_differences {
 	write_string_to_file($oldName, $old);
 	write_string_to_file($newName, $new);
 
-	# TODO - Taint?  Also fully-qualify diff path.
-	my $diff_out = `diff $oldName $newName`;
+	my $diff_out = `$config{diff_util} $oldName $newName`;
 	release_diff_lock() if ($lock);
 
 	# Get rid of common complaints.
@@ -1992,7 +2038,7 @@ sub normalize_filename {
 	my $file_name = shift;
 
 	return $file_name if -e $file_name;
-	return $file_name unless $ForceLcaseFiles;
+	return $file_name unless $config{enable_case_insensitivity};
 
 	# Lowercase subdirectories and everything.
 	if ($file_name =~ s/\/([^\/\.]|other)\/(.*?)\.([^\/\.]+)$//) {
@@ -2022,11 +2068,12 @@ sub get_directory_for_page_id {
 ### CGI HELPERS ###
 
 sub init_request {
-	my @ScriptPath = split('/', "$ENV{SCRIPT_NAME}");
+	my @ScriptPath = split('/', ($ENV{SCRIPT_NAME} || ""));
 
 	$CGI::POST_MAX        = 1024 * 200;    # max 200K posts
 	$CGI::DISABLE_UPLOADS = 1;             # no uploads
-	$q                    = new CGI;
+
+	$request_state{+RS_CGI} = CGI->new();
 
 	# TODO: AUGH! What were they THINKING?! This needs to change. Somehow.
 	$^T = time;                            # Reset in case script is persistent
@@ -2034,24 +2081,24 @@ sub init_request {
 	# Do we want to grab the script name and use it, or ignore it so that
 	# things like http://domain/?Wiki_Link work?
 
-	if ($UseScriptName) {
-		$ScriptName = pop(@ScriptPath);    # Name used in links
+	if ($config{use_script_name}) {
+		$request_state{+RS_SCRIPT_NAME} = pop(@ScriptPath);    # Name used in links
 	}
 	else {
-		$ScriptName = '';
+		$request_state{+RS_SCRIPT_NAME} = '';
 	}
 
-	$IndexInit     = 0;
-	$InterSiteInit = 0;
-	%InterSite     = ();
-	$MainPage      = ".";    # For subpages only, the name of the top-level page
-	$OpenPageName  = "";     # Currently open page
+	$request_state{+RS_INDEX_LIST} = [];
+
+	# For subpages only, the name of the top-level page.
+	$request_state{+RS_MAIN_PAGE}     = ".";
+	$request_state{+RS_OPEN_PAGE_ID}  = "";     # Currently open page
 
 	# Create the data directory if it doesn't exist.
-	create_directory($DataDir);
+	create_directory($dir_data);
 
-	unless (-d $DataDir) {
-		print render_error_page_as_html("Could not create $DataDir: $!");
+	unless (-d $dir_data) {
+		print render_error_page_as_html("Could not create $dir_data: $!");
 		return 0;
 	}
 
@@ -2062,31 +2109,40 @@ sub init_request {
 }
 
 sub init_request_cookie {
-	%SetCookie      = ();
-	$TimeZoneOffset = 0;
-	%UserCookie     = $CookieName ? $q->cookie($CookieName) : ();
+	$request_state{+RS_SET_COOKIE} = {};
+	$request_state{+RS_TIME_ZONE_OFFSET} = 0;
+	$request_state{+RS_USER_COOKIE} = {
+		$config{cookie_name}
+		? $request_state{+RS_CGI}->cookie($config{cookie_name})
+		: ()
+	};
 
-	$UserID = $UserCookie{'id'} || 0;
-	$UserID =~ s/\D//g;    # Numeric only
+	$request_state{+RS_USER_ID} = $request_state{+RS_USER_COOKIE}{+UCOOK_ID} || 0;
+	$request_state{+RS_USER_ID} =~ s/\D//g;    # Numeric only
 
-	if ($UserID < UID_MINPOSSIBLE) {
-		$UserID = UID_ENOCOOKIE;
+	if ($request_state{+RS_USER_ID} < UID_MINPOSSIBLE) {
+		$request_state{+RS_USER_ID} = UID_ENOCOOKIE;
 	}
 	else {
-		load_user_data($UserID);
+		load_user_data($request_state{+RS_USER_ID});
 	}
 
-	if ($UserID > 199) {
+	if ($request_state{+RS_USER_ID} > 199) {
 		if (
-			($UserData{'id'} != $UserCookie{'id'}) or
-			($UserData{'randkey'} != $UserCookie{'randkey'})
+			($request_state{+RS_USER_DATA}{+USER_ID} != $request_state{+RS_USER_COOKIE}{+UCOOK_ID})
+			or
+			($request_state{+RS_USER_DATA}{+USER_RANDKEY} != $request_state{+RS_USER_COOKIE}{+UCOOK_RANDKEY})
 		) {
-			$UserID   = UID_EBADCOOKIE;
-			%UserData = ();    # Invalid.  Later consider warning message.
+			# Invalid user data.  TODO - Consider a warning message?
+
+			$request_state{+RS_USER_ID}   = UID_EBADCOOKIE;
+			$request_state{+RS_USER_DATA} = {};
 		}
 	}
 
-	$TimeZoneOffset = ($UserData{'tzoffset'} || 0) * (60 * 60);
+	$request_state{+RS_TIME_ZONE_OFFSET} = (
+		$request_state{+RS_USER_DATA}{+USER_TIMEZONE_OFFSET} || 0
+	) * (60 * 60);
 }
 
 sub get_remote_host {
@@ -2121,9 +2177,11 @@ sub get_remote_host {
 sub get_request_param {
 	my ($name, $default) = @_;
 
-	my $result = $q->param($name);
+	my $result = $request_state{+RS_CGI}->param($name);
 	return $result if defined $result;
-	return $UserData{$name} if defined $UserData{$name};
+	return $request_state{+RS_USER_DATA}{$name} if (
+		defined $request_state{+RS_USER_DATA}{$name}
+	);
 	return $default;
 }
 
@@ -2133,8 +2191,8 @@ sub get_request_param {
 sub dispatch_browse_request {
 
 	# No parameters.  Browse the home page.
-	unless ($q->param) {
-		action_browse_page($HomePage);
+	unless ($request_state{+RS_CGI}->param) {
+		action_browse_page($config{home_page});
 		return 1;
 	}
 
@@ -2156,7 +2214,7 @@ sub dispatch_browse_request {
 
 	# Recent changes.
 	if ($action eq "rc") {
-		action_browse_page($RCName);
+		action_browse_page($config{rc_name});
 		return 1;
 	}
 
@@ -2240,9 +2298,9 @@ sub dispatch_change_request {
 		}
 
 		if ($action eq "newlogin") {
-			$UserID = 0;
+			$request_state{+RS_USER_ID} = 0;
 
-			# Also creates a new ID, because $UserID < 400.
+			# Also creates a new ID, because $request_state{+RS_USER_ID} < 400.
 			action_open_preferences_editor();
 			return;
 		}
@@ -2312,7 +2370,7 @@ sub action_lock_or_unlock_entire_site_edits {
 
 	return unless user_is_admin_or_render_error();
 
-	my $fname = "$DataDir/noedit";
+	my $fname = "$dir_data/noedit";
 
 	if (get_request_param("set", 1)) {
 		write_string_to_file($fname, "editing locked.");
@@ -2332,7 +2390,9 @@ sub action_lock_or_unlock_entire_site_edits {
 }
 
 sub action_lock_or_unlock_page_edits {
-	print render_page_header_as_html("", "Set or Remove page edit lock", "", "norobots");
+	print render_page_header_as_html(
+		"", "Set or Remove page edit lock", "", "norobots"
+	);
 	return unless user_is_admin_or_render_error();
 
 	unless (user_is_admin()) {
@@ -2400,7 +2460,7 @@ sub action_run_periodic_maintenance {
 		"<br>"
 	);
 
-	my $fname = "$DataDir/maintain";
+	my $fname = "$dir_data/maintain";
 	unless (user_is_admin()) {
 		if ((-f $fname) && ((-M $fname) < 0.5)) {
 			print(
@@ -2431,7 +2491,7 @@ sub action_run_periodic_maintenance {
 	# Do any rename/deletion commands.
 	# (Must be outside lock because it will grab its own lock)
 
-	$fname = "$DataDir/editlinks";
+	$fname = "$dir_data/editlinks";
 	if (-f $fname) {
 		my $data = read_file_or_die($fname);
 		print "<hr>Processing rename/delete commands:<br>\n";
@@ -2467,7 +2527,7 @@ sub action_browse_page {
 	open_or_create_page($id);
 	open_default_text();
 
-	my $newText  = $Text{'text'};               # For differences
+	my $newText  = $request_state{+RS_TEXT}{+TEXT_TEXT};  # For differences
 	my $openKept = 0;
 
 	my $revision = get_request_param("revision", "");
@@ -2476,11 +2536,11 @@ sub action_browse_page {
 	my $goodRevision = $revision;               # Non-blank only if exists
 
 	if ($revision ne "") {
-		open_kept_revisions('text_default');
+		open_kept_revisions(PAGE_TEXT_DEFAULT);
 
 		$openKept = 1;
 
-		unless (defined $KeptRevisions{$revision}) {
+		unless (defined $request_state{+RS_KEPT_REVISION_HASH}{$revision}) {
 			$goodRevision = "";
 		}
 		else {
@@ -2490,15 +2550,25 @@ sub action_browse_page {
 
 	# Handle a single-level redirect
 	my $oldId = get_request_param("oldid", "");
-	if (($oldId eq "") && (substr($Text{'text'}, 0, 10) eq "#REDIRECT ")) {
+	if (
+		($oldId eq "")
+		&&
+		(substr($request_state{+RS_TEXT}{+TEXT_TEXT}, 0, 10) eq "#REDIRECT ")
+	) {
 		$oldId = $id;
 
-		if (($FreeLinks) && ($Text{'text'} =~ /\#REDIRECT\s+\[\[.+\]\]/)) {
-			($id) = ($Text{'text'} =~ /\#REDIRECT\s+\[\[(.+)\]\]/);
+		if (
+			($config{allow_free_links})
+			&&
+			($request_state{+RS_TEXT}{+TEXT_TEXT} =~ /\#REDIRECT\s+\[\[.+\]\]/)
+		) {
+			($id) = (
+				$request_state{+RS_TEXT}{+TEXT_TEXT} =~ /\#REDIRECT\s+\[\[(.+)\]\]/
+			);
 			$id =~ s/ /_/g;    # Convert from typed form to internal form
 		}
 		else {
-			($id) = ($Text{'text'} =~ /\#REDIRECT\s+(\S+)/);
+			($id) = ($request_state{+RS_TEXT}{+TEXT_TEXT} =~ /\#REDIRECT\s+(\S+)/);
 		}
 
 		if (is_valid_page_id($id) eq "") {
@@ -2513,8 +2583,8 @@ sub action_browse_page {
 		}
 	}
 
-	$MainPage = $id;
-	$MainPage =~ s!/.*!!;    # Only the main page name (remove subpage)
+	$request_state{+RS_MAIN_PAGE} = $id;
+	$request_state{+RS_MAIN_PAGE} =~ s!/.*!!; # Remove subpage name.
 
 	# Need to know if this is a diff (also looking at older revision)
 	# so we can stop search robots from indexing it.
@@ -2523,7 +2593,7 @@ sub action_browse_page {
 		$allDiff = get_request_param("defaultdiff", 1);
 	}
 
-	if (($id eq "$RCName") && get_request_param("norcdiff", 1)) {
+	if (($id eq $config{rc_name}) && get_request_param("norcdiff", 1)) {
 		$allDiff = 0;          # Only show if specifically requested
 	}
 
@@ -2531,12 +2601,12 @@ sub action_browse_page {
 
 	my $showDiff = get_request_param("diff", $allDiff);
 	my $diffRevision;
-	if ($UseDiff && $showDiff) {
+	if ($config{allow_diff} && $showDiff) {
 		$diffRevision = $goodRevision;
 		$diffRevision = get_request_param("diffrevision", $diffRevision);
 
 		# Later try to avoid the following keep-loading if possible?
-		open_kept_revisions('text_default') unless $openKept;
+		open_kept_revisions(PAGE_TEXT_DEFAULT) unless $openKept;
 		$header_revision ||= 1;
 	}
 
@@ -2547,7 +2617,7 @@ sub action_browse_page {
 		$id, quote_html($id), $oldId, $header_revision
 	);
 
-	if ($UseDiff && $showDiff) {
+	if ($config{allow_diff} && $showDiff) {
 		$fullHtml .= render_diff_as_html($showDiff, $id, $diffRevision, $newText);
 	}
 
@@ -2565,9 +2635,11 @@ sub action_browse_page {
 		}
 	}
 
-	$fullHtml .= render_wiki_page_as_html($Text{'text'}) . "\n";    #  . "<hr>\n";
+	$fullHtml .= render_wiki_page_as_html(
+		$request_state{+RS_TEXT}{+TEXT_TEXT}
+	) . "\n";  # . "<hr>\n";
 
-	if ($id eq "$RCName") {
+	if ($id eq $config{rc_name}) {
 		print $fullHtml;
 		print render_recent_changes_page_as_html();
 		print render_complex_page_footer_as_html($id, $goodRevision);
@@ -2580,7 +2652,7 @@ sub action_browse_page {
 	# Don't cache special versions.
 	return if ($showDiff || ($revision ne ""));
 
-	update_html_cache($id, $fullHtml) if $UseCache;
+	update_html_cache($id, $fullHtml) if $config{use_html_cache};
 }
 
 sub action_browse_random_page {
@@ -2592,7 +2664,9 @@ sub action_browse_random_page {
 sub action_page_history {
 	my ($id) = @_;
 
-	print render_page_header_as_html("", quote_html("History of $id"), "", "norobots") . "<br>";
+	print render_page_header_as_html(
+		"", quote_html("History of $id"), "", "norobots"
+	) . "<br>";
 
 	open_or_create_page($id);
 	open_default_text();
@@ -2600,13 +2674,19 @@ sub action_page_history {
 	my $canEdit = user_can_edit($id);
 	$canEdit = 0;                   # Turn off direct "Edit" links
 
-	my $html = render_history_line_as_html($id, $Page{'text_default'}, $canEdit, 1);
+	my $html = render_history_line_as_html(
+		$id, $request_state{+RS_PAGE}{+PAGE_TEXT_DEFAULT}, $canEdit, 1
+	);
 
-	open_kept_revisions('text_default');
+	open_kept_revisions(PAGE_TEXT_DEFAULT);
 
-	foreach (reverse sort { $a <=> $b } keys %KeptRevisions) {
+	foreach (
+		reverse sort { $a <=> $b } keys %{$request_state{+RS_KEPT_REVISION_HASH}}
+	) {
 		next if ($_ eq "");           # (needed?)
-		$html .= render_history_line_as_html($id, $KeptRevisions{$_}, $canEdit, 0);
+		$html .= render_history_line_as_html(
+			$id, $request_state{+RS_KEPT_REVISION_HASH}{$_}, $canEdit, 0
+		);
 	}
 
 	print $html, render_common_footer_as_html();
@@ -2618,7 +2698,7 @@ sub action_open_ban_list_editor {
 	print render_page_header_as_html("", "Editing Banned list", "", "norobots");
 	return unless user_is_admin_or_render_error();
 
-	my ($status, $banList) = read_file("$DataDir/banlist");
+	my ($status, $banList) = read_file("$dir_data/banlist");
 	$banList = "" unless $status;
 	print(
 		render_form_start_as_html(),
@@ -2638,7 +2718,7 @@ sub action_open_ban_list_editor {
 		q{<input type="submit" name="Save" value="Save">},
 		"<hr>\n",
 		render_goto_bar_as_html(""),
-		$q->endform,
+		$request_state{+RS_CGI}->endform,
 		render_simple_page_footer_as_html()
 	);
 }
@@ -2648,7 +2728,7 @@ sub action_write_updated_ban_list {
 
 	return unless user_is_admin_or_render_error();
 
-	my $fname = "$DataDir/banlist";
+	my $fname = "$dir_data/banlist";
 	my $newList = get_request_param("banlist", "#Empty file");
 
 	if ($newList eq "") {
@@ -2671,10 +2751,10 @@ sub action_write_updated_ban_list {
 
 sub action_open_preferences_editor {
 
-	my $recentName = $RCName;
+	my $recentName = $config{rc_name};
 	$recentName =~ s/_/ /g;
 
-	do_new_login() if $UserID < 400;
+	do_new_login() if $request_state{+RS_USER_ID} < 400;
 
 	print(
 		render_page_header_as_html("", "Editing Preferences", "", "norobots"),
@@ -2682,7 +2762,8 @@ sub action_open_preferences_editor {
 		render_hidden_input_as_html("edit_prefs", 1),
 		"\n",
 		"<b>User Information:</b>\n",
-		"<br>Your User ID number: $UserID <b>(Needed to log back in.)</b>\n",
+		"<br>Your User ID number: $request_state{+RS_USER_ID} " .
+		"<b>(Needed to log back in.)</b>\n",
 		"<br>UserName: ",
 		render_form_text_input_as_html('username', "", 20, 50),
 		" (blank to remove, or valid page name)",
@@ -2694,7 +2775,7 @@ sub action_open_preferences_editor {
 		" Passwords are completely optional.)"
 	);
 
-	if ($AdminPass ne "") {
+	if ($config{admin_pass} ne "") {
 		print(
 			"<br>Administrator Password: ",
 			'<input type="password" name="p_adminpw" value="*" size=15 maxlength=50>',
@@ -2706,10 +2787,10 @@ sub action_open_preferences_editor {
 	print(
 		"<hr><b>$recentName:</b>\n",
 		"<br>Default days to display: ",
-		render_form_text_input_as_html('rcdays', $RcDefault, 4, 9),
+		render_form_text_input_as_html('rcdays', $config{rc_default_days}, 4, 9),
 		"<br>",
 		render_form_checkbox_as_html(
-			'rcnewtop', $RecentTop, 'Most recent changes on top'
+			'rcnewtop', $config{recent_on_top}, 'Most recent changes on top'
 		),
 		"<br>",
 		render_form_checkbox_as_html(
@@ -2725,11 +2806,11 @@ sub action_open_preferences_editor {
 
 	print(
 		"<br>Minor edit display: ",
-		$q->popup_menu(
+		$request_state{+RS_CGI}->popup_menu(
 			-name   => 'p_rcshowedit',
 			-values => [0, 1, 2],
 			-labels => \%labels,
-			-default => get_request_param("rcshowedit", $ShowEdits)
+			-default => get_request_param("rcshowedit", $config{show_minor_edits})
 		),
 		"<br>",
 		render_form_checkbox_as_html(
@@ -2737,7 +2818,7 @@ sub action_open_preferences_editor {
 		),
 	);
 
-	if ($UseDiff) {
+	if ($config{allow_diff}) {
 		print(
 			"<hr><b>Differences:</b>\n",
 			"<br>",
@@ -2758,7 +2839,7 @@ sub action_open_preferences_editor {
 		%labels = (1 => 'Major', 2 => 'Minor', 3 => 'Author');
 		print(
 			"<br>Default difference type: ",
-			$q->popup_menu(
+			$request_state{+RS_CGI}->popup_menu(
 				-name   => 'p_defaultdiff',
 				-values => [1, 2, 3],
 				-labels => \%labels,
@@ -2770,7 +2851,7 @@ sub action_open_preferences_editor {
 	print(
 		"<hr><b>Misc:</b>\n",
 		"<br>Server time: ",
-		render_date_time_as_text($^T - $TimeZoneOffset),
+		render_date_time_as_text($^T - $request_state{+RS_TIME_ZONE_OFFSET}),
 		"<br>Time Zone offset (hours): ",
 		render_form_text_input_as_html('tzoffset', 0, 4, 9),
 		"<br>",
@@ -2789,11 +2870,11 @@ sub action_open_preferences_editor {
 		),
 	);
 
-	if ($UserCSS) {
+	if ($config{allow_user_css}) {
 		print(
 			"<br>Site-wide custom CSS (don't put &lt;style&gt; tags in here)<br>",
 			q{<textarea name="p_css" rows="4" cols="65">},
-			($UserData{'css'} || ''),
+			($request_state{+RS_USER_DATA}{+USER_CSS} || ''),
 			q{</textarea>},
 		);
 	}
@@ -2804,12 +2885,12 @@ sub action_open_preferences_editor {
 		q{<input type="submit" name="Save" value="Save">} .
 		"<hr>\n" .
 		render_goto_bar_as_html("") .
-		$q->endform
+		$request_state{+RS_CGI}->endform
 	);
 
 	my $template = Template->new( { ABSOLUTE => 1 } );
 	my $output = "";
-	$template->process("$Templates/footer.html", \%data, \$output);
+	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
 	print $output;
 }
 
@@ -2825,10 +2906,10 @@ sub action_write_updated_preferences {
 		"<br>"
 	);
 
-	if ($UserID < UID_MINLEGAL) {
-		print "<b>Invalid UserID $UserID, preferences not saved.</b>";
+	if ($request_state{+RS_USER_ID} < UID_MINLEGAL) {
+		print "<b>Invalid user ID $request_state{+RS_USER_ID}, preferences not saved.</b>";
 
-		if ($UserID == UID_ENOCOOKIE) {
+		if ($request_state{+RS_USER_ID} == UID_ENOCOOKIE) {
 			print "<br>(Preferences require cookies, but no cookie was sent.)";
 		}
 
@@ -2838,19 +2919,21 @@ sub action_write_updated_preferences {
 
 	my $username = get_request_param("p_username", "");
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		$username =~ s/^\[\[(.+)\]\]/$1/;    # Remove [[ and ]] if added
 		$username = ucfirst($username);
 	}
 
 	if ($username eq "") {
 		print "UserName removed.<br>";
-		$UserData{'username'} = undef;
+		$request_state{+RS_USER_DATA}{+USER_NAME} = undef;
 	}
-	elsif ((!$FreeLinks) && (!($username =~ /^$LinkPattern$/o))) {
+	elsif ((!$config{allow_free_links}) && (!($username =~ /^$pattern_link$/o))) {
 		print "Invalid UserName $username: not saved.<br>\n";
 	}
-	elsif ($FreeLinks && (!($username =~ /^$FreeLinkPattern$/o))) {
+	elsif (
+		$config{allow_free_links} && (!($username =~ /^$pattern_free_link$/o))
+	) {
 		print "Invalid UserName $username: not saved.<br>\n";
 	}
 	elsif (length($username) > 50) {    # Too long
@@ -2858,29 +2941,29 @@ sub action_write_updated_preferences {
 	}
 	else {
 		print "UserName $username saved.<br>";
-		$UserData{'username'} = $username;
+		$request_state{+RS_USER_DATA}{+USER_NAME} = $username;
 	}
 
 	my $password = get_request_param("p_password", "");
 
 	if ($password eq "") {
 		print "Password removed.<br>";
-		$UserData{'password'} = undef;
+		$request_state{+RS_USER_DATA}{+USER_PASSWORD} = undef;
 	}
 	elsif ($password ne "*") {
 		print "Password changed.<br>";
-		$UserData{'password'} = $password;
+		$request_state{+RS_USER_DATA}{+USER_PASSWORD} = $password;
 	}
 
-	if ($AdminPass ne "") {
+	if ($config{admin_pass} ne "") {
 		$password = get_request_param("p_adminpw", "");
 		if ($password eq "") {
 			print "Administrator password removed.<br>";
-			$UserData{'adminpw'} = undef;
+			$request_state{+RS_USER_DATA}{+USER_ADMIN_PASSWORD} = undef;
 		}
 		elsif ($password ne "*") {
 			print "Administrator password changed.<br>";
-			$UserData{'adminpw'} = $password;
+			$request_state{+RS_USER_DATA}{+USER_ADMIN_PASSWORD} = $password;
 			if (user_is_admin()) {
 				print "User has administrative abilities.<br>";
 			}
@@ -2899,7 +2982,7 @@ sub action_write_updated_preferences {
 	set_user_pref_from_request_bool("rcchangehist");
 	set_user_pref_from_request_bool("editwide");
 
-	if ($UseDiff) {
+	if ($config{allow_diff}) {
 		set_user_pref_from_request_bool("norcdiff");
 		set_user_pref_from_request_bool("diffrclink");
 		set_user_pref_from_request_bool("alldiff");
@@ -2910,15 +2993,17 @@ sub action_write_updated_preferences {
 	set_user_pref_from_request_number("tzoffset",   0, -999, 999);
 	set_user_pref_from_request_number("editrows",   1, 1,    999);
 	set_user_pref_from_request_number("editcols",   1, 1,    999);
-	set_user_pref_from_request_text("css") if $UserCSS;
+	set_user_pref_from_request_text("css") if $config{allow_user_css};
 
 	print(
 		"Server time: ",
-		render_date_time_as_text($^T - $TimeZoneOffset),
+		render_date_time_as_text($^T - $request_state{+RS_TIME_ZONE_OFFSET}),
 		"<br>"
 	);
 
-	$TimeZoneOffset = get_request_param("tzoffset", 0) * (60 * 60);
+	$request_state{+RS_TIME_ZONE_OFFSET} = (
+		get_request_param("tzoffset", 0) * (60 * 60)
+	);
 	print "Local time: ", render_date_time_as_text($^T), "<br>";
 
 	save_user_data();
@@ -2930,11 +3015,11 @@ sub action_write_updated_preferences {
 sub action_open_links_editor {
 	print render_page_header_as_html("", "Editing Links", "", "norobots");
 
-	if ($AdminDelete) {
-		return unless user_is_admin_or_render_error();
+	if ($config{allow_editors_to_delete}) {
+		return unless user_is_editor_or_render_error();
 	}
 	else {
-		return unless user_is_editor_or_render_error();
+		return unless user_is_admin_or_render_error();
 	}
 
 	print(
@@ -2950,14 +3035,14 @@ sub action_open_links_editor {
 		"to NewPageName.",
 		" (Used to rename links to non-existing pages.)<br>\n",
 		render_form_text_area_as_html('commandlist', "", 12, 50),
-		$q->checkbox(
+		$request_state{+RS_CGI}->checkbox(
 			-name     => "p_changerc",
 			-override => 1,
 			-checked  => 1,
-			-label    => "Edit $RCName"
+			-label    => "Edit $config{rc_name}"
 		),
 		"<br>\n",
-		$q->checkbox(
+		$request_state{+RS_CGI}->checkbox(
 			-name     => "p_changetext",
 			-override => 1,
 			-checked  => 1,
@@ -2966,7 +3051,7 @@ sub action_open_links_editor {
 		"<br>", q{<input type="submit" name="Edit" value="Edit">},
 		"<hr>\n",
 		render_goto_bar_as_html(""),
-		$q->endform,
+		$request_state{+RS_CGI}->endform,
 		render_simple_page_footer_as_html()
 	);
 }
@@ -2974,11 +3059,11 @@ sub action_open_links_editor {
 sub action_write_updated_links {
 	print render_page_header_as_html("", "Updating Links", "", "norobots");
 
-	if ($AdminDelete) {
-		return unless user_is_admin_or_render_error();
+	if ($config{allow_editors_to_delete}) {
+		return unless user_is_editor_or_render_error();
 	}
 	else {
-		return unless user_is_editor_or_render_error();
+		return unless user_is_admin_or_render_error();
 	}
 
 	my $commandList = get_request_param("commandlist", "");
@@ -3015,7 +3100,7 @@ sub action_open_page_editor {
 			);
 		}
 		else {
-			print "Editing not allowed: $SiteName is read-only.";
+			print "Editing not allowed: $config{site_name} is read-only.";
 		}
 
 		print render_common_footer_as_html();
@@ -3025,15 +3110,15 @@ sub action_open_page_editor {
 	open_or_create_page($id);
 	open_default_text();
 
-	my $pageTime = $Section{'ts'};
+	my $pageTime = $request_state{+RS_SECTION}{+SECT_TIMESTAMP_CHANGE};
 	my $header   = "Editing $id";
 
 	# Old revision handling
 	my $revision = get_request_param("revision", "");
 	$revision =~ s/\D//g;    # Remove non-numeric chars
 	if ($revision ne "") {
-		open_kept_revisions('text_default');
-		if (defined $KeptRevisions{$revision}) {
+		open_kept_revisions(PAGE_TEXT_DEFAULT);
+		if (defined $request_state{+RS_KEPT_REVISION_HASH}{$revision}) {
 			open_kept_revision($revision);
 			$header = "Editing Revision $revision of $id";
 		}
@@ -3044,7 +3129,7 @@ sub action_open_page_editor {
 		}
 	}
 
-	my $oldText = $Text{'text'};
+	my $oldText = $request_state{+RS_TEXT}{+TEXT_TEXT};
 
 	if ($preview && !$isConflict) {
 		$oldText = $newText;
@@ -3101,7 +3186,7 @@ sub action_open_page_editor {
 	my $summary = get_request_param("summary", "*");
 	print(
 		"<p>Summary:",
-		$q->textfield(
+		$request_state{+RS_CGI}->textfield(
 			-name      => 'summary',
 			-default   => $summary,
 			-override  => 1,
@@ -3113,7 +3198,7 @@ sub action_open_page_editor {
 	if (get_request_param("recent_edit") eq "on") {
 		print(
 			"<br>",
-			$q->checkbox(
+			$request_state{+RS_CGI}->checkbox(
 				-name    => 'recent_edit',
 				-checked => 1,
 				-label   => 'This change is a minor edit.'
@@ -3123,7 +3208,7 @@ sub action_open_page_editor {
 	else {
 		print(
 			"<br>",
-			$q->checkbox(
+			$request_state{+RS_CGI}->checkbox(
 				-name  => 'recent_edit',
 				-label => 'This change is a minor edit.'
 			)
@@ -3134,7 +3219,11 @@ sub action_open_page_editor {
 
 	my $userName = get_request_param("username", "");
 	if ($userName ne "") {
-		print " (Your user name is " . render_unnamed_page_link_as_html($userName) . ") ";
+		print(
+			" (Your user name is " .
+			render_unnamed_page_link_as_html($userName) .
+			") "
+		);
 	}
 	else {
 		print(
@@ -3167,8 +3256,8 @@ sub action_open_page_editor {
 			);
 		}
 
-		$MainPage = $id;
-		$MainPage =~ s!/.*!!;    # Only the main page name (remove subpage)
+		$request_state{+RS_MAIN_PAGE} = $id;
+		$request_state{+RS_MAIN_PAGE} =~ s!/.*!!;  # Remove subpage
 
 		print(
 			render_wiki_page_as_html($oldText) .
@@ -3183,12 +3272,12 @@ sub action_open_page_editor {
 		render_history_link_as_html($id, "View other revisions") .
 		"<br>\n" .
 		render_goto_bar_as_html($id) .
-		$q->endform
+		$request_state{+RS_CGI}->endform
 	);
 
 	my $template = Template->new( { ABSOLUTE => 1 } );
 	my $output = "";
-	$template->process("$Templates/footer.html", \%data, \$output);
+	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
 	print $output;
 }
 
@@ -3215,7 +3304,9 @@ sub action_write_updated_page {
 	}
 
 	if ($id eq "Sample_Undefined_Page") {
-		print render_error_page_as_html("[[Sample Undefined Page]] cannot be defined.");
+		print render_error_page_as_html(
+			"[[Sample Undefined Page]] cannot be defined."
+		);
 		return;
 	}
 
@@ -3237,7 +3328,8 @@ sub action_write_updated_page {
 			| svs\.cn
 			| crestron\.cn
 			| ganzaoji | 218\.244\.47\.24
-			| huola\.com | sexyongpin | mianfei | midiwu | nanting | news123\.org | guilinhotel
+			| huola\.com | sexyongpin | mianfei | midiwu | nanting
+			| news123\.org | guilinhotel
 			| shop263.com | 218\.244\.47\.217
 			| www\.wjmgy\.com | 61\.135\.136\.130
 			| www\.etoo\.cn | 210\.192\.124\.153
@@ -3245,7 +3337,8 @@ sub action_write_updated_page {
 			| www\.paite\.net
 			| www\.rr365\.net
 			| www\.ronren\.com
-			| csnec\.net | \d+\.com | bjzyy\.com | lifuchao\.com | pfxb\.com | qzkfw\.com | rxbkfw\.com | xyxy\.com | zhqzw\.com
+			| csnec\.net | \d+\.com | bjzyy\.com | lifuchao\.com
+			| pfxb\.com | qzkfw\.com | rxbkfw\.com | xyxy\.com | zhqzw\.com
 			| 210\.51\.188\.148 | 218\.30\.96\.\d+ | 61\.152\.94\.121
 			| \.\d+dragon\.com
 			| u-tokyo\.ac\.jp | mycv\.com | cvdiy\.com | mycv\.cn
@@ -3280,9 +3373,9 @@ sub action_write_updated_page {
 	open_or_create_page($id);
 	open_default_text();
 
-	my $old    = $Text{'text'};
-	my $oldrev = $Section{'revision'};
-	my $pgtime = $Section{'ts'};
+	my $old    = $request_state{+RS_TEXT}{+TEXT_TEXT};
+	my $oldrev = $request_state{+RS_SECTION}{+SECT_REVISION};
+	my $pgtime = $request_state{+RS_SECTION}{+SECT_TIMESTAMP_CHANGE};
 
 	my $preview = 0;
 	$preview = 1 if (get_request_param("Preview", "") ne "");
@@ -3295,11 +3388,19 @@ sub action_write_updated_page {
 
 	# Later extract comparison?
 	my $newAuthor;
-	if (($UserID > 399) || ($Section{'id'} > 399)) {
-		$newAuthor = ($UserID ne $Section{'id'});    # known user(s)
+	if (
+		($request_state{+RS_USER_ID} > 399)
+		||
+		($request_state{+RS_SECTION}{+SECT_USER_ID} > 399)
+	) {
+		# Known user(s).
+		$newAuthor = (
+			$request_state{+RS_USER_ID} ne $request_state{+RS_SECTION}{+SECT_USER_ID}
+		);
 	}
 	else {
-		$newAuthor = ($Section{'ip'} ne $authorAddr);    # hostname fallback
+		# Hostname fallback.
+		$newAuthor = ($request_state{+RS_SECTION}{+SECT_USER_IP} ne $authorAddr);
 		release_main_lock();
 		print render_error_page_as_html(
 			"Error submitting your data.",
@@ -3337,39 +3438,56 @@ sub action_write_updated_page {
 	}
 
 	unless ($isEdit) {
-		set_page_cache('oldmajor', $Section{'revision'});
+		set_page_cache('oldmajor', $request_state{+RS_SECTION}{+SECT_REVISION});
 	}
 
 	if ($newAuthor) {
-		set_page_cache('oldauthor', $Section{'revision'});
+		set_page_cache('oldauthor', $request_state{+RS_SECTION}{+SECT_REVISION});
 	}
 
 	save_keep_section();
 	expire_keep_file();
 
-	if ($UseDiff) {
+	if ($config{allow_diff}) {
 		update_diffs($id, $editTime, $old, $string, $isEdit, $newAuthor);
 	}
 
-	$Text{'text'}      = $string;
-	$Text{'minor'}     = $isEdit;
-	$Text{'newauthor'} = $newAuthor;
-	$Text{'summary'}   = $summary;
-	$Section{'host'}   = get_remote_host(1);
+	$request_state{+RS_TEXT}{+TEXT_TEXT}      = $string;
+	$request_state{+RS_TEXT}{+TEXT_IS_MINOR_REV}     = $isEdit;
+	$request_state{+RS_TEXT}{+TEXT_IS_NEW_AUTHOR} = $newAuthor;
+	$request_state{+RS_TEXT}{+TEXT_SUMMARY}   = $summary;
+	$request_state{+RS_SECTION}{+SECT_USER_HOST}   = get_remote_host(1);
 
 	save_default_text();
 	save_page_to_file();
-	append_recent_changes_log($id, $summary, $isEdit, $editTime, $user, $Section{'host'});
+	append_recent_changes_log(
+		$id,
+		$summary,
+		$isEdit,
+		$editTime,
+		$user,
+		$request_state{+RS_SECTION}{+SECT_USER_HOST}
+	);
 
-	if ($UseCache) {
-		unlink_html_cache($id);    # Old cached copy is invalid
-		if ($Page{'revision'} == 1) {    # If this is a new page...
-			clear_cached_pages_linking_to($id);       # ...uncache pages linked to this one.
+	if ($config{use_html_cache}) {
+		# Old cache copy is invalid.
+		unlink_html_cache($id);
+
+		# If this is a new page, uncache pages linked to it.
+		if (
+			$request_state{+RS_PAGE}{+PAGE_REVISION} == 1
+		) {
+			clear_cached_pages_linking_to($id);
 		}
 	}
 
-	if ($UseIndex && ($Page{'revision'} == 1)) {
-		unlink($IndexFile);              # Regenerate index on next request
+	# Regenerate index on next request.
+	if (
+		$config{use_page_index_file}
+		&&
+		($request_state{+RS_PAGE}{+PAGE_REVISION} == 1)
+	) {
+		unlink($config{file_page_index});
 	}
 
 	release_main_lock();
@@ -3388,7 +3506,7 @@ sub render_login_page_as_html {
 		render_hidden_input_as_html("enter_login", 1),
 		"\n" .
 		"<br>User ID number: " .
-		$q->textfield(
+		$request_state{+RS_CGI}->textfield(
 			-name      => 'p_userid',
 			-value     => '',
 			-size      => 15,
@@ -3400,7 +3518,7 @@ sub render_login_page_as_html {
 		q{<input type="submit" name="Login" value="Login">} .
 		"<hr>\n" .
 		render_goto_bar_as_html("") .
-		$q->endform .
+		$request_state{+RS_CGI}->endform .
 		render_simple_page_footer_as_html()
 	);
 }
@@ -3408,22 +3526,29 @@ sub render_login_page_as_html {
 sub render_wiki_page_as_html {
 	my ($pageText) = @_;
 
-	%SaveUrl         = ();
-	%SaveNumUrl      = ();
-	$SaveUrlIndex    = 0;
-	$SaveNumUrlIndex = 0;
+	$request_state{+RS_SAVED_HTML} = [];
+	$request_state{+RS_SAVED_URL_IDX} = {};
+
 	$pageText =~ s/$FS//go;    # Remove separators (paranoia)
 
-	if ($RawHtml) {
+	if ($config{allow_raw_html}) {
 		$pageText =~ s/<html>((.|\n)*?)<\/html>/store_raw_html($1)/ige;
 	}
 
 	$pageText = quote_html($pageText);
 	$pageText =~ s/\\ *\r?\n/ /g;    # Join lines with backslash at end
-	$pageText = render_common_markup_as_html($pageText, 1, 0);  # Multi-line markup
-	$pageText = render_line_based_markup_as_html($pageText);    # Line-oriented markup
-	$pageText =~ s/$FS(\d+)$FS/$SaveUrl{$1}/geo;   # Restore saved text
-	$pageText =~ s/$FS(\d+)$FS/$SaveUrl{$1}/geo;   # Restore nested saved text
+
+	# Multi-line markup.
+	$pageText = render_common_markup_as_html($pageText, 1, 0);
+
+	# Line-oriented markup.
+	$pageText = render_line_based_markup_as_html($pageText);
+
+	# Restore saved text.
+	$pageText =~ s/$FS(\d+)$FS/$request_state{+RS_SAVED_HTML}[$1]/geo;
+
+	# Restore nested saved text.
+	$pageText =~ s/$FS(\d+)$FS/$request_state{+RS_SAVED_HTML}[$1]/geo;
 
 	return $pageText;
 }
@@ -3440,7 +3565,9 @@ sub render_page_index_as_html {
 sub render_error_page_as_html {
 	my @errors = @_;
 
-	my $html = render_page_header_as_html("", "Submission error...", "", "norobots");
+	my $html = render_page_header_as_html(
+		"", "Submission error...", "", "norobots"
+	);
 
 	foreach (@errors) {
 		$html .= "<h2>$_</h2>";
@@ -3460,7 +3587,11 @@ sub render_recent_changes_page_as_html {
 	my $starttime = 0;
 	if (get_request_param("from", 0)) {
 		$starttime = get_request_param("from", 0);
-		$html .= "<h2>Updates since " . render_date_time_as_text($starttime) . "</h2>\n";
+		$html .= (
+			"<h2>Updates since " .
+			render_date_time_as_text($starttime) .
+			"</h2>\n"
+		);
 	}
 	else {
 		my $daysago = get_request_param("days", 0);
@@ -3477,20 +3608,20 @@ sub render_recent_changes_page_as_html {
 	}
 
 	if ($starttime == 0) {
-		$starttime = $^T - ((24 * 60 * 60) * $RcDefault);
-		$html .= "<h2>Updates in the last $RcDefault days</h2>\n";
+		$starttime = $^T - ((24 * 60 * 60) * $config{rc_default_days});
+		$html .= "<h2>Updates in the last $config{rc_default_days} days</h2>\n";
 	}
 
 	# Read rclog data (and oldrclog data if needed)
-	my ($status, $fileData) = read_file($RcFile);
+	my ($status, $fileData) = read_file($config{file_recent_changes_log});
 	my $errorText = "";
 
 	unless ($status) {
 
 		# Save error text if needed.
 		$errorText = (
-			"<p><strong>Could not open $RCName log file:" .
-			"</strong> $RcFile<p>Error was:\n<pre>$!</pre>\n" .
+			"<p><strong>Could not open $config{rc_name} log file:" .
+			"</strong> $config{file_recent_changes_log}<p>Error was:\n<pre>$!</pre>\n" .
 			"<p>Note: This error is normal if no changes" .
 			"have been made.\n"
 		);
@@ -3504,7 +3635,7 @@ sub render_recent_changes_page_as_html {
 	}
 
 	if (($firstTs == 0) || ($starttime <= $firstTs)) {
-		($status, my $oldFileData) = read_file($RcOldFile);
+		($status, my $oldFileData) = read_file($config{file_old_recent_changes_log});
 		if ($status) {
 			@fullrc = split(/\n/, $oldFileData . $fileData);
 		}
@@ -3512,8 +3643,8 @@ sub render_recent_changes_page_as_html {
 			if ($errorText ne "") {    # could not open either rclog file
 				$html .= (
 					$errorText .
-					"<p><strong>Could not open old $RCName log file:" .
-					"</strong> $RcOldFile<p>Error was:\n<pre>$!</pre>\n"
+					"<p><strong>Could not open old $config{rc_name} log file:" .
+					"</strong> $config{file_old_recent_changes_log}<p>Error was:\n<pre>$!</pre>\n"
 				);
 				return;
 			}
@@ -3537,7 +3668,7 @@ sub render_recent_changes_page_as_html {
 	}
 
 	my $showbar   = 0;
-	foreach my $i (@RcDays) {
+	foreach my $i (@{$config{rc_days_options}}) {
 		$html .= " | " if $showbar;
 		$showbar = 1;
 		$html .= render_script_link_as_html(
@@ -3597,22 +3728,29 @@ sub render_redirect_page_as_html {
 	my ($newid, $name, $isEdit) = @_;
 
 	# Normally get URL from script, but allow override.
-	my $url = ($FullUrl || $q->url(-full => 1)) . "?" . $newid;
+	my $url = (
+		($config{full_url} || $request_state{+RS_CGI}->url(-full => 1)) .
+		"?" .
+		$newid
+	);
 
 	my $html;
-	if ($RedirType < 3) {
-    # Use CGI.pm
-		if ($RedirType == 1) {
+	if ($config{redir_type} < REDIR_NONE) {
+		# Use CGI.pm
+		if ($config{redir_type} == REDIR_CGIPM) {
 			# NOTE: do NOT use -method (does not work with old CGI.pm versions)
 			# Thanks to Daniel Neri for fixing this problem.
-			$html = $q->redirect(-uri => $url);
+			$html = $request_state{+RS_CGI}->redirect(-uri => $url);
 		}
-		else {
+		elsif ($config{redir_type} == REDIR_SCRIPT) {
 			# Minimal header.
 			$html = "Status: 302 Moved\n";
 			$html .= "Location: $url\n";
 			$html .= "Content-Type: text/html\n";    # Needed for browser failure
 			$html .= "\n";
+		}
+		else {
+			die "unknown redirection type: $config{redir_type}";
 		}
 
 		$html .= "\nYour browser should go to the $newid page.";
@@ -3621,11 +3759,15 @@ sub render_redirect_page_as_html {
 	}
 	else {
 		if ($isEdit) {
-			$html = render_page_header_as_html("", "Thanks for editing...", "", "norobots");
+			$html = render_page_header_as_html(
+				"", "Thanks for editing...", "", "norobots"
+			);
 			$html .= "Thank you for editing <a href=\"$url\">$name</a>.";
 		}
 		else {
-			$html = render_page_header_as_html("", "Link to another page...", "", "norobots");
+			$html = render_page_header_as_html(
+				"", "Link to another page...", "", "norobots"
+			);
 		}
 
 		$html .= "\n<p>Follow the <a href=\"$url\">$name</a> link to continue.";
@@ -3660,7 +3802,7 @@ sub render_links_page_as_html {
 
 	my $template = Template->new( { ABSOLUTE => 1 } );
 	my $output = "";
-	$template->process("$Templates/footer.html", {}, \$output);
+	$template->process("$config{dir_templates}/footer.html", {}, \$output);
 
 	return $html . $output;
 }
@@ -3730,12 +3872,12 @@ sub render_diff_as_html {
 	$useAuthor = 0 if ($useAuthor && ($diffText eq get_cache_diff("author")));
 	$useMajor  = 0 if (
 		(!defined(get_page_cache('oldmajor'))) or
-		(get_page_cache("oldmajor") < 1)
+		(get_page_cache('oldmajor') < 1)
 	);
 
 	$useAuthor = 0 if (
 		(!defined(get_page_cache('oldauthor'))) or
-		(get_page_cache("oldauthor") < 1)
+		(get_page_cache('oldauthor') < 1)
 	);
 
 	if ($useMajor) {
@@ -3801,15 +3943,18 @@ sub render_diff_color_as_html {
 	$diff = quote_html($diff);
 
 	# Do some of the Wiki markup rules:
-	%SaveUrl         = ();
-	%SaveNumUrl      = ();
-	$SaveUrlIndex    = 0;
-	$SaveNumUrlIndex = 0;
+	$request_state{+RS_SAVED_HTML} = [];
+	$request_state{+RS_SAVED_URL_IDX} = {};
 
 	$diff =~ s/$FS//go;
 	$diff = render_common_markup_as_html($diff, 0, 1);  # No images, all patterns
-	$diff =~ s/$FS(\d+)$FS/$SaveUrl{$1}/geo;    # Restore saved text
-	$diff =~ s/$FS(\d+)$FS/$SaveUrl{$1}/geo;    # Restore nested saved text
+
+	# Restore saved text.
+	$diff =~ s/$FS(\d+)$FS/$request_state{+RS_SAVED_HTML}[$1]/geo;
+
+	# Restore nested saved text.
+	$diff =~ s/$FS(\d+)$FS/$request_state{+RS_SAVED_HTML}[$1]/geo;
+
 	$diff =~ s/\r?\n/<br>/g;
 
 	return(
@@ -3823,7 +3968,7 @@ sub render_form_text_area_as_html {
 	my ($name, $text, $rows, $cols) = @_;
 
 	if (get_request_param("editwide", 1)) {
-		return $q->textarea(
+		return $request_state{+RS_CGI}->textarea(
 			-name     => $name,
 			-default  => $text,
 			-rows     => $rows,
@@ -3834,7 +3979,7 @@ sub render_form_text_area_as_html {
 		);
 	}
 
-	return $q->textarea(
+	return $request_state{+RS_CGI}->textarea(
 		-name     => $name,
 		-default  => $text,
 		-rows     => $rows,
@@ -3849,7 +3994,7 @@ sub render_form_text_input_as_html {
 
 	my $text = get_request_param($name, $default);
 
-	return $q->textfield(
+	return $request_state{+RS_CGI}->textfield(
 		-name      => "p_$name",
 		-default   => $text,
 		-override  => 1,
@@ -3863,7 +4008,7 @@ sub render_form_checkbox_as_html {
 
 	my $checked = (get_request_param($name, $default) > 0);
 
-	return $q->checkbox(
+	return $request_state{+RS_CGI}->checkbox(
 		-name     => "p_$name",
 		-override => 1,
 		-checked  => $checked,
@@ -3890,18 +4035,19 @@ sub render_common_markup_as_html {
 		s/\&lt;outline-todo\&gt;\s*\n?((.|\n)*?)\&lt;\/outline\&gt;/render_outline_as_html($1,"todo")/ige;
 		s/\&lt;components\&gt;\s*\n?((.|\n)*?)\&lt;\/components\&gt;/render_components_as_html($1)/ige;
 
-		if ($HtmlTags) {
-			foreach my $t (@HtmlPairs) {
+		if ($config{allow_unsafe_html}) {
+			foreach my $t (@{$config{allowed_html_tag_pairs}}) {
 				s/\&lt;$t(\s[^<>]+?)?\&gt;(.*?)\&lt;\/$t\&gt;/<$t$1>$2<\/$t>/gis;
 			}
 
-			foreach my $t (@HtmlSingle) {
+			foreach my $t (@{$config{allowed_html_tag_singletons}}) {
 				s/\&lt;$t(\s[^<>]+?)?\&gt;/<$t$1>/gi;
 			}
 		}
 		else {
 
 			# Note that these tags are restricted to a single line
+
 			# Bold
 			s#\&lt;b\&gt;(.*?)\&lt;/b\&gt;#<b>$1</b>#gi;
 			s{(?:(?<=\s)|(?<=^))\*([^\n*]+)\*(?=($|\s|[,.;:]))}{<b>$1</b>}g;
@@ -3920,40 +4066,42 @@ sub render_common_markup_as_html {
 
 		s/\&lt;tt\&gt;(.*?)\&lt;\/tt\&gt;/<tt>$1<\/tt>/gis;    # <tt> (MeatBall)
 
-		if ($HtmlLinks) {
+		if ($config{allow_html_links}) {
 			s/\&lt;A(\s[^<>]+?)\&gt;(.*?)\&lt;\/a\&gt;/render_href_as_stored_html($1, $2)/gise;
 		}
 
-		if ($FreeLinks) {
+		if ($config{allow_free_links}) {
 
 			# Consider: should local free-link descriptions be conditional?
 			# Also, consider that one could write [[Bad Page|Good Page]]?
-			s/\[\[$FreeLinkPattern\|([^\]]+)\]\]/render_page_or_edit_link_as_stored_html($1, $2)/geo;
-			s/\[\[$FreeLinkPattern\]\]/render_page_or_edit_link_as_stored_html($1, "")/geo;
+			s/\[\[$pattern_free_link\|([^\]]+)\]\]/render_page_or_edit_link_as_stored_html($1, $2)/geo;
+			s/\[\[$pattern_free_link\]\]/render_page_or_edit_link_as_stored_html($1, "")/geo;
 		}
 
-		if ($BracketText) {    # Links like [URL text of link]
-			s/\[$UrlPattern\s+([^\]]+?)\]/render_bracketed_url_as_stored_html($1, $2)/geos;
-			s/\[$InterLinkPattern\s+([^\]]+?)\]/render_bracketed_inter_page_link_as_stored_html($1, $2)/geos;
+		# Links like [URL text of link]
+		if ($config{allow_link_descriptions}) {
+			s/\[$pattern_url\s+([^\]]+?)\]/render_bracketed_url_as_stored_html($1, $2)/geos;
+			s/\[$pattern_inter_link\s+([^\]]+?)\]/render_bracketed_inter_page_link_as_stored_html($1, $2)/geos;
 
-			if ($WikiLinks && $BracketWiki) {    # Local bracket-links
-				s/\[$LinkPattern\s+([^\]]+?)\]/render_bracketed_link_as_stored_html($1, $2)/geos;
+			# Local bracket-links
+			if ($config{allow_camelcase_links} && $config{allow_bracketed_wiki_links}) {
+				s/\[$pattern_link\s+([^\]]+?)\]/render_bracketed_link_as_stored_html($1, $2)/geos;
 			}
 		}
 
-		s/\[$UrlPattern\]/render_bracketed_url_as_stored_html($1, "")/geo;
-		s/\[$InterLinkPattern\]/render_bracketed_inter_page_link_as_stored_html($1, "")/geo;
-		s/$UrlPattern/render_url_as_stored_html($1, $useImage)/geo;
-		s/$InterLinkPattern/render_and_store_inter_page_link($1)/geo;
+		s/\[$pattern_url\]/render_bracketed_url_as_stored_html($1, "")/geo;
+		s/\[$pattern_inter_link\]/render_bracketed_inter_page_link_as_stored_html($1, "")/geo;
+		s/$pattern_url/render_url_as_stored_html($1, $useImage)/geo;
+		s/$pattern_inter_link/render_and_store_inter_page_link($1)/geo;
 
-		if ($WikiLinks) {
-			s/$LinkPattern/render_page_or_edit_link_as_html($1, "")/geo;
+		if ($config{allow_camelcase_links}) {
+			s/$pattern_link/render_page_or_edit_link_as_html($1, "")/geo;
 		}
 
-		s/$RFCPattern/render_rfc_link_as_stored_html($1)/geo;
-		s/$ISBNPattern/render_isbn_link_as_stored_html($1)/geo;
+		s/$pattern_rfc/render_rfc_link_as_stored_html($1)/geo;
+		s/$pattern_isbn/render_isbn_link_as_stored_html($1)/geo;
 
-		if ($ThinLine) {
+		if ($config{allow_thin_hr_lines}) {
 			s/----+/<hr noshade size=1>/g;
 			s/====+/<hr noshade size=2>/g;
 		}
@@ -3962,13 +4110,16 @@ sub render_common_markup_as_html {
 		}
 	}
 
-	if ($doLines) {    # 0 = no line-oriented, 1 or 2 = do line-oriented
+	# 0 = no line-oriented
+	# 1 or 2 = do line-oriented
+
+	if ($doLines) {
 		# The quote markup patterns avoid overlapping tags (with 5 quotes)
 		# by matching the inner quotes for the strong pattern.
 		s/(\'*)\'\'\'(.*?)\'\'\'/$1<strong>$2<\/strong>/g;
 		s/\'\'(.*?)\'\'/<em>$1<\/em>/g;
 
-		if ($UseHeadings) {
+		if ($config{allow_headings}) {
 			s/(^|\n)\s*(\=+)\s+([^\n]+)\s+\=+/render_wiki_heading_as_html($1, $2, $3)/geo;
 		}
 	}
@@ -4018,7 +4169,7 @@ sub render_line_based_markup_as_html {
 		}
 
 		if ($depth > 0) {
-			$depth = $IndentLimit if ($depth > $IndentLimit);
+			$depth = $config{indent_limit} if ($depth > $config{indent_limit});
 
 			if (@htmlStack) {              # Non-empty stack
 				my $oldCode = pop(@htmlStack);
@@ -4050,7 +4201,8 @@ sub render_line_based_markup_as_html {
 
 		s/^\s*$/<p>\n/;    # Blank lines become <p> tags
 
-		$pageHtml .= render_common_markup_as_html($_, 1, 2);    # Line-oriented common markup
+		# Line-oriented markup.
+		$pageHtml .= render_common_markup_as_html($_, 1, 2);
 	}
 
 	while (@htmlStack > 0) {                   # Clear stack
@@ -4069,7 +4221,7 @@ sub render_recent_changes_found_as_html {
 	my %changetime = ();
 	my %pagecount  = ();
 
-	my $showedit = get_request_param("rcshowedit", $ShowEdits);
+	my $showedit = get_request_param("rcshowedit", $config{show_minor_edits});
 	$showedit    = get_request_param("showedit",   $showedit);
 
 	if ($showedit != 1) {
@@ -4101,7 +4253,7 @@ sub render_recent_changes_found_as_html {
 	my $all    = get_request_param("rcall", 0);
 	$all       = get_request_param("all", $all);
 
-	my $newtop = get_request_param("rcnewtop", $RecentTop);
+	my $newtop = get_request_param("rcnewtop", $config{recent_on_top});
 	$newtop    = get_request_param("newtop", $newtop);
 
 	my $idOnly = get_request_param("rcidonly", "");
@@ -4134,8 +4286,8 @@ sub render_recent_changes_found_as_html {
 		$host = quote_html($host);
 
 		my $author;
-		if (defined($extra{'name'}) && defined($extra{'id'})) {
-			$author = render_author_link_as_html($host, $extra{'name'}, $extra{'id'});
+		if (defined($extra{name}) && defined($extra{id})) {
+			$author = render_author_link_as_html($host, $extra{name}, $extra{id});
 		}
 		else {
 			$author = render_author_link_as_html($host, "", 0);
@@ -4166,7 +4318,7 @@ sub render_recent_changes_found_as_html {
 		}
 
 		my $link = "";
-		if ($UseDiff && get_request_param("diffrclink", 1)) {
+		if ($config{allow_diff} && get_request_param("diffrclink", 1)) {
 			$link .= render_diff_link_as_html(4, $pagename, "(diff)", "") . "  ";
 		}
 
@@ -4186,24 +4338,24 @@ sub render_history_line_as_html {
 	my ($id, $section, $canEdit, $isCurrent) = @_;
 
 	my %sect    = split(/$FS2/o, $section, -1);
-	my %revtext = split(/$FS3/o, $sect{'data'});
-	my $rev     = $sect{'revision'};
-	my $summary = $revtext{'summary'};
+	my %revtext = split(/$FS3/o, $sect{+SECT_DATA});
+	my $rev     = $sect{+SECT_REVISION};
+	my $summary = $revtext{summary};
 
 	my $host;
-	if ((defined($sect{'host'})) && ($sect{'host'} ne "")) {
-		$host = $sect{'host'};
+	if ((defined($sect{host})) && ($sect{host} ne "")) {
+		$host = $sect{host};
 	}
 	else {
-		$host = $sect{'ip'};
+		$host = $sect{+SECT_USER_IP};
 		$host =~ s/\d+$/xxx/;    # Be somewhat anonymous (if no host)
 	}
 
-	my $user     = $sect{'username'};
-	my $uid      = $sect{'id'};
-	my $ts       = $sect{'ts'};
-	my $minor    = $revtext{'minor'} ? "<i>(edit)</i> " : "";
-	my $expirets = $^T - ($KeepDays * 24 * 60 * 60);
+	my $user     = $sect{username};
+	my $uid      = $sect{+SECT_USER_ID};
+	my $ts       = $sect{+SECT_TIMESTAMP_CHANGE};
+	my $minor    = $revtext{minor} ? "<i>(edit)</i> " : "";
+	my $expirets = $^T - $config{keep_seconds};
 
 	my $html = "Revision $rev: ";
 	if ($isCurrent) {
@@ -4213,7 +4365,7 @@ sub render_history_line_as_html {
 			$html .= render_edit_link_as_html($id, 'Edit') . " ";
 		}
 
-		if ($UseDiff) {
+		if ($config{allow_diff}) {
 			$html .= "Diff ";
 		}
 	}
@@ -4224,7 +4376,7 @@ sub render_history_line_as_html {
 			$html .= render_old_page_link_as_html('edit', $id, $rev, 'Edit') . " ";
 		}
 
-		if ($UseDiff) {
+		if ($config{allow_diff}) {
 			$html .= render_diff_link_with_revision_as_html(1, $id, $rev, 'Diff') . " ";
 		}
 	}
@@ -4244,7 +4396,7 @@ sub render_history_line_as_html {
 
 sub render_script_link_as_html {
 	my ($action, $text) = @_;
-	return qq(<a href="$ScriptName?$action" rel="nofollow">$text</a>);
+	return qq(<a href="$request_state{+RS_SCRIPT_NAME}?$action" rel="nofollow">$text</a>);
 }
 
 sub render_unnamed_page_link_as_html {
@@ -4255,9 +4407,9 @@ sub render_unnamed_page_link_as_html {
 sub render_named_page_link_as_html {
 	my ($id, $name) = @_;
 
-	$id =~ s!^/!$MainPage/!;
+	$id =~ s!^/!$request_state{+RS_MAIN_PAGE}/!;
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		$id =~ s/ /_/g;
 		$id = ucfirst($id);
 		$name =~ s/_/ /g;
@@ -4269,7 +4421,7 @@ sub render_named_page_link_as_html {
 sub render_edit_link_as_html {
 	my ($id, $name) = @_;
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		$id =~ s/ /_/g;
 		$id = ucfirst($id);
 		$name =~ s/_/ /g;
@@ -4281,13 +4433,15 @@ sub render_edit_link_as_html {
 sub render_old_page_link_as_html {
 	my ($kind, $id, $revision, $name) = @_;
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		$id =~ s/ /_/g;
 		$id = ucfirst($id);
 		$name =~ s/_/ /g;
 	}
 
-	return render_script_link_as_html("action=$kind&id=$id&revision=$revision", $name);
+	return render_script_link_as_html(
+		"action=$kind&id=$id&revision=$revision", $name
+	);
 }
 
 sub render_page_or_edit_link_as_html {
@@ -4295,25 +4449,25 @@ sub render_page_or_edit_link_as_html {
 
 	if ($name eq "") {
 		$name = $id;
-		if ($FreeLinks) {
+		if ($config{allow_free_links}) {
 			$name =~ s/_/ /g;
 		}
 	}
 
-	$id =~ s!^/!$MainPage/!;
+	$id =~ s!^/!$request_state{+RS_MAIN_PAGE}/!;
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		$id =~ s/ /_/g;
 		$id = ucfirst($id);
 	}
 
 	my $exists = 0;
 
-	if ($UseIndex) {
-		unless ($IndexInit) {
+	if ($config{use_page_index_file}) {
+		unless (@{$request_state{+RS_INDEX_LIST}}) {
 			my @temp = get_all_pages_for_entire_site();    # Also initializes hash
 		}
-		$exists = 1 if ($IndexHash{$id});
+		$exists = 1 if ($request_state{+RS_INDEX_HASH}{$id});
 	}
 	elsif (-f get_filename_for_page_id($id)) {    # Page file exists
 		$exists = 1;
@@ -4323,7 +4477,7 @@ sub render_page_or_edit_link_as_html {
 		return render_named_page_link_as_html($id, $name);
 	}
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		if ($name =~ m!\s!) {           # Not a single word
 			$name = "[$name]";            # Add brackets so boundaries are obvious
 		}
@@ -4335,7 +4489,7 @@ sub render_page_or_edit_link_as_html {
 sub render_page_or_edit_link_as_stored_html {
 	my ($page, $name) = @_;
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		$page =~ s/^\s+//;        # Trim extra spaces
 		$page =~ s/\s+$//;
 		$page =~ s!\s*/\s*!/!;    # ...also before/after subpages
@@ -4353,7 +4507,7 @@ sub render_search_link_as_html {
 
 	$id =~ s!.+/!/!;                  # Subpage match: search for just /SubName
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		$name =~ s/_/ /g;               # Display with spaces
 		$id   =~ s/_/+/g;               # Search for url-escaped spaces
 	}
@@ -4379,7 +4533,9 @@ sub render_diff_link_as_html {
 	$rev = "&revision=$rev" if ($rev ne "");
 	$diff = get_request_param("defaultdiff", 1) if ($diff == 4);
 
-	return render_script_link_as_html("action=browse&diff=$diff&id=$id$rev", $text);
+	return render_script_link_as_html(
+		"action=browse&diff=$diff&id=$id$rev", $text
+	);
 }
 
 sub render_diff_link_with_revision_as_html {
@@ -4388,13 +4544,15 @@ sub render_diff_link_with_revision_as_html {
 	$rev = "&diffrevision=$rev" if ($rev ne "");
 	$diff = get_request_param("defaultdiff", 1) if ($diff == 4);
 
-	return render_script_link_as_html("action=browse&diff=$diff&id=$id$rev", $text);
+	return render_script_link_as_html(
+		"action=browse&diff=$diff&id=$id$rev", $text
+	);
 }
 
 sub render_script_link_with_title_as_html {
 	my ($action, $text, $title) = @_;
-	$action =~ s/ /_/g if $FreeLinks;
-	return qq(<a href="$ScriptName?$action" title="$title" rel="nofollow">$text</a>);
+	$action =~ s/ /_/g if $config{allow_free_links};
+	return qq(<a href="$request_state{+RS_SCRIPT_NAME}?$action" title="$title" rel="nofollow">$text</a>);
 }
 
 sub render_author_link_as_html {
@@ -4402,7 +4560,7 @@ sub render_author_link_as_html {
 
 	my $userNameShow = $userName;
 
-	if ($FreeLinks) {
+	if ($config{allow_free_links}) {
 		$userName     =~ s/ /_/g;
 		$userNameShow =~ s/_/ /g;
 	}
@@ -4414,7 +4572,9 @@ sub render_author_link_as_html {
 	# Later have user preference for link titles and/or host text?
 	my $html;
 	if (($uid > 0) && ($userName ne "")) {
-		$html = render_script_link_with_title_as_html($userName, $userNameShow, "ID $uid from $host");
+		$html = render_script_link_with_title_as_html(
+			$userName, $userNameShow, "ID $uid from $host"
+		);
 	}
 	else {
 		$html = $host;
@@ -4425,7 +4585,7 @@ sub render_author_link_as_html {
 
 sub render_history_link_as_html {
 	my ($id, $text) = @_;
-	$id =~ s/ /_/g if $FreeLinks;
+	$id =~ s/ /_/g if $config{allow_free_links};
 	return render_script_link_as_html("action=history&id=$id", $text);
 }
 
@@ -4441,9 +4601,9 @@ sub render_list_of_page_names_as_html {
 sub render_hidden_input_as_html {
 	my ($name, $value) = @_;
 
-	$q->param($name, $value);
+	$request_state{+RS_CGI}->param($name, $value);
 
-	return $q->hidden($name);
+	return $request_state{+RS_CGI}->hidden($name);
 }
 
 # If $revision is true, it means we're viewing an old revision of a page.
@@ -4460,82 +4620,91 @@ sub render_page_header_as_html {
 	my ($id, $title, $oldId, $revision) = @_;
 	my $header    = "";
 	my $LogoImage = "";
+warn 111;
 	my $result;
-	my $cookie;
-
-	my %data;
-
-	if (defined($SetCookie{'id'})) {
-		$cookie = (
-			"$CookieName=" . "rev&" .
-			$SetCookie{'rev'} . "&id&" .
-			$SetCookie{'id'} .
+	if (defined($request_state{+RS_SET_COOKIE}{+SCOOK_ID})) {
+		my $cookie = (
+			"$config{cookie_name}=" .
+			"rev&" .
+			$request_state{+RS_SET_COOKIE}{+SCOOK_REV} .
+			"&id&" .
+			$request_state{+RS_SET_COOKIE}{+SCOOK_ID} .
 			"&randkey&" .
-			$SetCookie{'randkey'}
+			$request_state{+RS_SET_COOKIE}{+SCOOK_RANDKEY}
 		);
 
 		$cookie .= ";expires=Fri, 08-Sep-2010 19:48:23 GMT";
-		$result = $q->header(-cookie => $cookie);
+		$result = $request_state{+RS_CGI}->header(-cookie => $cookie);
 	}
 	else {
-		$result = $q->header();
+		$result = $request_state{+RS_CGI}->header();
 	}
+warn "((($result)))";
+	print $result if $result;
 
-	$data{GlobalCSS} = $GlobalCSS if $GlobalCSS;
+	my %data;
+	$data{global_css} = $config{global_css} if $config{global_css};
+
+	$data{base_url} = $config{full_url};
 
 	# Display as spaces.
-	$title =~ s/_/ /g if $FreeLinks;
+	$title =~ s/_/ /g if $config{allow_free_links};
 
-	if (lc $title eq lc $SiteName) {
-		$data{doctitle} = $SiteName;
+	if (lc $title eq lc $config{site_name}) {
+		$data{doctitle} = $config{site_name};
 	}
-	elsif ($ReverseTitle) {
-		$data{doctitle} = "$title - $SiteName";
+	elsif ($config{page_title_before_site_name}) {
+		$data{doctitle} = "$title - $config{site_name}";
 	}
 	else {
-		$title =~ s/^\s*($SiteName)?\s*/$SiteName: /;
+		$title =~ s/^\s*($config{site_name})?\s*/$config{site_name}: /;
 		$title =~ s!/! - !g;
 		$data{doctitle} = $title;
 	}
 
-	if ($UserCSS && $UserData{'css'}) {
-		$data{CSS} = $UserData{'css'};
+	if ($config{allow_user_css} && $request_state{+RS_USER_DATA}{+USER_CSS}) {
+		$data{CSS} = $request_state{+RS_USER_DATA}{+USER_CSS};
 	}
 
 	if ($oldId ne "") {
 		$data{redirect} .= (
 			q{<h3>} .
-			("(redirected from " . render_edit_link_as_html($oldId, $oldId) . ")") .
+			"(redirected from " .
+			render_edit_link_as_html($oldId, $oldId) .
+			")" .
 			q{</h3>}
 		);
 	}
 
-	if ($LogoUrl ne "") {
-		$LogoImage = "img src=\"$LogoUrl\" alt=\"[Home]\" border=0";
+	if ($config{logo_url} ne "") {
+		$LogoImage = "img src=\"$config{logo_url}\" alt=\"[Home]\" border=0";
 
-		unless ($LogoLeft) {
+		unless ($config{logo_on_left}) {
 			$LogoImage .= " align=\"right\"";
 		}
 
-		$header = render_script_link_as_html($HomePage, "<$LogoImage>");
+		$header = render_script_link_as_html($config{home_page}, "<$LogoImage>");
 	}
 
-	if ($EnableInlineTitle) {
-		if ($EnableSelfLinks && $id ne "") {
-			$data{header} .= q{<h1>} . ($header . render_search_link_as_html($id)) . q{</h1>};
+	if ($config{enable_inline_page_title}) {
+		if ($config{allow_self_links} && $id ne "") {
+			$data{header} .= (
+				q{<h1>} .
+				$header .
+				render_search_link_as_html($id) .
+				q{</h1>}
+			);
 		}
 		else {
 			$data{header} .= q{<h1>} . ($header . $title) . q{</h1>};
 		}
 	}
 
-	if ($WantTopLinkBar && get_request_param("toplinkbar", 1)) {
+	if ($config{enable_top_link_bar} && get_request_param("toplinkbar", 1)) {
 
 		# Later consider smaller size?
 		$data{header} .= render_goto_bar_as_html($id) . "<hr>";
 	}
-
-	print $result if $result;
 
 	if ($revision) {
 		$data{meta_robot} = "NOINDEX,NOFOLLOW";
@@ -4546,8 +4715,7 @@ sub render_page_header_as_html {
 
 	my $template = Template->new( { ABSOLUTE => 1 } );
 	my $output = "";
-	$template->process("$Templates/header.html", \%data, \$output);
-	warn $output;
+	$template->process("$config{dir_templates}/header.html", \%data, \$output);
 	return $output;
 }
 
@@ -4576,18 +4744,27 @@ sub render_complex_page_footer_as_html {
 			}
 		}
 
-		$data{footer} .= " | " . render_history_link_as_html($id, "View other revisions");
+		$data{footer} .= (
+			" | " .
+			render_history_link_as_html($id, "View other revisions")
+		);
 	}
 	else {
-		$data{footer} .= "This page is read-only";
-		$data{footer} .= " | " . render_history_link_as_html($id, "View other revisions");
+		$data{footer} .= (
+			"This page is read-only" .
+			" | " .
+			render_history_link_as_html($id, "View other revisions")
+		);
 	}
 
 	if ($rev ne "") {
-		$data{footer} .= " | " . render_named_page_link_as_html($id, "View current revision");
+		$data{footer} .= (
+			" | " .
+			render_named_page_link_as_html($id, "View current revision")
+		);
 	}
 
-	if ($Section{'revision'} > 0) {
+	if ($request_state{+RS_SECTION}{+SECT_REVISION} > 0) {
 		$data{footer} .= "<br>";
 		if ($rev eq "") {    # Only for most current rev
 			$data{footer} .= "Last edited ";
@@ -4596,34 +4773,38 @@ sub render_complex_page_footer_as_html {
 			$data{footer} .= "Edited ";
 		}
 
-		$data{footer} .= render_date_time_as_text($Section{ts});
+		$data{footer} .= render_date_time_as_text(
+			$request_state{+RS_SECTION}{+SECT_TIMESTAMP_CHANGE}
+		);
 	}
 
-	if ($UseDiff) {
+	if ($config{allow_diff}) {
 		$data{footer} .= " " . render_diff_link_as_html(4, $id, "(diff)", $rev);
 	}
 
 	#$data{footer} .= "<br>" . render_search_form_as_html();
-	if ($DataDir =~ m!/tmp/!) {
+	if ($dir_data =~ m!/tmp/!) {
 		$data{footer} .= (
 			"<br><b>Warning:</b> Database is stored in temporary" .
-			" directory $DataDir<br>"
+			" directory $dir_data<br>"
 		);
 	}
 
 	$data{footer} .= (
-		" - Or find pages that link to <b>" . render_search_link_as_html($id) . "</b>"
+		" - Or find pages that link to <b>" .
+		render_search_link_as_html($id) .
+		"</b>"
 	);
 
-	if (length $Footer) {
-		$data{footer} .= $Footer;
+	if (length $config{additional_footer_html}) {
+		$data{footer} .= $config{additional_footer_html};
 	}
 
-	#$data{footer} .= $q->endform;
+	#$data{footer} .= $request_state{+RS_CGI}->endform;
 
 	my $template = Template->new( { ABSOLUTE => 1 } );
 	my $output = "";
-	$template->process("$Templates/footer.html", \%data, \$output);
+	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
 	return $output;
 }
 
@@ -4632,7 +4813,11 @@ sub render_simple_page_footer_as_html {
 
 	my $template = Template->new( { ABSOLUTE => 1 } );
 	my $output = "";
-	$template->process("$Templates/footer.html", { footer => $footer }, \$output);
+	$template->process(
+		"$config{dir_templates}/footer.html",
+		{ footer => $footer },
+		\$output
+	);
 
 	return $output;
 }
@@ -4645,25 +4830,27 @@ sub render_common_footer_as_html {
 		render_form_start_as_html() .
 		render_goto_bar_as_html("") .
 		render_search_form_as_html() .
-		$q->endform
+		$request_state{+RS_CGI}->endform
 	);
 
 	my $template = Template->new( { ABSOLUTE => 1 } );
 	my $output = "";
-	$template->process("$Templates/footer.html", \%data, \$output);
+	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
 	return $output;
 }
 
 sub render_form_start_as_html {
-	return $q->startform(
-		"POST", "$ScriptName", "application/x-www-form-urlencoded"
+	return $request_state{+RS_CGI}->startform(
+		"POST",
+		"$request_state{+RS_SCRIPT_NAME}",
+		"application/x-www-form-urlencoded"
 	);
 }
 
 sub render_goto_bar_as_html {
 	my ($id) = @_;
 
-	my $bartext = render_unnamed_page_link_as_html($HomePage);
+	my $bartext = render_unnamed_page_link_as_html($config{home_page});
 
 	if ($id =~ m!/!) {
 		my $main = $id;
@@ -4671,14 +4858,18 @@ sub render_goto_bar_as_html {
 		$bartext .= " | " . render_unnamed_page_link_as_html($main);
 	}
 
-	$bartext .= " | " . render_unnamed_page_link_as_html("$RCName");
+	$bartext .= " | " . render_unnamed_page_link_as_html($config{rc_name});
 
 	my $userName = get_request_param("username", "");
 	$bartext .= " | " . render_prefs_link_as_html();
 	$bartext .= " | " . render_login_link_as_html();
 
 	if ($userName ne "") {
-		$bartext .= " (You are " . render_unnamed_page_link_as_html($userName) . ") ";
+		$bartext .= (
+			" (You are " .
+			render_unnamed_page_link_as_html($userName) .
+			") "
+		);
 	}
 	else {
 		$bartext .= " (Not logged in) ";
@@ -4693,11 +4884,11 @@ sub render_goto_bar_as_html {
 }
 
 sub render_search_form_as_html {
-	return unless $WantSearch;
+	return unless $config{enable_search_box};
 
 	return(
 		"Search: " .
-		$q->textfield(-name => 'search', -size => 20) .
+		$request_state{+RS_CGI}->textfield(-name => 'search', -size => 20) .
 		render_hidden_input_as_html("dosearch", 1)
 	);
 }
@@ -4796,7 +4987,7 @@ sub render_perl_as_stored_html {
 	$source =~ s/^(.*?)\s+?$/$1/mg;
 
 	DUMP_TIDY and do {
-		open(WHEE, ">/home/troc/tmp/messy");
+		open(WHEE, ">", "/home/troc/tmp/messy");
 		print WHEE $source;
 		close WHEE;
 	};
@@ -4866,7 +5057,7 @@ sub render_perl_as_stored_html {
 	);
 
 	DUMP_TIDY and do {
-		open(WHEE, ">/home/troc/tmp/tidied");
+		open(WHEE, ">", "/home/troc/tmp/tidied");
 		print WHEE $html;
 		close WHEE;
 	};
@@ -5208,7 +5399,9 @@ sub render_code_as_stored_html {
 
 sub render_rfc_link_as_stored_html {
 	my ($num) = @_;
-	return store_raw_html("RFC <a href=\"http://www.faqs.org/rfcs/rfc${num}.html\">$num</a>");
+	return store_raw_html(
+		"RFC <a href=\"http://www.faqs.org/rfcs/rfc${num}.html\">$num</a>"
+	);
 }
 
 sub render_isbn_link_as_stored_html {
@@ -5229,8 +5422,10 @@ sub render_isbn_link_as_stored_html {
 	my $third  = "<a href=\"http://www.pricescan.com/books/BookDetail.asp?isbn=$num\">Pricescan</a>";
 
 	my $html .= "$first";
-	$html .= " ($second, $third)" if $ExtraISBNLinks;
-	$html .= " " if (substr($rawnum, -1, 1) eq ' ');    # preserve ISBN space
+	$html .= " ($second, $third)" if $config{enable_extra_isbn_links};
+
+	# preserve ISBN space.
+	$html .= " " if (substr($rawnum, -1, 1) eq ' ');
 
 	return store_raw_html($html);
 }
@@ -5283,7 +5478,7 @@ sub render_url_link_as_html_and_punct {
 
 	my ($name, $punct) = split_url_from_trailing_punctuation($rawname);
 
-	if ($NetworkFile && $name =~ m!^file:!) {
+	if ($config{allow_file_scheme} && $name =~ m!^file:!) {
 
 		# Only do remote file:// links. No file:///c|/windows.
 		if ($name =~ m!^file://[^/]!) {
@@ -5294,7 +5489,11 @@ sub render_url_link_as_html_and_punct {
 	}
 
 	# Restricted image URLs so that mailto:foo@bar.gif is not an image
-	if ($useImage && ($name =~ /^(http:|https:|ftp:).+\.$ImageExtensions$/)) {
+	if (
+		$useImage
+		&&
+		($name =~ /^(http:|https:|ftp:).+\.$pattern_image_extensions$/)
+	) {
 		return ("<img src=\"$name\">", $punct);
 	}
 
@@ -5343,8 +5542,8 @@ sub store_raw_html {
 	# from being reconsidered by other renderers.
 
 	my ($html) = @_;
-	$SaveUrl{$SaveUrlIndex} = $html;
-	return $FS . $SaveUrlIndex++ . $FS;
+	push @{$request_state{+RS_SAVED_HTML}}, $html;
+	return $FS . $#{$request_state{+RS_SAVED_HTML}} . $FS;
 }
 
 sub render_url_as_stored_html {
@@ -5376,14 +5575,15 @@ sub get_bracketed_url_index {
 	my ($id) = @_;
 
 	# Consider plain array?
-	if ($SaveNumUrl{$id} > 0) {
-		return $SaveNumUrl{$id};
+	if ($request_state{+RS_SAVED_URL_IDX}{$id} > 0) {
+		return $request_state{+RS_SAVED_URL_IDX}{$id};
 	}
 
-	$SaveNumUrlIndex++;    # Start with 1
-	$SaveNumUrl{$id} = $SaveNumUrlIndex;
+	$request_state{+RS_SAVED_URL_IDX}{$id} = keys(
+		%{$request_state{+RS_SAVED_URL_IDX}}
+	) + 1;
 
-	return $SaveNumUrlIndex;
+	return $request_state{+RS_SAVED_URL_IDX}{$id};
 }
 
 sub render_bracketed_link_as_stored_html {
@@ -5398,7 +5598,7 @@ sub render_sub_wiki_link_as_stored_html {
 	my $newBracket = 0;
 	if ($link eq $old) {
 		$link = $new;
-		unless ($new =~ /^$LinkPattern$/o) {
+		unless ($new =~ /^$pattern_link$/o) {
 			$link = "[[$link]]";
 		}
 	}
@@ -5447,7 +5647,7 @@ sub render_link_list_as_html {
 		my $link;
 		foreach my $page (split(' ', $pagelines)) {
 			if ($page =~ /\:/) {    # URL or InterWiki form
-				if ($page =~ /$UrlPattern/) {
+				if ($page =~ /$pattern_url/) {
 					($link, my $extra) = render_url_link_as_html_and_punct($page);
 				}
 				else {
@@ -5500,7 +5700,7 @@ sub render_link_list_as_html {
 sub main_wiki_request {
 
 	# Call the one-time initialization here.
-	if (!$DataDir || $LoadEveryTime) {
+	if (!$dir_data || $config{load_config_each_request}) {
 		init_wiki();
 	}
 
