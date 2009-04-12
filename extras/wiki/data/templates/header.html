@@ -2,15 +2,14 @@
 	<head>
 		<title>[% doctitle %]</title>
 		<meta name="ROBOTS" content="[% meta_robot %]" />
-		<link rel="SHORTCUT ICON" href="/favicon.ico" />
-		<link rel="stylesheet" type="text/css" href="global.css" />
-
+		<link rel="SHORTCUT ICON" href="[% base_url | html %]favicon.ico" />
+		<link rel="stylesheet" type="text/css" href="[% base_url | html %]global.css" />
 	</head>
 	<body>
 		<div id="container">
 
 			<div id="header">
-				<h1><a href="http://poe.perl.org">[% doctitle %]</a></h1>
+				<h1><a href="[% base_url | html %]">[% doctitle %]</a></h1>
 				<p>Perl, Objects &amp; Events</p>
 				<form id="search" method="post" action="" enctype="application/x-www-form-urlencoded">
 				<input type="text" value="Search..." name="search" />
@@ -21,18 +20,18 @@
 
 			<div id="navigation">
 				<ul id="navlist">
-					<li><a href="/">Home</a></li>
-					<li><a href="/?What_POE_Is">About</a></li>
-					<li><a href="/?POE_Cookbook">Cookbook</a></li>
-					<li><a href="/?POE_Documentation">Documentation</a></li>
-					<li><a href="/?Where_to_Get_POE">Downloads</a></li>
-					<li><a href="/?POE_FAQ">FAQ</a></li>
-					<li><a href="/?tbd">Support</a></li>
-					<li><a href="/?tbd">Contact Us</a></li>
-					<li><a href="/?tbd">Individual Users</a></li>
-					<li><a href="/?tbd">Corporate Users</a></li>
-					<li><a href="/?tbd">Related Projects</a></li>
-					<li><a href="/?tbd">Colophon</a></li>
+					<li><a href="[% base_url | html %]">Home</a></li>
+					<li><a href="[% base_url | html %]?What_POE_Is">About</a></li>
+					<li><a href="[% base_url | html %]?POE_Cookbook">Cookbook</a></li>
+					<li><a href="[% base_url | html %]?POE_Documentation">Documentation</a></li>
+					<li><a href="[% base_url | html %]?Where_to_Get_POE">Downloads</a></li>
+					<li><a href="[% base_url | html %]?POE_FAQ">FAQ</a></li>
+					<li><a href="[% base_url | html %]?tbd">Support</a></li>
+					<li><a href="[% base_url | html %]?tbd">Contact Us</a></li>
+					<li><a href="[% base_url | html %]?tbd">Individual Users</a></li>
+					<li><a href="[% base_url | html %]?tbd">Corporate Users</a></li>
+					<li><a href="[% base_url | html %]?tbd">Related Projects</a></li>
+					<li><a href="[% base_url | html %]?tbd">Colophon</a></li>
 				</ul>
 			</div>
 
