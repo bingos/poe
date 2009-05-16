@@ -1,0 +1,7 @@
+[% INCLUDE "snip-header.tt2" %]
+
+[% FOREACH error = errors %]
+	<h2>[% error | html %]</h2>
+[% END %]
+
+[% INCLUDE "snip-footer.tt2" %]

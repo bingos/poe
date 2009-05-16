@@ -1,0 +1,1 @@
+<a href="[% script_name %]?[% script_action %]" [% IF title.length %]title="[% title %]" [% END %]rel="nofollow">[% anchor_text | html %]</a>

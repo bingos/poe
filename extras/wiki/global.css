@@ -152,6 +152,11 @@ input {
 	/* border-bottom: 1px solid #DDDDDD;  A faint grey line below the text */
 }
 
+#content form {
+	float: left;
+	margin-top: 0px;
+}
+
 /* SIDEBAR ELEMENTS */
 
 #sidebar {

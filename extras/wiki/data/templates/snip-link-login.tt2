@@ -1,0 +1,1 @@
+[% INCLUDE "snip-link-script.tt2" script_action="action=login" anchor_text="Login" link_title="" %]

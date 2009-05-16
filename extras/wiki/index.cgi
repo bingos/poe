@@ -61,6 +61,16 @@ use constant REDIR_CGIPM  => 1;
 use constant REDIR_SCRIPT => 2;
 use constant REDIR_NONE   => 3;
 
+use constant ROBOTS_KEEP_OUT  => 1;
+use constant ROBOTS_COME_IN   => 0;
+
+use constant SKIP_RENDERING_IMAGES  => 0;
+use constant RENDER_IMAGES          => 1;
+
+use constant SKIP_LINE_ORIENTED_MARKUP  => 0;
+use constant DO_LINE_ORIENTED_MARKUP    => 1;
+use constant ONLY_LINE_ORIENTED_MARKUP  => 2;
+
 $| = 1;      # Do not buffer output
 
 # == Configuration ============================================================
@@ -80,9 +90,6 @@ my $FS  = "\xb3";       # The FS character is a superscript "3"
 my $FS1 = $FS . "1";    # The FS values are used to separate fields
 my $FS2 = $FS . "2";    # in stored hashtables and other data structures.
 my $FS3 = $FS . "3";    # The FS character is not allowed in user data.
-
-my $pattern_image_extensions = (
-);
 
 my (
 	$pattern_link, $pattern_inter_link, $pattern_inter_site,
@@ -152,18 +159,6 @@ use constant USER_TIMEZONE_OFFSET		=> 'tzoffset';
 my (
 	%inter_site_map, %request_state,
 );
-
-#use vars qw(
-#	   $NotifyDefault 
-#	  $UseConfig
-#);
-
-# Other global variables.  Must be C<use vars> because they're
-# overridden with a do() function.
-
-#use vars qw(
-#	$BrowseCode $OtherCode
-#);
 
 # Automatically filled in by version control.
 my $VERSION = (qw($Revision$))[1];
@@ -316,9 +311,9 @@ sub init_wiki {
 
 	$pattern_image_extensions = "(gif|jpg|png|bmp|jpeg)";
 
-	$pattern_rfc      = "RFC\\s?(\\d+)";
+	$pattern_rfc = "RFC\\s?(\\d+)";
 
-	$pattern_isbn     = "ISBN:?([0-9- xX]{10,})";
+	$pattern_isbn = "ISBN:?([0-9- xX]{10,})";
 }
 
 ########################
@@ -440,18 +435,18 @@ sub is_valid_page_id_or_error {
 # TODO - I suspect that timezone handling is broken, but it's not
 # fatally so.
 
-sub render_date_as_text {
+sub render_date_as_text { # TODO
 	my ($ts) = @_;
 	return strftime("%B %e, %y", gmtime($ts));
 }
 
-sub render_time_as_text {
-	my ($ts) = @_;
-	return strftime("%r GMT", gmtime()) if $config{use_12_hour_times};
-	return strftime("%T GMT", gmtime());
+sub render_time_as_text { # TODO
+	my $ts = shift;
+	return strftime("%r GMT", gmtime($ts)) if $config{use_12_hour_times};
+	return strftime("%T GMT", gmtime($ts));
 }
 
-sub render_date_time_as_text {
+sub render_date_time_as_text { # TODO
 	my ($t) = @_;
 	return render_date_as_text($t) . " " . render_time_as_text($t);
 }
@@ -712,16 +707,17 @@ sub open_or_create_page {
 	}
 	else {
 		$request_state{+RS_PAGE} = {
-			+PAGE_VERSION   => 3,    # Data format version
-			+PAGE_REVISION  => 0,    # Number of edited times
-			+PAGE_TIMESTAMP_CREATE => $^T,  # Set once at creation
-			+PAGE_TIMESTAMP_CHANGE => $^T,  # Updated every edit
+			PAGE_VERSION,         3,    # Data format version
+			PAGE_REVISION,        0,    # Number of edited times
+			PAGE_TIMESTAMP_CREATE, $^T,  # Set once at creation
+			PAGE_TIMESTAMP_CHANGE, $^T,  # Updated every edit
 		};
 	}
 
-	print render_error_page_as_html("Bad page version.") if (
-		$request_state{+RS_PAGE}{+PAGE_VERSION} != 3
-	);
+	if ($request_state{+RS_PAGE}{+PAGE_VERSION} != 3) {
+		use YAML::Syck;
+		print render_error_page_as_html("<pre>" . YAML::Syck::Dump($request_state{+RS_PAGE}) . "</pre>");
+	}
 
 	$request_state{+RS_OPEN_PAGE_ID} = $id;
 }
@@ -759,7 +755,8 @@ sub rename_page_and_links {
 
 	$old =~ s/ /_/g;
 	$new =~ s/ /_/g;
-	$new    = ucfirst($new);
+	$new = ucfirst($new);
+
 	my $status = is_valid_page_id($old);
 
 	if ($status ne "") {
@@ -1156,7 +1153,7 @@ sub get_all_pages_for_entire_site {
 	return @{$request_state{+RS_INDEX_LIST}};
 }
 
-sub get_links_for_entire_site {
+sub get_all_links_for_entire_site {
 	my $unique    = get_request_param("unique", 1);
 	my $sort      = get_request_param("sort",   1);
 	my $pagelink  = get_request_param("page",   1);
@@ -1273,16 +1270,16 @@ sub create_new_section {
 	my ($name, $data) = @_;
 
 	$request_state{+RS_SECTION} = {
-		+SECT_PAGE_ID           => $name,
-		+SECT_VERSION           => 1,     # Data format version.
-		+SECT_REVISION          => 0,     # Number of times edited.
-		+SECT_TIMESTAMP_CREATE  => $^T,   # Set once at creation.
-		+SECT_TIMESTAMP_CHANGE  => $^T,   # Updated every edit.
-		+SECT_USER_IP           => $ENV{REMOTE_ADDR},
-		+SECT_USER_HOST         => '',    # Updated for real edits (may be slow)
-		+SECT_USER_ID           => $request_state{+RS_USER_ID},
-		+SECT_USER_NAME         => get_request_param('username', ''),
-		+SECT_DATA              => $data
+		SECT_PAGE_ID,           $name,
+		SECT_VERSION,           1,     # Data format version.
+		SECT_REVISION,          0,     # Number of times edited.
+		SECT_TIMESTAMP_CREATE,  $^T,   # Set once at creation.
+		SECT_TIMESTAMP_CHANGE,  $^T,   # Updated every edit.
+		SECT_USER_IP,           $ENV{REMOTE_ADDR},
+		SECT_USER_HOST,         '',    # Updated for real edits (may be slow)
+		SECT_USER_ID,           $request_state{+RS_USER_ID},
+		SECT_USER_NAME,         get_request_param('username', ''),
+		SECT_DATA,              $data
 	};
 
 	# TODO - Replace with save?
@@ -1333,7 +1330,7 @@ sub open_or_create_text {
 	}
 	else {
 		$request_state{+RS_TEXT} = {
-			+TEXT_TEXT => (
+			TEXT_TEXT, (
 				"Empty page.\n\n" .
 				"Edit this page (below), " .
 				"or try [[$config{home_page}|the home page]].\n\n" .
@@ -1341,9 +1338,9 @@ sub open_or_create_text {
 				"\" vim: syntax=wiki\n" .
 				"-->\n"
 			),
-			+TEXT_IS_MINOR_REV  => 0,   # Default as major edit.
-			+TEXT_IS_NEW_AUTHOR => 1,   # Default as new author.
-			+TEXT_SUMMARY       => '',  # TODO - Can we default the summary?
+			TEXT_IS_MINOR_REV,  0,   # Default as major edit.
+			TEXT_IS_NEW_AUTHOR, 1,   # Default as new author.
+			TEXT_SUMMARY,       '',  # TODO - Can we default the summary?
 		};
 
 		create_new_section("text_$name", join($FS3, %{$request_state{+RS_TEXT}}));
@@ -1601,7 +1598,6 @@ sub set_page_cache {
 }
 
 sub request_cache_lock {
-
 	# 4 tries, 2 second wait, do not die on error
 	return request_lock_dir('cache', 4, 2, 0);
 }
@@ -1788,7 +1784,7 @@ sub do_login {
 		}
 	}
 
-	print render_page_header_as_html("", "Login Results", "", "norobots");
+	print render_page_header_as_html("", "Login Results", "", ROBOTS_KEEP_OUT);
 
 	if ($success) {
 		print "Login for user ID $uid complete.";
@@ -1797,17 +1793,7 @@ sub do_login {
 		print "Login for user ID $uid failed.";
 	}
 
-	my %data;
-	$data{footer} = (
-		"<hr>\n" .
-		render_goto_bar_as_html("") .
-		$request_state{+RS_CGI}->endform
-	);
-
-	my $template = Template->new( { ABSOLUTE => 1 } );
-	my $output = "";
-	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
-	print $output;
+	print render_common_footer_as_html();
 }
 
 sub get_new_user_id {
@@ -1854,7 +1840,7 @@ sub create_user_directories {
 	}
 }
 
-sub user_is_editor_or_render_error {
+sub user_is_editor_or_render_error { # TODO
 	return 1 if user_is_editor();
 
 	print "<p>This operation is restricted to site editors only...\n";
@@ -1862,7 +1848,7 @@ sub user_is_editor_or_render_error {
 	return 0;
 }
 
-sub user_is_admin_or_render_error {
+sub user_is_admin_or_render_error { # TODO
 	return 1 if user_is_admin();
 
 	print "<p>This operation is restricted to administrators only...\n";
@@ -2226,7 +2212,7 @@ sub dispatch_browse_request {
 
 	# Revision history for the current page.
 	if ($action eq "history") {
-		action_page_history($id) if is_valid_page_id_or_error($id);
+		print action_page_history($id) if is_valid_page_id_or_error($id);
 		return 1;
 	}
 
@@ -2365,7 +2351,7 @@ sub dispatch_change_request {
 
 sub action_lock_or_unlock_entire_site_edits {
 	print render_page_header_as_html(
-		"", "Set or Remove global edit lock", "", "norobots"
+		"", "Set or Remove global edit lock", "", ROBOTS_KEEP_OUT
 	);
 
 	return unless user_is_admin_or_render_error();
@@ -2391,7 +2377,7 @@ sub action_lock_or_unlock_entire_site_edits {
 
 sub action_lock_or_unlock_page_edits {
 	print render_page_header_as_html(
-		"", "Set or Remove page edit lock", "", "norobots"
+		"", "Set or Remove page edit lock", "", ROBOTS_KEEP_OUT
 	);
 	return unless user_is_admin_or_render_error();
 
@@ -2436,7 +2422,7 @@ sub action_remove_temporary_locks {
 	my $LockMessage = "Normal Unlock.";
 
 	print(
-		render_page_header_as_html("", "Removing edit lock", "", "norobots"),
+		render_page_header_as_html("", "Removing edit lock", "", ROBOTS_KEEP_OUT),
 		"<p>This operation may take several seconds...\n"
 	);
 
@@ -2455,7 +2441,7 @@ sub action_remove_temporary_locks {
 sub action_run_periodic_maintenance {
 	print(
 		render_page_header_as_html(
-			"", "Maintenance on all pages", "", "norobots"
+			"", "Maintenance on all pages", "", ROBOTS_KEEP_OUT
 		),
 		"<br>"
 	);
@@ -2509,11 +2495,11 @@ sub action_run_periodic_maintenance {
 # Browse pages.
 
 sub redirect_browse_page {
-	my ($id, $oldId, $isEdit) = @_;
+	my ($id, $old_id, $isEdit) = @_;
 
-	if ($oldId ne "") {
+	if ($old_id ne "") {
 		print render_redirect_page_as_html(
-			"action=browse&id=$id&oldid=$oldId", $id, $isEdit
+			"action=browse&id=$id&oldid=$old_id", $id, $isEdit
 		);
 	}
 	else {
@@ -2549,13 +2535,13 @@ sub action_browse_page {
 	}
 
 	# Handle a single-level redirect
-	my $oldId = get_request_param("oldid", "");
+	my $old_id = get_request_param("oldid", "");
 	if (
-		($oldId eq "")
+		($old_id eq "")
 		&&
 		(substr($request_state{+RS_TEXT}{+TEXT_TEXT}, 0, 10) eq "#REDIRECT ")
 	) {
-		$oldId = $id;
+		$old_id = $id;
 
 		if (
 			($config{allow_free_links})
@@ -2574,12 +2560,12 @@ sub action_browse_page {
 		if (is_valid_page_id($id) eq "") {
 
 			# Later consider revision in rebrowse?
-			redirect_browse_page($id, $oldId, 0);
+			redirect_browse_page($id, $old_id, 0);
 			return;
 		}
 		else {               # Not a valid target, so continue as normal page
-			$id    = $oldId;
-			$oldId = "";
+			$id    = $old_id;
+			$old_id = "";
 		}
 	}
 
@@ -2614,7 +2600,11 @@ sub action_browse_page {
 	# them template-ize them.
 
 	my $fullHtml = render_page_header_as_html(
-		$id, quote_html($id), $oldId, $header_revision
+		$id, quote_html($id), $old_id, (
+			$header_revision
+			? ROBOTS_KEEP_OUT
+			: ROBOTS_COME_IN
+		)
 	);
 
 	if ($config{allow_diff} && $showDiff) {
@@ -2635,14 +2625,14 @@ sub action_browse_page {
 		}
 	}
 
-	$fullHtml .= render_wiki_page_as_html(
+	$fullHtml .= render_wiki_data_as_html(
 		$request_state{+RS_TEXT}{+TEXT_TEXT}
 	) . "\n";  # . "<hr>\n";
 
 	if ($id eq $config{rc_name}) {
-		print $fullHtml;
+		#print $fullHtml;
 		print render_recent_changes_page_as_html();
-		print render_complex_page_footer_as_html($id, $goodRevision);
+		#print render_complex_page_footer_as_html($id, $goodRevision);
 		return;
 	}
 
@@ -2662,20 +2652,21 @@ sub action_browse_random_page {
 }
 
 sub action_page_history {
-	my ($id) = @_;
+	my $page_id = shift;
 
 	print render_page_header_as_html(
-		"", quote_html("History of $id"), "", "norobots"
+		"", quote_html("History of $page_id"), "", ROBOTS_KEEP_OUT
 	) . "<br>";
 
-	open_or_create_page($id);
+	open_or_create_page($page_id);
 	open_default_text();
 
-	my $canEdit = user_can_edit($id);
-	$canEdit = 0;                   # Turn off direct "Edit" links
+	# Turn off direct "Edit" links.
+	my $canEdit = user_can_edit($page_id);
+	$canEdit = 0;
 
 	my $html = render_history_line_as_html(
-		$id, $request_state{+RS_PAGE}{+PAGE_TEXT_DEFAULT}, $canEdit, 1
+		$page_id, $request_state{+RS_PAGE}{+PAGE_TEXT_DEFAULT}, $canEdit, 1
 	);
 
 	open_kept_revisions(PAGE_TEXT_DEFAULT);
@@ -2683,9 +2674,11 @@ sub action_page_history {
 	foreach (
 		reverse sort { $a <=> $b } keys %{$request_state{+RS_KEPT_REVISION_HASH}}
 	) {
-		next if ($_ eq "");           # (needed?)
+		# (needed?)
+		next if ($_ eq "");
+
 		$html .= render_history_line_as_html(
-			$id, $request_state{+RS_KEPT_REVISION_HASH}{$_}, $canEdit, 0
+			$page_id, $request_state{+RS_KEPT_REVISION_HASH}{$_}, $canEdit, 0
 		);
 	}
 
@@ -2695,7 +2688,9 @@ sub action_page_history {
 # Edit ban list.
 
 sub action_open_ban_list_editor {
-	print render_page_header_as_html("", "Editing Banned list", "", "norobots");
+	print render_page_header_as_html(
+		"", "Editing Banned list", "", ROBOTS_KEEP_OUT
+	);
 	return unless user_is_admin_or_render_error();
 
 	my ($status, $banList) = read_file("$dir_data/banlist");
@@ -2719,12 +2714,14 @@ sub action_open_ban_list_editor {
 		"<hr>\n",
 		render_goto_bar_as_html(""),
 		$request_state{+RS_CGI}->endform,
-		render_simple_page_footer_as_html()
+		render_common_page_footer_as_html()
 	);
 }
 
 sub action_write_updated_ban_list {
-	print render_page_header_as_html("", "Updating Banned list", "", "norobots");
+	print render_page_header_as_html(
+		"", "Updating Banned list", "", ROBOTS_KEEP_OUT
+	);
 
 	return unless user_is_admin_or_render_error();
 
@@ -2757,7 +2754,9 @@ sub action_open_preferences_editor {
 	do_new_login() if $request_state{+RS_USER_ID} < 400;
 
 	print(
-		render_page_header_as_html("", "Editing Preferences", "", "norobots"),
+		render_page_header_as_html(
+			"", "Editing Preferences", "", ROBOTS_KEEP_OUT
+		),
 		render_form_start_as_html(),
 		render_hidden_input_as_html("edit_prefs", 1),
 		"\n",
@@ -2888,10 +2887,7 @@ sub action_open_preferences_editor {
 		$request_state{+RS_CGI}->endform
 	);
 
-	my $template = Template->new( { ABSOLUTE => 1 } );
-	my $output = "";
-	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
-	print $output;
+	return render_template_as_html("snip-footer.tt2", \%data);
 }
 
 sub action_write_updated_preferences {
@@ -2901,7 +2897,7 @@ sub action_write_updated_preferences {
 
 	print(
 		render_page_header_as_html(
-			"", "Saving Preferences", "", "norobots"
+			"", "Saving Preferences", "", ROBOTS_KEEP_OUT
 		),
 		"<br>"
 	);
@@ -3013,7 +3009,9 @@ sub action_write_updated_preferences {
 # Edit links.
 
 sub action_open_links_editor {
-	print render_page_header_as_html("", "Editing Links", "", "norobots");
+	print render_page_header_as_html(
+		"", "Editing Links", "", ROBOTS_KEEP_OUT
+	);
 
 	if ($config{allow_editors_to_delete}) {
 		return unless user_is_editor_or_render_error();
@@ -3052,12 +3050,14 @@ sub action_open_links_editor {
 		"<hr>\n",
 		render_goto_bar_as_html(""),
 		$request_state{+RS_CGI}->endform,
-		render_simple_page_footer_as_html()
+		render_common_page_footer_as_html()
 	);
 }
 
 sub action_write_updated_links {
-	print render_page_header_as_html("", "Updating Links", "", "norobots");
+	print render_page_header_as_html(
+		"", "Updating Links", "", ROBOTS_KEEP_OUT
+	);
 
 	if ($config{allow_editors_to_delete}) {
 		return unless user_is_editor_or_render_error();
@@ -3091,7 +3091,9 @@ sub action_open_page_editor {
 	my ($id, $isConflict, $oldTime, $newText, $preview) = @_;
 
 	unless (user_can_edit($id, 1)) {
-		print render_page_header_as_html("", "Editing Denied", "", "norobots");
+		print render_page_header_as_html(
+			"", "Editing Denied", "", ROBOTS_KEEP_OUT
+		);
 
 		if (user_is_banned()) {
 			print(
@@ -3138,7 +3140,9 @@ sub action_open_page_editor {
 	my $editRows = get_request_param("editrows", 20);
 	my $editCols = get_request_param("editcols", 65);
 
-	print render_page_header_as_html("", quote_html($header), "", "norobots");
+	print render_page_header_as_html(
+		"", quote_html($header), "", ROBOTS_KEEP_OUT
+	);
 
 	if ($revision ne "") {
 		print(
@@ -3260,14 +3264,13 @@ sub action_open_page_editor {
 		$request_state{+RS_MAIN_PAGE} =~ s!/.*!!;  # Remove subpage
 
 		print(
-			render_wiki_page_as_html($oldText) .
+			render_wiki_data_as_html($oldText) .
 			"<hr>\n",
 			"<h2>Preview only, not yet saved</h2>\n"
 		);
 	}
 
 	my %data;
-
 	$data{footer} = (
 		render_history_link_as_html($id, "View other revisions") .
 		"<br>\n" .
@@ -3275,10 +3278,7 @@ sub action_open_page_editor {
 		$request_state{+RS_CGI}->endform
 	);
 
-	my $template = Template->new( { ABSOLUTE => 1 } );
-	my $output = "";
-	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
-	print $output;
+	print render_template_as_html("snip-footer.tt2", \%data);
 }
 
 sub action_write_updated_page {
@@ -3497,49 +3497,64 @@ sub action_write_updated_page {
 ######################
 ### PAGE RENDERERS ###
 
+sub render_template_as_html {
+	my ($template_file, $template_data) = @_;
+
+	my $template = Template->new(
+		{
+			INCLUDE_PATH  => $config{dir_templates},
+			TRIM          => 1,
+			PRE_CHOMP     => 1,
+			POST_CHOMP    => 1,
+		}
+	);
+
+	$template->context->define_vmethod( 'scalar', 'ucfirst', sub { ucfirst($_[0]) } );
+
+	my $output = "";
+	$template->process(
+		$template_file,
+		$template_data,
+		\$output
+	) or die $template->error;
+
+	return $output;
+}
+
 # TODO - These are prime candidates for templates.
 
 sub render_login_page_as_html {
-	return(
-		render_page_header_as_html("", "Login", "", "norobots") .
-		render_form_start_as_html() .
-		render_hidden_input_as_html("enter_login", 1),
-		"\n" .
-		"<br>User ID number: " .
-		$request_state{+RS_CGI}->textfield(
-			-name      => 'p_userid',
-			-value     => '',
-			-size      => 15,
-			-maxlength => 50
-		) .
-		"<br>Password: " .
-		q{<input type="password" name="p_password" size=15 maxlength=50>} .
-		"<br>" .
-		q{<input type="submit" name="Login" value="Login">} .
-		"<hr>\n" .
-		render_goto_bar_as_html("") .
-		$request_state{+RS_CGI}->endform .
-		render_simple_page_footer_as_html()
-	);
+	my $title = "Log In";
+
+	my %template_data;
+	template_set_common_header_data(\%template_data, $title);
+	template_set_title_data(\%template_data, "", $title);
+	template_set_meta_robot_data(\%template_data, ROBOTS_KEEP_OUT);
+	template_set_common_footer_html(\%template_data);
+
+	return render_template_as_html("page-login.tt2", \%template_data);
 }
 
-sub render_wiki_page_as_html {
+sub render_wiki_data_as_html { # TODO
 	my ($pageText) = @_;
 
 	$request_state{+RS_SAVED_HTML} = [];
 	$request_state{+RS_SAVED_URL_IDX} = {};
 
-	$pageText =~ s/$FS//go;    # Remove separators (paranoia)
+	# Remove separators (paranoia)
+	$pageText =~ s/$FS//go;
 
 	if ($config{allow_raw_html}) {
 		$pageText =~ s/<html>((.|\n)*?)<\/html>/store_raw_html($1)/ige;
 	}
 
 	$pageText = quote_html($pageText);
-	$pageText =~ s/\\ *\r?\n/ /g;    # Join lines with backslash at end
+
+	# Join lines with backslash at end.
+	$pageText =~ s/\\ *\r?\n/ /g;
 
 	# Multi-line markup.
-	$pageText = render_common_markup_as_html($pageText, 1, 0);
+	$pageText = render_common_markup_as_html($pageText, RENDER_IMAGES, 0);
 
 	# Line-oriented markup.
 	$pageText = render_line_based_markup_as_html($pageText);
@@ -3554,177 +3569,265 @@ sub render_wiki_page_as_html {
 }
 
 sub render_page_index_as_html {
-	return(
-		render_page_header_as_html("", "Index of all pages", "", "norobots") .
-		"<br>" .
-		render_list_of_page_names_as_html(get_all_pages_for_entire_site()) .
-		render_common_footer_as_html()
-	);
+	my $title = "Index of All Pages";
+
+	my %template_data;
+	template_set_common_header_data(\%template_data, $title);
+	template_set_title_data(\%template_data, "", $title);
+	template_set_meta_robot_data(\%template_data, ROBOTS_KEEP_OUT);
+	template_set_common_footer_html(\%template_data);
+
+	my @page_list = get_all_pages_for_entire_site();
+	$template_data{page_list} = render_list_of_page_names_as_html(@page_list);
+
+	return render_template_as_html("page-list.tt2", \%template_data);
 }
 
 sub render_error_page_as_html {
 	my @errors = @_;
 
-	my $html = render_page_header_as_html(
-		"", "Submission error...", "", "norobots"
-	);
+	my $title = "An Error Has Occurred";
 
-	foreach (@errors) {
-		$html .= "<h2>$_</h2>";
-	}
+	my %template_data = ( errors => \@_ );
 
-	$html .= render_complex_page_footer_as_html("SubmissionError", "");
+	template_set_common_header_data(\%template_data, $title);
+	template_set_title_data(\%template_data, "", $title);
+	template_set_meta_robot_data(\%template_data, ROBOTS_KEEP_OUT);
+	template_set_common_footer_html(\%template_data);
 
-	return $html;
+	return render_template_as_html("page-error.tt2", \%template_data);
 }
 
 sub render_recent_changes_page_as_html {
 
-	# TODO - Include the page header & footer.
+	my %template_data;
 
-	my $html = "";
-
-	my $starttime = 0;
-	if (get_request_param("from", 0)) {
-		$starttime = get_request_param("from", 0);
-		$html .= (
-			"<h2>Updates since " .
-			render_date_time_as_text($starttime) .
-			"</h2>\n"
+	my $request_start_time = get_request_param("from", 0);
+	if ($request_start_time > 0) {
+		$template_data{start_header} = (
+			"since " . render_date_time_as_text($request_start_time)
 		);
 	}
-	else {
-		my $daysago = get_request_param("days", 0);
-		$daysago = get_request_param("rcdays", 0) unless $daysago;
+	elsif (
+		my $daysago = (
+			get_request_param("days", 0)
+			|| get_request_param("rcdays", 0)
+			|| $config{rc_default_days}
+			|| 7
+		)
+	) {
+		$request_start_time = $^T - ((24 * 60 * 60) * $daysago);
+		$template_data{start_header} = (
+			"in the last $daysago day" .
+			(($daysago == 1) ? "" : "s")
+		);
+	}
 
-		if ($daysago) {
-			$starttime = $^T - ((24 * 60 * 60) * $daysago);
-			$html .= (
-				"<h2>Updates in the last $daysago day" .
-				(($daysago != 1) ? "s" : "") .
-				"</h2>\n"
+	unless (-f $config{file_recent_changes_log}) {
+		return render_error_page_as_html(
+			"<p>" .
+			"<strong>No $config{rc_name} log file " .
+			"at $config{file_recent_changes_log}.</strong>" .
+			"<p>"
+		);
+	}
+
+	# Read the recent changes log.
+
+	my ($rc_log_status, $rc_log_data) = read_file($config{file_recent_changes_log});
+
+	unless ($rc_log_status) {
+		return render_error_page_as_html(
+			"<p>" .
+			"<strong>Could not open $config{rc_name} log file " .
+			"($config{file_recent_changes_log}):</strong> " .
+			"Error was: <pre>$!</pre>" .
+			"</p>" .
+			"<p>This error is normal if no changes have been made.</p>"
+		);
+	}
+
+	my @rc_log_items = split(/\n/, $rc_log_data);
+
+	my $first_ts = 0;
+	$first_ts = (split /$FS3/o, $rc_log_items[0])[0] if @rc_log_items;
+
+	# Read the old recent changes log, if needed.
+	# Empty log, or the earliest timestamp is later than the start time.
+
+	if ($first_ts == 0 or $request_start_time <= $first_ts) {
+		($rc_log_status, my $old_rc_log_data) = read_file(
+			$config{file_old_recent_changes_log}
+		);
+
+		unless ($rc_log_status) {
+			return render_error_page_as_html(
+				"<p>" .
+				"<strong>Could not open old $config{rc_name} log file " .
+				"($config{file_recent_changes_log}):</strong> " .
+				"Error was: <pre>$!</pre>" .
+				"</p>"
 			);
 		}
+
+		unshift(@rc_log_items, split(/\n/, $old_rc_log_data));
 	}
 
-	if ($starttime == 0) {
-		$starttime = $^T - ((24 * 60 * 60) * $config{rc_default_days});
-		$html .= "<h2>Updates in the last $config{rc_default_days} days</h2>\n";
+	my $last_ts = 0;
+	$last_ts = (split /$FS3/o, $rc_log_items[$#rc_log_items])[0] if @rc_log_items;
+
+	my $id_only = get_request_param("rcidonly", "");
+	if ($id_only ne "") {
+		$template_data{id_only} = render_script_link_as_html($id_only, $id_only);
 	}
 
-	# Read rclog data (and oldrclog data if needed)
-	my ($status, $fileData) = read_file($config{file_recent_changes_log});
-	my $errorText = "";
-
-	unless ($status) {
-
-		# Save error text if needed.
-		$errorText = (
-			"<p><strong>Could not open $config{rc_name} log file:" .
-			"</strong> $config{file_recent_changes_log}<p>Error was:\n<pre>$!</pre>\n" .
-			"<p>Note: This error is normal if no changes" .
-			"have been made.\n"
-		);
-	}
-
-	my @fullrc = split(/\n/, $fileData);
-	my $firstTs = 0;
-
-	if (@fullrc > 0) {    # Only false if no lines in file
-		($firstTs) = split(/$FS3/o, $fullrc[0]);
-	}
-
-	if (($firstTs == 0) || ($starttime <= $firstTs)) {
-		($status, my $oldFileData) = read_file($config{file_old_recent_changes_log});
-		if ($status) {
-			@fullrc = split(/\n/, $oldFileData . $fileData);
+	$template_data{display_options} = join(
+		" | ",
+		map {
+			render_script_link_as_html(
+				"action=rc&days=$_", "$_ day" . (($_ == 1) ? "" : "s")
+			)
 		}
-		else {
-			if ($errorText ne "") {    # could not open either rclog file
-				$html .= (
-					$errorText .
-					"<p><strong>Could not open old $config{rc_name} log file:" .
-					"</strong> $config{file_old_recent_changes_log}<p>Error was:\n<pre>$!</pre>\n"
-				);
-				return;
-			}
-		}
-	}
-
-	my $lastTs = 0;
-	if (@fullrc > 0) {             # Only false if no lines in file
-		($lastTs) = split(/$FS3/o, $fullrc[$#fullrc]);
-	}
-
-	$lastTs++ if (($^T - $lastTs) > 5);    # Skip last unless very recent
-
-	my $idOnly = get_request_param("rcidonly", "");
-	if ($idOnly ne "") {
-		$html .= (
-			"<b>(for " .
-			render_script_link_as_html($idOnly, $idOnly) .
-			" only)</b><br>"
-		);
-	}
-
-	my $showbar   = 0;
-	foreach my $i (@{$config{rc_days_options}}) {
-		$html .= " | " if $showbar;
-		$showbar = 1;
-		$html .= render_script_link_as_html(
-			"action=rc&days=$i", "$i day" . (($i != 1) ? "s" : "")
-		);
-	}
-
-	$html .=(
-		"<br>" .
-		render_script_link_as_html(
-			"action=rc&from=$lastTs", "List new changes starting from"
-		) .
-		" " .
-		render_date_time_as_text($lastTs) .
-		"<br>\n"
+		@{$config{rc_days_options}}
 	);
 
-	# Later consider a binary search?
+	$template_data{next_page} = render_script_link_as_html(
+		"action=rc&from=$last_ts",
+		"List new changes starting from " . render_date_time_as_text($last_ts)
+	);
 
-	my $ts;
-	my $i = 0;
-	while ($i < @fullrc) {    # Optimization: skip old entries quickly
-		($ts) = split(/$FS3/o, $fullrc[$i]);
-		if ($ts >= $starttime) {
-			$i -= 1000 if ($i > 0);
-			last;
-		}
-		$i += 1000;
-	}
+	# Log fiter parameters.
 
-	$i -= 1000 if (($i > 0) && ($i >= @fullrc));
-	for (; $i < @fullrc; $i++) {
-		($ts) = split(/$FS3/o, $fullrc[$i]);
-		last if ($ts >= $starttime);
-	}
+	my $show_minor_edits = get_request_param(
+		"showedit",
+		get_request_param(
+			"rcshowedit",
+			$config{show_minor_edits}
+		)
+	);
 
-	if ($i == @fullrc) {
-		$html .= (
-			"<br><strong>No updates since " .
-			render_date_time_as_text($starttime) .
-			"</strong><br>\n"
+	my $show_all = get_request_param("all", get_request_param("rcall", 0));
+
+	my $show_recent_on_top = get_request_param(
+		"newtop",
+		get_request_param("rcnewtop", $config{recent_on_top})
+	);
+
+	# Filter the log.
+
+	my %last_change_time;
+	my %changes_per_page;
+	my %displayable_changes;
+
+	my $rc_index = @rc_log_items;
+	while ($rc_index--) {
+		my @rc_line = split /$FS3/o, $rc_log_items[$rc_index];
+		my %rc_line = (
+			map { $_, shift(@rc_line) }
+			qw( timestamp page_id summary minor_edit host kind extra )
 		);
+
+		$rc_line{extra} = { split /$FS2/o, $rc_line{extra} };
+
+		# We've gone too far back.  Bye!
+		last if $rc_line{timestamp} < $request_start_time;
+
+		# 0 = No minor edits.
+		next if $show_minor_edits == 0 and $rc_line{minor_edit};
+
+		# 2 = Only minor edits.
+		next if $show_minor_edits == 2 and !$rc_line{minor_edit};
+
+		# Not showing all changes for the page (just the last one).
+		next if !$show_all and $rc_line{timestamp} < $last_change_time{timestamp};
+
+		# Not the ID we're looking for.
+		next if $id_only ne "" and $rc_line{page_id} ne $id_only;
+
+		# This one's displayable.  Format the fields and save the line.
+
+		if ($config{allow_diff} and get_request_param("diffrclink", 1)) {
+			$rc_line{link} = render_diff_link_as_html(
+				4,
+				$rc_line{page_id},
+				"(diff)",
+				""
+			) . " ";
+		}
+
+		$rc_line{link} .= render_unnamed_page_link_as_html($rc_line{page_id});
+
+		$rc_line{time} = render_time_as_text($rc_line{timestamp});
+
+		if (!$show_all and $changes_per_page{$rc_line{page_id}} > 1) {
+			$rc_line{count} = "($changes_per_page{$rc_line{page_id}} ";
+			if (get_request_param("rcchangehist", 1)) {
+				$rc_line{count} .= render_history_link_as_html(
+					$rc_line{page_id},
+					"changes"
+				);
+			}
+			else {
+				$rc_line{count} .= "changes";
+			}
+			$rc_line{count} .= ")";
+		}
+
+		$rc_line{edit} = "<em>(edit)</em>" if $rc_line{minor_edit};
+
+		unless (
+			defined($rc_line{summary}) and
+			length($rc_line{summary}) and
+			$rc_line{summary} ne "*"
+		) {
+			$rc_line{summary} = "(no summary, tch tch tch)";
+		}
+
+		if (defined($rc_line{extra}{name}) and defined($rc_line{extra}{id})) {
+			$rc_line{author} = render_author_link_as_html(
+				$rc_line{host}, $rc_line{extra}{name}, $rc_line{extra}{id}
+			);
+		}
+		else {
+			$rc_line{author} = render_author_link_as_html($rc_line{host}, "", 0);
+		}
+
+		my $sort_date = strftime("%F", gmtime($rc_line{timestamp}));
+		if ($show_recent_on_top) {
+			push @{$displayable_changes{$sort_date}}, \%rc_line;
+		}
+		else {
+			unshift @{$displayable_changes{$sort_date}}, \%rc_line;
+		}
+
+		$last_change_time{$rc_line{page_id}} ||= $rc_line{timestamp};
+		$changes_per_page{$rc_line{page_id}}++;
+	}
+
+	if ($show_recent_on_top) {
+		$template_data{change_dates} = [
+			sort { $b cmp $a } keys %displayable_changes
+		];
 	}
 	else {
-		splice(@fullrc, 0, $i);    # Remove items before index $i
-
-		# Later consider an end-time limit (items older than X)
-		$html .= render_recent_changes_found_as_html(@fullrc);
+		$template_data{change_dates} = [ sort keys %displayable_changes ];
 	}
 
-	$html .= "<p>Page generated " . render_date_time_as_text($^T) . "<br>\n";
+	$template_data{changes} = \%displayable_changes;
 
-	return $html;
+	$template_data{page_render_time} = render_date_time_as_text($^T);
+
+	template_set_common_header_data(
+		\%template_data,
+		"Changes $template_data{start_header}"
+	);
+
+	template_set_common_footer_html(\%template_data);
+
+	return render_template_as_html("page-recent-changes.tt2", \%template_data);
 }
 
-sub render_redirect_page_as_html {
+sub render_redirect_page_as_html { # TODO
 	my ($newid, $name, $isEdit) = @_;
 
 	# Normally get URL from script, but allow override.
@@ -3779,38 +3882,92 @@ sub render_redirect_page_as_html {
 sub render_search_results_page_as_html {
 	my $search_string = shift;
 	my @search_results = @_;
-	return (
-		render_page_header_as_html(
-			"", quote_html("Search for: $search_string"), "", "norobots"
-		) .
-		"<br>" .
-		render_list_of_page_names_as_html(@search_results) .
-		render_common_footer_as_html()
-	);
+
+	my $title = "Search results for: $search_string";
+
+	my %template_data;
+	template_set_common_header_data(\%template_data, $title);
+	template_set_title_data(\%template_data, "", $title);
+	template_set_meta_robot_data(\%template_data, ROBOTS_KEEP_OUT);
+	template_set_common_footer_html(\%template_data);
+
+	$template_data{page_list} = render_list_of_page_names_as_html(@search_results);
+
+	return render_template_as_html("page-list.tt2", \%template_data);
 }
 
 sub render_links_page_as_html {
-	my $html = (
-		render_page_header_as_html(
-			"", quote_html("Full Link List"), "", "norobots"
-		) .
-		# Extra line to get below the logo.
-		"<hr>" .
-		render_link_list_as_html(get_links_for_entire_site()) .
-		"\n"
-	);
 
-	my $template = Template->new( { ABSOLUTE => 1 } );
-	my $output = "";
-	$template->process("$config{dir_templates}/footer.html", {}, \$output);
+	my $title = "Full Link List";
 
-	return $html . $output;
+	my %template_data;
+	template_set_common_header_data(\%template_data, $title);
+	template_set_title_data(\%template_data, $title);
+	template_set_meta_robot_data(\%template_data, ROBOTS_KEEP_OUT);
+	template_set_common_footer_html(\%template_data);
+
+	# A list of pages that exist.
+	my %page_exists;
+	$page_exists{$_} = 1 foreach get_all_pages_for_entire_site();
+
+	my $include_container_page = get_request_param("names",    1);
+	my $edit_unknown_pages     = get_request_param("editlink", 1);
+
+	my %link_tree;
+	my %linked_to;
+
+	# Each $page_links = page_name page_links, separated by spaces.
+	foreach my $page_links (get_all_links_for_entire_site()) {
+		my @links_in_page;
+
+		foreach my $page_link (split(' ', $page_links)) {
+			my $link;
+
+			# Determine & format the link.
+			if ($page_link =~ /\:/) {
+				# URL or inter-wiki form.
+				if ($page_link =~ /$pattern_url/) {
+					($link, my $extra) = render_url_link_as_html_and_punct($page_link);
+				}
+				else {
+					($link, my $extra) = render_inter_page_link_as_html_and_punct($page_link);
+				}
+			}
+			else {
+				# Intra-wiki form.
+				if ($page_exists{$page_link}) {
+					$link = render_unnamed_page_link_as_html($page_link);
+				}
+				else {
+					$link = $page_link;
+					if ($edit_unknown_pages) {
+						$link .= render_edit_link_as_html($page_link, "?");
+					}
+				}
+			}
+
+			push @links_in_page, $link;
+		}
+
+		my $page_link = shift(@links_in_page);
+		if ($include_container_page) {
+			$link_tree{$page_link}{$_} = 1 foreach @links_in_page;
+		}
+		else {
+			$linked_to{$_} = 1 foreach @links_in_page;
+		}
+	}
+
+	$template_data{linked_to} = \%linked_to;
+	$template_data{link_tree} = \%link_tree;
+
+	return render_template_as_html("page-links.tt2", \%template_data);
 }
 
 ######################
 ### HTML RENDERERS ###
 
-sub render_diff_text_as_html {
+sub render_diff_text_as_html { # TODO
 	my ($html) = @_;
 
 	$html =~ s/\n--+//g;
@@ -3825,7 +3982,7 @@ sub render_diff_text_as_html {
 	return $html;
 }
 
-sub render_diff_as_html {
+sub render_diff_as_html { # TODO
 	my ($diffType, $id, $rev, $newText) = @_;
 
 	my $links     = "(";
@@ -3936,7 +4093,7 @@ sub render_diff_as_html {
 	);
 }
 
-sub render_diff_color_as_html {
+sub render_diff_color_as_html { # TODO
 	my ($diff, $color) = @_;
 
 	$diff =~ s/(^|\n)[<>]/$1/g;
@@ -3947,7 +4104,7 @@ sub render_diff_color_as_html {
 	$request_state{+RS_SAVED_URL_IDX} = {};
 
 	$diff =~ s/$FS//go;
-	$diff = render_common_markup_as_html($diff, 0, 1);  # No images, all patterns
+	$diff = render_common_markup_as_html($diff, SKIP_RENDERING_IMAGES, 1);  # No images, all patterns
 
 	# Restore saved text.
 	$diff =~ s/$FS(\d+)$FS/$request_state{+RS_SAVED_HTML}[$1]/geo;
@@ -3964,7 +4121,7 @@ sub render_diff_color_as_html {
 	);
 }
 
-sub render_form_text_area_as_html {
+sub render_form_text_area_as_html { # TODO
 	my ($name, $text, $rows, $cols) = @_;
 
 	if (get_request_param("editwide", 1)) {
@@ -3989,7 +4146,7 @@ sub render_form_text_area_as_html {
 	);
 }
 
-sub render_form_text_input_as_html {
+sub render_form_text_input_as_html { # TODO
 	my ($name, $default, $size, $max) = @_;
 
 	my $text = get_request_param($name, $default);
@@ -4003,7 +4160,7 @@ sub render_form_text_input_as_html {
 	);
 }
 
-sub render_form_checkbox_as_html {
+sub render_form_checkbox_as_html { # TODO
 	my ($name, $default, $label) = @_;
 
 	my $checked = (get_request_param($name, $default) > 0);
@@ -4016,12 +4173,12 @@ sub render_form_checkbox_as_html {
 	);
 }
 
-sub render_common_markup_as_html {
+sub render_common_markup_as_html { # TODO
 	my ($text, $useImage, $doLines) = @_;
 	local $_ = $text;
 
-	# 2 = do line-oriented only
-	if ($doLines < 2) {
+	# Do block markup, if not doing only line-oriented markup.
+	if ($doLines < ONLY_LINE_ORIENTED_MARKUP) {
 		# The <nowiki> tag stores text with no markup (except quoting HTML)
 		s/\&lt;nowiki\&gt;((.|\n)*?)\&lt;\/nowiki\&gt;/store_raw_html($1)/ige;
 
@@ -4110,10 +4267,7 @@ sub render_common_markup_as_html {
 		}
 	}
 
-	# 0 = no line-oriented
-	# 1 or 2 = do line-oriented
-
-	if ($doLines) {
+	if ($doLines > SKIP_LINE_ORIENTED_MARKUP) {
 		# The quote markup patterns avoid overlapping tags (with 5 quotes)
 		# by matching the inner quotes for the strong pattern.
 		s/(\'*)\'\'\'(.*?)\'\'\'/$1<strong>$2<\/strong>/g;
@@ -4127,7 +4281,7 @@ sub render_common_markup_as_html {
 	return $_;
 }
 
-sub render_line_based_markup_as_html {
+sub render_line_based_markup_as_html { # TODO
 	my ($pageText) = @_;
 
 	my @htmlStack = ();
@@ -4202,7 +4356,7 @@ sub render_line_based_markup_as_html {
 		s/^\s*$/<p>\n/;    # Blank lines become <p> tags
 
 		# Line-oriented markup.
-		$pageHtml .= render_common_markup_as_html($_, 1, 2);
+		$pageHtml .= render_common_markup_as_html($_, RENDER_IMAGES, 2);
 	}
 
 	while (@htmlStack > 0) {                   # Clear stack
@@ -4214,127 +4368,7 @@ sub render_line_based_markup_as_html {
 	return $pageHtml;
 }
 
-sub render_recent_changes_found_as_html {
-	my @outrc = @_;
-
-	my %extra      = ();
-	my %changetime = ();
-	my %pagecount  = ();
-
-	my $showedit = get_request_param("rcshowedit", $config{show_minor_edits});
-	$showedit    = get_request_param("showedit",   $showedit);
-
-	if ($showedit != 1) {
-		my @temprc = ();
-		foreach my $rcline (@outrc) {
-			my ($ts, $pagename, $summary, $isEdit, $host) = split(/$FS3/o, $rcline);
-			if ($showedit == 0) {    # 0 = No edits
-				push(@temprc, $rcline) unless $isEdit;
-			}
-			else {                   # 2 = Only edits
-				push(@temprc, $rcline) if $isEdit;
-			}
-		}
-		@outrc = @temprc;
-	}
-
-	# Later consider folding into loop above?
-	# Later add lines to assoc. pagename array (for new RC display)
-	foreach my $rcline (@outrc) {
-		my ($ts, $pagename) = split(/$FS3/o, $rcline);
-		$pagecount{$pagename}++;
-		$changetime{$pagename} = $ts;
-	}
-
-	my $date   = "";
-	my $inlist = 0;
-	my $html   = "";
-
-	my $all    = get_request_param("rcall", 0);
-	$all       = get_request_param("all", $all);
-
-	my $newtop = get_request_param("rcnewtop", $config{recent_on_top});
-	$newtop    = get_request_param("newtop", $newtop);
-
-	my $idOnly = get_request_param("rcidonly", "");
-
-	@outrc = reverse @outrc if ($newtop);
-	foreach my $rcline (@outrc) {
-		my ($ts, $pagename, $summary, $isEdit, $host, $kind, $extraTemp) = split(
-			/$FS3/o, $rcline
-		);
-
-		# Later: need to change $all for new-RC?
-		next if ((!$all) && ($ts < $changetime{$pagename}));
-		next if (($idOnly ne "") && ($idOnly ne $pagename));
-
-		%extra = split(/$FS2/o, $extraTemp, -1);
-		if ($date ne render_date_as_text($ts)) {
-			$date = render_date_as_text($ts);
-			if ($inlist) {
-				$html .= "</UL>\n";
-				$inlist = 0;
-			}
-			$html .= "<p><strong>" . $date . "</strong><p>\n";
-		}
-
-		unless ($inlist) {
-			$html .= "<UL>\n";
-			$inlist = 1;
-		}
-
-		$host = quote_html($host);
-
-		my $author;
-		if (defined($extra{name}) && defined($extra{id})) {
-			$author = render_author_link_as_html($host, $extra{name}, $extra{id});
-		}
-		else {
-			$author = render_author_link_as_html($host, "", 0);
-		}
-
-		my $sum = "";
-		if (($summary ne "") && ($summary ne "*")) {
-			$summary = quote_html($summary);
-			$sum     = "<strong>[$summary]</strong> ";
-		}
-
-		$sum = "(no summary, tch tch tch)" unless defined $sum and length $sum;
-
-		my $edit = "";
-		$edit = "<em>(edit)</em> " if ($isEdit);
-
-		my $count = "";
-		if (!$all and $pagecount{$pagename} > 1) {
-			$count = "($pagecount{$pagename} ";
-			if (get_request_param("rcchangehist", 1)) {
-				$count .= render_history_link_as_html($pagename, "changes");
-			}
-			else {
-				$count .= "changes";
-			}
-
-			$count .= ") ";
-		}
-
-		my $link = "";
-		if ($config{allow_diff} && get_request_param("diffrclink", 1)) {
-			$link .= render_diff_link_as_html(4, $pagename, "(diff)", "") . "  ";
-		}
-
-		$link .= render_unnamed_page_link_as_html($pagename);
-
-		$html .= "<li>$link ";
-
-		# Later do new-RC looping here.
-		$html .= render_time_as_text($ts) . " $count$edit by $author<br>$sum";
-	}
-
-	$html .= "</UL>\n" if ($inlist);
-	return $html;
-}
-
-sub render_history_line_as_html {
+sub render_history_line_as_html { # TODO
 	my ($id, $section, $canEdit, $isCurrent) = @_;
 
 	my %sect    = split(/$FS2/o, $section, -1);
@@ -4343,12 +4377,14 @@ sub render_history_line_as_html {
 	my $summary = $revtext{summary};
 
 	my $host;
-	if ((defined($sect{host})) && ($sect{host} ne "")) {
+	if (defined($sect{host}) and $sect{host} ne "") {
 		$host = $sect{host};
 	}
 	else {
 		$host = $sect{+SECT_USER_IP};
-		$host =~ s/\d+$/xxx/;    # Be somewhat anonymous (if no host)
+
+    # Be somewhat anonymous if using IP address.
+		$host =~ s/\d+$/xxx/;
 	}
 
 	my $user     = $sect{username};
@@ -4395,95 +4431,105 @@ sub render_history_line_as_html {
 }
 
 sub render_script_link_as_html {
-	my ($action, $text) = @_;
-	return qq(<a href="$request_state{+RS_SCRIPT_NAME}?$action" rel="nofollow">$text</a>);
+	my ($action, $text, $title) = @_;
+	return render_template_as_html(
+		"snip-link-script.tt2",
+		{
+			script_name   => $request_state{+RS_SCRIPT_NAME},
+			script_action => $action,
+			anchor_text   => $text,
+			title         => ($title || ""),
+		}
+	);
 }
 
 sub render_unnamed_page_link_as_html {
-	my ($id) = @_;
-	return render_named_page_link_as_html($id, $id);
+	my $page_id = shift;
+	return render_named_page_link_as_html($page_id, $page_id);
 }
 
 sub render_named_page_link_as_html {
-	my ($id, $name) = @_;
+	my ($page_id, $page_name) = @_;
 
-	$id =~ s!^/!$request_state{+RS_MAIN_PAGE}/!;
+	$page_id =~ s!^/!$request_state{+RS_MAIN_PAGE}/!;
 
 	if ($config{allow_free_links}) {
-		$id =~ s/ /_/g;
-		$id = ucfirst($id);
-		$name =~ s/_/ /g;
+		$page_id =~ s/ /_/g;
+		$page_id = ucfirst($page_id);
+		$page_name =~ s/_/ /g;
 	}
 
-	return render_script_link_as_html($id, $name);
+	return render_script_link_as_html($page_id, $page_name);
 }
 
 sub render_edit_link_as_html {
-	my ($id, $name) = @_;
+	my ($page_id, $page_name) = @_;
 
 	if ($config{allow_free_links}) {
-		$id =~ s/ /_/g;
-		$id = ucfirst($id);
-		$name =~ s/_/ /g;
+		$page_id =~ s/ /_/g;
+		$page_id = ucfirst($page_id);
+		$page_name =~ s/_/ /g;
 	}
 
-	return render_script_link_as_html("action=edit&id=$id", $name);
+	return render_script_link_as_html("action=edit&id=$page_id", $page_name);
 }
 
 sub render_old_page_link_as_html {
-	my ($kind, $id, $revision, $name) = @_;
+	my ($kind, $page_id, $revision, $page_name) = @_;
 
 	if ($config{allow_free_links}) {
-		$id =~ s/ /_/g;
-		$id = ucfirst($id);
-		$name =~ s/_/ /g;
+		$page_id =~ s/ /_/g;
+		$page_id = ucfirst($page_id);
+		$page_name =~ s/_/ /g;
 	}
 
 	return render_script_link_as_html(
-		"action=$kind&id=$id&revision=$revision", $name
+		"action=$kind&id=$page_id&revision=$revision", $page_name
 	);
 }
 
 sub render_page_or_edit_link_as_html {
-	my ($id, $name) = @_;
+	my ($page_id, $page_name) = @_;
 
-	if ($name eq "") {
-		$name = $id;
+	if ($page_name eq "") {
+		$page_name = $page_id;
 		if ($config{allow_free_links}) {
-			$name =~ s/_/ /g;
+			$page_name =~ s/_/ /g;
 		}
 	}
 
-	$id =~ s!^/!$request_state{+RS_MAIN_PAGE}/!;
+	$page_id =~ s!^/!$request_state{+RS_MAIN_PAGE}/!;
 
 	if ($config{allow_free_links}) {
-		$id =~ s/ /_/g;
-		$id = ucfirst($id);
+		$page_id =~ s/ /_/g;
+		$page_id = ucfirst($page_id);
 	}
 
 	my $exists = 0;
 
 	if ($config{use_page_index_file}) {
 		unless (@{$request_state{+RS_INDEX_LIST}}) {
-			my @temp = get_all_pages_for_entire_site();    # Also initializes hash
+			# Also initializes hash.
+			my @temp = get_all_pages_for_entire_site();
 		}
-		$exists = 1 if ($request_state{+RS_INDEX_HASH}{$id});
+		$exists = 1 if ($request_state{+RS_INDEX_HASH}{$page_id});
 	}
-	elsif (-f get_filename_for_page_id($id)) {    # Page file exists
+	elsif (-f get_filename_for_page_id($page_id)) {
+		# Page file exists!
 		$exists = 1;
 	}
 
 	if ($exists) {
-		return render_named_page_link_as_html($id, $name);
+		return render_named_page_link_as_html($page_id, $page_name);
 	}
 
 	if ($config{allow_free_links}) {
-		if ($name =~ m!\s!) {           # Not a single word
-			$name = "[$name]";            # Add brackets so boundaries are obvious
+		if ($page_name =~ m!\s!) {     # Not a single word
+			$page_name = "[$page_name]"; # Add brackets so boundaries are obvious
 		}
 	}
 
-	return $name . render_edit_link_as_html($id, "?");
+	return $page_name . render_edit_link_as_html($page_id, "?");
 }
 
 sub render_page_or_edit_link_as_stored_html {
@@ -4516,15 +4562,24 @@ sub render_search_link_as_html {
 }
 
 sub render_prefs_link_as_html {
-	return render_script_link_as_html("action=editprefs", "Signup/Preferences");
+	return render_template_as_html(
+		"snip-link-preferences.tt2",
+		{ },
+	);
 }
 
 sub render_login_link_as_html {
-	return render_script_link_as_html("action=login", "Login");
+	return render_template_as_html(
+		"snip-link-login.tt2",
+		{ },
+	);
 }
 
 sub render_random_link_as_html {
-	return render_script_link_as_html("action=random", "Random Page");
+	return render_template_as_html(
+		"snip-link-random.tt2",
+		{ },
+	);
 }
 
 sub render_diff_link_as_html {
@@ -4549,12 +4604,6 @@ sub render_diff_link_with_revision_as_html {
 	);
 }
 
-sub render_script_link_with_title_as_html {
-	my ($action, $text, $title) = @_;
-	$action =~ s/ /_/g if $config{allow_free_links};
-	return qq(<a href="$request_state{+RS_SCRIPT_NAME}?$action" title="$title" rel="nofollow">$text</a>);
-}
-
 sub render_author_link_as_html {
 	my ($host, $userName, $uid) = @_;
 
@@ -4572,7 +4621,7 @@ sub render_author_link_as_html {
 	# Later have user preference for link titles and/or host text?
 	my $html;
 	if (($uid > 0) && ($userName ne "")) {
-		$html = render_script_link_with_title_as_html(
+		$html = render_script_link_as_html(
 			$userName, $userNameShow, "ID $uid from $host"
 		);
 	}
@@ -4590,7 +4639,7 @@ sub render_history_link_as_html {
 }
 
 sub render_list_of_page_names_as_html {
-	my $html = "<h2>" . ($#_ + 1) . " pages found:</h2>\n";
+	my $html = "<h2>" . @_ . " pages found:</h2>\n";
 	foreach my $pagename (@_) {
 		$html .= ".... " if $pagename =~ m!/!;
 		$html .= render_unnamed_page_link_as_html($pagename) . "<br>\n";
@@ -4600,9 +4649,7 @@ sub render_list_of_page_names_as_html {
 
 sub render_hidden_input_as_html {
 	my ($name, $value) = @_;
-
 	$request_state{+RS_CGI}->param($name, $value);
-
 	return $request_state{+RS_CGI}->hidden($name);
 }
 
@@ -4616,141 +4663,158 @@ sub render_hidden_input_as_html {
 # We also pass in "norobots" from maintenance forms and things to prevent
 # their non-content from being indexed.
 
-sub render_page_header_as_html {
-	my ($id, $title, $oldId, $revision) = @_;
-	my $header    = "";
-	my $LogoImage = "";
-warn 111;
-	my $result;
+sub template_set_common_header_data {
+	my ($template_data, $title) = @_;
+
 	if (defined($request_state{+RS_SET_COOKIE}{+SCOOK_ID})) {
 		my $cookie = (
 			"$config{cookie_name}=" .
-			"rev&" .
-			$request_state{+RS_SET_COOKIE}{+SCOOK_REV} .
-			"&id&" .
-			$request_state{+RS_SET_COOKIE}{+SCOOK_ID} .
-			"&randkey&" .
-			$request_state{+RS_SET_COOKIE}{+SCOOK_RANDKEY}
+			"rev&" . $request_state{+RS_SET_COOKIE}{+SCOOK_REV} .
+			"&id&" . $request_state{+RS_SET_COOKIE}{+SCOOK_ID} .
+			"&randkey&" . $request_state{+RS_SET_COOKIE}{+SCOOK_RANDKEY}
 		);
 
+		# TODO - Proper expiration and other cache-management headers.
 		$cookie .= ";expires=Fri, 08-Sep-2010 19:48:23 GMT";
-		$result = $request_state{+RS_CGI}->header(-cookie => $cookie);
+		$template_data->{html_headers} = $request_state{+RS_CGI}->header(
+			-cookie => $cookie
+		);
 	}
 	else {
-		$result = $request_state{+RS_CGI}->header();
+		$template_data->{html_headers} = $request_state{+RS_CGI}->header();
 	}
-warn "((($result)))";
-	print $result if $result;
 
-	my %data;
-	$data{global_css} = $config{global_css} if $config{global_css};
-
-	$data{base_url} = $config{full_url};
+	$template_data->{script_name} = $request_state{+RS_SCRIPT_NAME};
+	$template_data->{global_css} = $config{global_css} || "";
+	$template_data->{base_url}   = $config{full_url}   || "";
 
 	# Display as spaces.
 	$title =~ s/_/ /g if $config{allow_free_links};
 
 	if (lc $title eq lc $config{site_name}) {
-		$data{doctitle} = $config{site_name};
+		$template_data->{doctitle} = $config{site_name};
 	}
 	elsif ($config{page_title_before_site_name}) {
-		$data{doctitle} = "$title - $config{site_name}";
+		$template_data->{doctitle} = "$title - $config{site_name}";
 	}
 	else {
 		$title =~ s/^\s*($config{site_name})?\s*/$config{site_name}: /;
 		$title =~ s!/! - !g;
-		$data{doctitle} = $title;
+		$template_data->{doctitle} = $title;
 	}
 
 	if ($config{allow_user_css} && $request_state{+RS_USER_DATA}{+USER_CSS}) {
-		$data{CSS} = $request_state{+RS_USER_DATA}{+USER_CSS};
+		$template_data->{CSS} = $request_state{+RS_USER_DATA}{+USER_CSS};
 	}
+}
 
-	if ($oldId ne "") {
-		$data{redirect} .= (
-			q{<h3>} .
-			"(redirected from " .
-			render_edit_link_as_html($oldId, $oldId) .
-			")" .
-			q{</h3>}
-		);
-	}
+sub template_set_redirect_data {
+	my ($template_data, $old_id) = @_;
+	return if $old_id eq "";
 
+	$template_data->{redirect} .= (
+		q{<h3>} .
+		"(redirected from " .
+		render_edit_link_as_html($old_id, $old_id) .
+		")" .
+		q{</h3>}
+	);
+}
+
+sub template_set_title_data {
+	my ($template_data, $page_id, $title) = @_;
+
+	my $logo_image;
+	my $header;
 	if ($config{logo_url} ne "") {
-		$LogoImage = "img src=\"$config{logo_url}\" alt=\"[Home]\" border=0";
+		$logo_image = "img src=\"$config{logo_url}\" alt=\"[Home]\" border=0";
 
 		unless ($config{logo_on_left}) {
-			$LogoImage .= " align=\"right\"";
+			$logo_image .= " align=\"right\"";
 		}
 
-		$header = render_script_link_as_html($config{home_page}, "<$LogoImage>");
+		$header = render_script_link_as_html($config{home_page}, "<$logo_image>");
+	}
+	else {
+		$logo_image = $header = "";
 	}
 
 	if ($config{enable_inline_page_title}) {
-		if ($config{allow_self_links} && $id ne "") {
-			$data{header} .= (
+		if ($config{allow_self_links} and $page_id ne "") {
+			$template_data->{header} .= (
 				q{<h1>} .
 				$header .
-				render_search_link_as_html($id) .
+				render_search_link_as_html($page_id) .
 				q{</h1>}
 			);
 		}
 		else {
-			$data{header} .= q{<h1>} . ($header . $title) . q{</h1>};
+			$template_data->{header} .= q{<h1>} . ($header . $title) . q{</h1>};
 		}
 	}
 
 	if ($config{enable_top_link_bar} && get_request_param("toplinkbar", 1)) {
 
 		# Later consider smaller size?
-		$data{header} .= render_goto_bar_as_html($id) . "<hr>";
+		$template_data->{header} .= render_goto_bar_as_html($page_id) . "<hr>";
 	}
-
-	if ($revision) {
-		$data{meta_robot} = "NOINDEX,NOFOLLOW";
-	}
-	else {
-		$data{meta_robot} = "INDEX,FOLLOW";
-	}
-
-	my $template = Template->new( { ABSOLUTE => 1 } );
-	my $output = "";
-	$template->process("$config{dir_templates}/header.html", \%data, \$output);
-	return $output;
 }
 
-sub render_complex_page_footer_as_html {
-	my ($id, $rev) = @_;
+sub template_set_meta_robot_data {
+	my ($template_data, $robots_keep_out) = @_;
 
-	my %data = (
-		footer => render_goto_bar_as_html($id),
-	);
+	if ($robots_keep_out) {
+		$template_data->{meta_robot} = "NOINDEX,NOFOLLOW";
+	}
+	else {
+		$template_data->{meta_robot} = "INDEX,FOLLOW";
+	}
+}
+
+sub render_page_header_as_html { # TODO
+	my ($page_id, $title, $old_id, $robots_keep_out) = @_;
+
+	my %template_data;
+	template_set_common_header_data(\%template_data, $title);
+	template_set_title_data(\%template_data, $page_id, $title);
+	template_set_redirect_data(\%template_data, $old_id);
+	template_set_meta_robot_data(\%template_data, $robots_keep_out);
+
+	return render_template_as_html("snip-header.tt2", \%template_data);
+}
+
+sub template_set_complex_page_footer {
+	my ($template_data, $id, $rev) = @_;
+
+	$template_data->{footer} = render_goto_bar_as_html($id);
 
 	if (user_can_edit($id, 0)) {
 		my $userName = get_request_param("username", "");
 		if ($userName eq "") {
-			$data{footer} .= "Must login to edit";
+			$template_data->{footer} .= "Must login to edit";
 		}
 		else {
 			if ($rev ne "") {
-				$data{footer} .= (
+				$template_data->{footer} .= (
 					render_old_page_link_as_html(
 						'edit', $id, $rev, "Edit revision $rev of this page"
 					)
 				);
 			}
 			else {
-				$data{footer} .= render_edit_link_as_html($id, "Edit text of this page");
+				$template_data->{footer} .= render_edit_link_as_html(
+					$id, "Edit text of this page"
+				);
 			}
 		}
 
-		$data{footer} .= (
+		$template_data->{footer} .= (
 			" | " .
 			render_history_link_as_html($id, "View other revisions")
 		);
 	}
 	else {
-		$data{footer} .= (
+		$template_data->{footer} .= (
 			"This page is read-only" .
 			" | " .
 			render_history_link_as_html($id, "View other revisions")
@@ -4758,88 +4822,73 @@ sub render_complex_page_footer_as_html {
 	}
 
 	if ($rev ne "") {
-		$data{footer} .= (
+		$template_data->{footer} .= (
 			" | " .
 			render_named_page_link_as_html($id, "View current revision")
 		);
 	}
 
-	if ($request_state{+RS_SECTION}{+SECT_REVISION} > 0) {
-		$data{footer} .= "<br>";
+	if ($request_state{+RS_SECTION}{+SECT_REVISION}) {
+		$template_data->{footer} .= "<br>";
 		if ($rev eq "") {    # Only for most current rev
-			$data{footer} .= "Last edited ";
+			$template_data->{footer} .= "Last edited ";
 		}
 		else {
-			$data{footer} .= "Edited ";
+			$template_data->{footer} .= "Edited ";
 		}
 
-		$data{footer} .= render_date_time_as_text(
+		$template_data->{footer} .= render_date_time_as_text(
 			$request_state{+RS_SECTION}{+SECT_TIMESTAMP_CHANGE}
 		);
 	}
 
 	if ($config{allow_diff}) {
-		$data{footer} .= " " . render_diff_link_as_html(4, $id, "(diff)", $rev);
+		$template_data->{footer} .= " " . render_diff_link_as_html(4, $id, "(diff)", $rev);
 	}
 
-	#$data{footer} .= "<br>" . render_search_form_as_html();
+	#$template_data->{footer} .= "<br>" . render_search_form_as_html();
 	if ($dir_data =~ m!/tmp/!) {
-		$data{footer} .= (
+		$template_data->{footer} .= (
 			"<br><b>Warning:</b> Database is stored in temporary" .
 			" directory $dir_data<br>"
 		);
 	}
 
-	$data{footer} .= (
+	$template_data->{footer} .= (
 		" - Or find pages that link to <b>" .
 		render_search_link_as_html($id) .
 		"</b>"
 	);
 
 	if (length $config{additional_footer_html}) {
-		$data{footer} .= $config{additional_footer_html};
+		$template_data->{footer} .= $config{additional_footer_html};
 	}
 
-	#$data{footer} .= $request_state{+RS_CGI}->endform;
-
-	my $template = Template->new( { ABSOLUTE => 1 } );
-	my $output = "";
-	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
-	return $output;
+	#$template_data->{footer} .= $request_state{+RS_CGI}->endform;
 }
 
-sub render_simple_page_footer_as_html {
-	my $footer   = shift;
+sub render_complex_page_footer_as_html { # TODO
+	my ($id, $rev) = @_;
 
-	my $template = Template->new( { ABSOLUTE => 1 } );
-	my $output = "";
-	$template->process(
-		"$config{dir_templates}/footer.html",
-		{ footer => $footer },
-		\$output
-	);
+	my %template_data;
+	template_set_complex_page_footer(\%template_data, $id, $rev);
 
-	return $output;
+	return render_template_as_html("snip-footer.tt2", \%template_data);
 }
 
-sub render_common_footer_as_html {
-	my %data;
-
-	$data{footer} = (
-		"<hr>" .
-		render_form_start_as_html() .
-		render_goto_bar_as_html("") .
-		render_search_form_as_html() .
-		$request_state{+RS_CGI}->endform
-	);
-
-	my $template = Template->new( { ABSOLUTE => 1 } );
-	my $output = "";
-	$template->process("$config{dir_templates}/footer.html", \%data, \$output);
-	return $output;
+sub template_set_common_footer_html {
+	my $template_data = shift;
+	$template_data->{footer} = render_goto_bar_as_html("");
 }
 
-sub render_form_start_as_html {
+sub render_common_footer_as_html { # TODO
+	my %template_data;
+	template_set_common_footer_html(\%template_data);
+
+	return render_template_as_html("snip-footer.tt2", \%template_data);
+}
+
+sub render_form_start_as_html { # TODO
 	return $request_state{+RS_CGI}->startform(
 		"POST",
 		"$request_state{+RS_SCRIPT_NAME}",
@@ -4847,7 +4896,7 @@ sub render_form_start_as_html {
 	);
 }
 
-sub render_goto_bar_as_html {
+sub render_goto_bar_as_html { # TODO
 	my ($id) = @_;
 
 	my $bartext = render_unnamed_page_link_as_html($config{home_page});
@@ -4883,7 +4932,7 @@ sub render_goto_bar_as_html {
 	return $bartext;
 }
 
-sub render_search_form_as_html {
+sub render_search_form_as_html { # TODO
 	return unless $config{enable_search_box};
 
 	return(
@@ -4893,7 +4942,7 @@ sub render_search_form_as_html {
 	);
 }
 
-sub render_projects_as_html {
+sub render_projects_as_html { # TODO
 	my $source = shift;
 	my @projects;
 
@@ -4972,7 +5021,7 @@ sub render_projects_as_html {
 	return $html;
 }
 
-sub render_perl_as_stored_html {
+sub render_perl_as_stored_html { # TODO
 	my $source = shift;
 
 	# Defer compiling the module until it's needed.
@@ -5075,7 +5124,7 @@ my %otl_colors = (
 	"#" => "800000",
 );
 
-sub render_outline_as_html {
+sub render_outline_as_html { # TODO
 	my ($source, $type) = @_;
 	$type = "headers" unless defined $type;
 
@@ -5216,7 +5265,7 @@ sub render_outline_as_html {
 	return "<p>No outline.</p>";
 }
 
-sub render_components_as_html {
+sub render_components_as_html { # TODO
 	my $source = shift;
 	my @components;
 
@@ -5375,7 +5424,7 @@ sub render_components_as_html {
 	return $html;
 }
 
-sub render_pre_as_stored_html {
+sub render_pre_as_stored_html { # TODO
 	my $html = shift;
 	my $pre = (
 		"<table border='1' cellspacing='0'><tr><td nowrap><pre>" .
@@ -5386,7 +5435,7 @@ sub render_pre_as_stored_html {
 	return store_raw_html($pre);
 }
 
-sub render_code_as_stored_html {
+sub render_code_as_stored_html { # TODO
 	my $html = shift;
 	my $code = (
 		"<table border='1' cellspacing='0'><tr><td nowrap><code>" .
@@ -5397,14 +5446,14 @@ sub render_code_as_stored_html {
 	return store_raw_html($code);
 }
 
-sub render_rfc_link_as_stored_html {
+sub render_rfc_link_as_stored_html { # TODO
 	my ($num) = @_;
 	return store_raw_html(
 		"RFC <a href=\"http://www.faqs.org/rfcs/rfc${num}.html\">$num</a>"
 	);
 }
 
-sub render_isbn_link_as_stored_html {
+sub render_isbn_link_as_stored_html { # TODO
 	my ($rawnum) = @_;
 
 	my $num = $rawnum;
@@ -5430,7 +5479,7 @@ sub render_isbn_link_as_stored_html {
 	return store_raw_html($html);
 }
 
-sub render_inter_page_link_as_html_and_punct {
+sub render_inter_page_link_as_html_and_punct { # TODO
 	my ($id) = @_;
 
 	($id, my $punct) = split_url_from_trailing_punctuation($id);
@@ -5453,7 +5502,7 @@ sub render_inter_page_link_as_html_and_punct {
 	return ("<a href=\"$url\">$name</a>", $punct);
 }
 
-sub render_bracketed_inter_page_link_as_stored_html {
+sub render_bracketed_inter_page_link_as_stored_html { # TODO
 	my ($id, $text) = @_;
 
 	my ($site, $remotePage) = split(/:/, $id, 2);
@@ -5473,7 +5522,7 @@ sub render_bracketed_inter_page_link_as_stored_html {
 	return store_raw_html("<a href=\"$url\">[$text]</a>");
 }
 
-sub render_url_link_as_html_and_punct {
+sub render_url_link_as_html_and_punct { # TODO
 	my ($rawname, $useImage) = @_;
 
 	my ($name, $punct) = split_url_from_trailing_punctuation($rawname);
@@ -5512,7 +5561,7 @@ sub render_url_link_as_html_and_punct {
 	return ("<a href=\"$name\">$name</a>", $punct);
 }
 
-sub render_wiki_heading_as_html {
+sub render_wiki_heading_as_html { # TODO
 	my ($pre, $depth, $text) = @_;
 
 	$depth = length($depth);
@@ -5521,12 +5570,12 @@ sub render_wiki_heading_as_html {
 	return $pre . "<H$depth>$text</H$depth>\n";
 }
 
-sub render_href_as_stored_html {
+sub render_href_as_stored_html { # TODO
 	my ($anchor, $text) = @_;
 	return store_raw_html("<a $anchor>$text</a>");
 }
 
-sub render_and_store_inter_page_link {
+sub render_and_store_inter_page_link { # TODO
 	my ($id) = @_;
 
 	my ($link, $extra) = render_inter_page_link_as_html_and_punct($id);
@@ -5546,7 +5595,7 @@ sub store_raw_html {
 	return $FS . $#{$request_state{+RS_SAVED_HTML}} . $FS;
 }
 
-sub render_url_as_stored_html {
+sub render_url_as_stored_html { # TODO
 	my ($name, $useImage) = @_;
 
 	my ($link, $extra) = render_url_link_as_html_and_punct($name, $useImage);
@@ -5558,7 +5607,7 @@ sub render_url_as_stored_html {
 	return $link . $extra;
 }
 
-sub render_bracketed_url_as_stored_html {
+sub render_bracketed_url_as_stored_html { # TODO
 	my ($url, $text) = @_;
 
 	# we want to translate 'http:/?' into something more meaningful.
@@ -5586,13 +5635,13 @@ sub get_bracketed_url_index {
 	return $request_state{+RS_SAVED_URL_IDX}{$id};
 }
 
-sub render_bracketed_link_as_stored_html {
+sub render_bracketed_link_as_stored_html { # TODO
 	my ($name, $text) = @_;
 
 	return store_raw_html(render_named_page_link_as_html($name, "[$text]"));
 }
 
-sub render_sub_wiki_link_as_stored_html {
+sub render_sub_wiki_link_as_stored_html { # TODO
 	my ($link, $old, $new) = @_;
 
 	my $newBracket = 0;
@@ -5606,7 +5655,7 @@ sub render_sub_wiki_link_as_stored_html {
 	return store_raw_html($link);
 }
 
-sub render_sub_free_link_as_stored_html {
+sub render_sub_free_link_as_stored_html { # TODO
 	my ($link, $name, $old, $new) = @_;
 
 	my $oldlink = $link;
@@ -5628,67 +5677,6 @@ sub render_sub_free_link_as_stored_html {
 
 	$link .= "]]";
 	return store_raw_html($link);
-}
-
-sub render_link_list_as_html {
-
-	my %pgExists = ();
-	foreach my $page (get_all_pages_for_entire_site()) {
-		$pgExists{$page} = 1;
-	}
-
-	my $html = "";
-
-	my $names    = get_request_param("names",    1);
-	my $editlink = get_request_param("editlink", 0);
-	foreach my $pagelines (@_) {
-		my @links;
-
-		my $link;
-		foreach my $page (split(' ', $pagelines)) {
-			if ($page =~ /\:/) {    # URL or InterWiki form
-				if ($page =~ /$pattern_url/) {
-					($link, my $extra) = render_url_link_as_html_and_punct($page);
-				}
-				else {
-					($link, my $extra) = render_inter_page_link_as_html_and_punct($page);
-				}
-			}
-			else {
-				if ($pgExists{$page}) {
-					$link = render_unnamed_page_link_as_html($page);
-				}
-				else {
-					$link = $page;
-					if ($editlink) {
-						$link .= render_edit_link_as_html($page, "?");
-					}
-				}
-			}
-
-			push(@links, $link);
-		}
-
-		if ($names) {
-			$html .= "<dl><dt>" . shift(@links) . " links to:";
-			if (@links > 1) {
-				foreach my $lnk (@links) {
-					$html .= "<dd>$lnk";
-				}
-			}
-			else {
-				$html .= " " . join("; ", @links);
-			}
-
-			$html .= "</dl>";
-		}
-		else {
-			shift(@links);
-			$html .= join(" ", @links) . "<br />";
-		}
-	}
-
-	return $html;
 }
 
 ### MAIN: Handle the wiki request.

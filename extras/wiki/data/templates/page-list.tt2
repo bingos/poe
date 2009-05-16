@@ -1,0 +1,5 @@
+[% INCLUDE "snip-header.tt2" %]
+
+[% page_list %]
+
+[% INCLUDE "snip-footer.tt2" %]

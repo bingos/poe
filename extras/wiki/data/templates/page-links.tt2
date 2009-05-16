@@ -1,0 +1,24 @@
+[% INCLUDE "snip-header.tt2" %]
+
+[% IF link_tree.size %]
+	<h2>Pages and their links:</h2>
+	<dl>
+		[% FOREACH page = link_tree.keys.sort %]
+			<dt>[% page %] links to:</dt>
+			[% FOREACH other = link_tree.$page.keys.sort %]
+				<dd>[% other %]</dd>
+			[% END %]
+		[% END %]
+	</dl>
+[% ELSIF linked_to.size %]
+	<h2>Pages linked to:</h2>
+	<dl>
+		[% FOREACH other = linked_to.keys.sort %]
+			<dt>[% other %]</dt>
+		[% END %]
+	</dl>
+[% ELSE %]
+	<h2>No links found.</h2>
+[% END %]
+
+[% INCLUDE "snip-footer.tt2" %]

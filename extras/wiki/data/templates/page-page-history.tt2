@@ -1,0 +1,5 @@
+[% INCLUDE "snip-header.tt2" %]
+
+Moo.
+
+[% INCLUDE "snip-footer.tt2" %]

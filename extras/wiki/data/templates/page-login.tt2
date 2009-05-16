@@ -1,0 +1,15 @@
+[% INCLUDE "snip-header.tt2" %]
+
+<form method="POST" action="[% script_name | html %]" enctype="application/x-www-form-urlencoded">
+	<input type="hidden" name="enter_login" value="1" />
+	<br/>
+	User ID number:
+	<input type="text" name="p_userid" value="" size="15" maxlength="50" />
+	<br/>
+	Password:
+	<input type="password" name="p_password" value="" size="15" maxlength="50" />
+	<br/>
+	<input type="submit" name="Login" value="Login" />
+</form>
+
+[% INCLUDE "snip-footer.tt2" %]

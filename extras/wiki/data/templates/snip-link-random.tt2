@@ -1,0 +1,1 @@
+[% INCLUDE "snip-link-script.tt2" script_action="action=random" anchor_text="Random Page" link_title="" %]

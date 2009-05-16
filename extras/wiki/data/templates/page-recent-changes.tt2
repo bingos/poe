@@ -1,0 +1,34 @@
+[% INCLUDE "snip-header.tt2" %]
+
+<h2>Updates [% id_only %] [% start_header | html %]</h2>
+
+<p>[% display_options %]<br/>[% next_page %]</p>
+
+[% IF change_dates.size %]
+	<dl>
+	[% FOREACH change_date = change_dates %]
+		<dt>[% change_date %]</dt>
+		<dd>
+			<ul>
+			[% FOREACH change = changes.$change_date %]
+				<li>
+					[% change.time %]
+					[% change.link %]
+					[% change.count %]
+					[% change.edit %]
+					by [% change.author %]
+					<br/>
+					<strong>[% change.summary | html %]</strong>
+				</li>
+			[% END %]
+			</ul>
+		</dd>
+	[% END %]
+	</dl>
+[% ELSE %]
+	<p><strong>No updates [% start_header | html %]</strong></p>
+[% END %]
+
+<p>Page generated: [% page_render_time | html %]</p>
+
+[% INCLUDE "snip-footer.tt2" %]

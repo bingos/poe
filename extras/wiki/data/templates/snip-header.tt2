@@ -1,9 +1,11 @@
-<html>
+[% html_headers %]<html>
 	<head>
 		<title>[% doctitle %]</title>
 		<meta name="ROBOTS" content="[% meta_robot %]" />
 		<link rel="SHORTCUT ICON" href="[% base_url | html %]favicon.ico" />
-		<link rel="stylesheet" type="text/css" href="[% base_url | html %]global.css" />
+		[% IF global_css.length %]
+			<link rel="stylesheet" type="text/css" href="[% global_css | html %]" />
+		[% END %]
 	</head>
 	<body>
 		<div id="container">
