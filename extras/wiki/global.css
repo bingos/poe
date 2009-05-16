@@ -12,7 +12,7 @@ Heavily modified for POE's wiki by Rocco Caputo.
 	font-family: Lucida Grande, Tahoma, Arial, Helvetica, sans-serif;
 	font-size: 10pt;
 	line-height: 1.6em;
-	color: #444444;
+	color: #111111;
 	background-color: #FFF;
 }
 
@@ -22,13 +22,13 @@ h1 {
 	font-family: Arial, Helvetica, sans-serif;
 	font-weight: normal;
 	font-size: 24pt;
-	color: #8080FF;
+	color: #4040FF;
 	margin-bottom: 30px;
 	background-color: #FFF;
 }
 
 h2 {
-	color: #444444;
+	color: #222222;
 	font-size: 16pt;
 	font-family: Arial, Helvetica, sans-serif;
 	background-color: #FFF;
@@ -40,16 +40,16 @@ pre {
 }
 
 a {
-	color:#8080FF;
+	color:#4040FF;
 	text-decoration: none;
 }
 
 b {
-	color: #222222;
+	color: #000000;
 }
 
 a:hover {
-	color:#8080FF;
+	color:#4040FF;
 	background-color: #F5F5F5;
 }
 
@@ -62,7 +62,7 @@ form {
 
 input {
 	background-color: #FFF;
-	color: #999999;
+	color: #606060;
 	border: 1px solid #CCC;
 	font-size: 8pt;
 	padding: 3px;
@@ -93,7 +93,7 @@ input {
 #header p { 
 	margin-top: -20px;
 	margin-left: 30px;
-	color: #999999;
+	color: #606060;
 }
 
 /* NAVIGATION ELEMENTS */
@@ -119,14 +119,14 @@ input {
 }
 
 #navigation a:link, #navlist a:visited {
-	color:#8080FF;
+	color:#4040FF;
 	text-decoration: none;
 }
 
 #navigation a:hover {
 	background: #000000;
 	background-color: #F5F5F5;
-	color:#8080FF;
+	color:#4040FF;
 }
 
 /* THE SMALL BOX BELOW NAV */
