@@ -207,6 +207,10 @@ input {
 	width: 97% !important;
 }
 
+.delicious-blogbadge-tall .post-count-label-after {
+	display: none !important;
+}
+
 /* source code highlighting */
 
 .pd { color: #404080;} /* pod-text */
