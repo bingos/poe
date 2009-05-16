@@ -1,5 +1,5 @@
-#!/sw/perl/5a0/bin/perl
 #!/usr/bin/perl
+#!/sw/perl/5a0/bin/perl
 #
 # $Id$
 #
