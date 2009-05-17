@@ -6,15 +6,24 @@
 		[% IF global_css.length %]
 			<link rel="stylesheet" type="text/css" href="[% global_css | html %]" />
 		[% END %]
+		<script language="javascript">
+		<!--
+			function clear_default(e) {
+				if (e.defaultValue==e.value) e.value = "";
+			}
+			function reset_default(e) {
+				if (e.value=="") e.value = e.defaultValue;
+			}
+		// -->
+		</script>
 	</head>
 	<body>
 		<div id="container">
-
 			<div id="header">
 				<h1><a href="[% base_url | html %]">[% doctitle %]</a></h1>
 				<p>Perl, Objects &amp; Events</p>
 				<form id="search" method="post" action="" enctype="application/x-www-form-urlencoded">
-				<input type="text" value="Search..." name="search" />
+				<input type="text" value="Search..." name="search" onFocus="clear_default(this)" onBlur="reset_default(this)"/>
 				<input type="hidden" name="dosearch" value="1" />
 				<input class="button" type="submit" value="GO" name="Submit" />
 				</form>
