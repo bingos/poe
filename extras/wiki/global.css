@@ -148,7 +148,7 @@ input {
 }
 
 #content p {
-	padding-bottom: 10px;
+	padding-bottom: 0.1em;
 	/* border-bottom: 1px solid #DDDDDD;  A faint grey line below the text */
 }
 

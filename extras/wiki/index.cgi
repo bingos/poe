@@ -2714,7 +2714,7 @@ sub action_open_ban_list_editor {
 		"<hr>\n",
 		render_goto_bar_as_html(""),
 		$request_state{+RS_CGI}->endform,
-		render_common_page_footer_as_html()
+		render_common_footer_as_html()
 	);
 }
 
@@ -3050,7 +3050,7 @@ sub action_open_links_editor {
 		"<hr>\n",
 		render_goto_bar_as_html(""),
 		$request_state{+RS_CGI}->endform,
-		render_common_page_footer_as_html()
+		render_common_footer_as_html()
 	);
 }
 
