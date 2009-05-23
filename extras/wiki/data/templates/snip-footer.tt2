@@ -14,6 +14,9 @@
 					<div class="badge">
 						<a href="http://sourceforge.net/"><img src="http://sourceforge.net/sflogo.php?group_id=15660&amp;type=1" width="88" height="31" border="0" alt="SourceForge.net Logo"></a>
 					</div>
+					<div class="badge">
+						<a href="http://sourceforge.net/community/cca09/nominate/?project_name=POE: Perl Object Environment&project_url=http://sourceforge.net/projects/poe/"><img src="http://sourceforge.net/images/cca/cca_nominate.png" border="0"/></a>
+					</div>
 			</div>
 
 			<div id="footer">
