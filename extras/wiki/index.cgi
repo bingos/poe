@@ -4698,7 +4698,8 @@ sub template_set_common_header_data {
 		$template_data->{doctitle} = "$title - $config{site_name}";
 	}
 	else {
-		$title =~ s/^\s*($config{site_name})?\s*/$config{site_name}: /;
+		$title =~ s/(^|\s)([a-z])([^A-Z\s]*)/$1\U$2\E$3/g;
+		$title =~ s/^\s*($config{site_name}(?:'s)?)?\s*/$config{site_name}: /i;
 		$title =~ s!/! - !g;
 		$template_data->{doctitle} = $title;
 	}
