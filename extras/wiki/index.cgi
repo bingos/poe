@@ -1,10 +1,10 @@
 #!/bin/sh
 # vim: filetype=perl
 # The following bit of shell script chooses the right version of Perl.
-if [[ -x /sw/perl/5a0/bin/perl ]];
+if [ -x /sw/perl/5a0/bin/perl ];
 	then exec /sw/perl/5a0/bin/perl -x $0;
 fi
-if [[ -x /usr/bin/perl ]];
+if [ -x /usr/bin/perl ];
 	then exec /usr/bin/perl -x $0;
 fi
 exec /usr/local/bin/perl -x $0
