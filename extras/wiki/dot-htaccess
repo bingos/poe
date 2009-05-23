@@ -1,10 +1,5 @@
 ErrorDocument 404 http://poe.perl.org/
 DirectoryIndex index.cgi
+Options ExecCGI Indexes
+AddHandler cgi-script .cgi
 Deny from .allresearch.com
-#
-#<Files "index.cgi">
-#  Options ExecCGI
-#  SetHandler perl-script
-#  PerlHandler Apache::PerlRun
-#  PerlSendHeader Off
-#</Files>
