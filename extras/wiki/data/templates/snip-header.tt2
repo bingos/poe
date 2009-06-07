@@ -22,9 +22,8 @@
 			<div id="header">
 				<h1><a href="[% base_url | html %]">[% doctitle %]</a></h1>
 				<p>Perl, Objects &amp; Events</p>
-				<form id="search" method="post" action="" enctype="application/x-www-form-urlencoded">
-				<input type="text" value="Search..." name="search" onFocus="clear_default(this)" onBlur="reset_default(this)"/>
-				<input type="hidden" name="dosearch" value="1" />
+				<form id="search" method="get" action="[% base_url | html %]action/search" enctype="application/x-www-form-urlencoded">
+				<input type="text" value="Search..." name="query" onFocus="clear_default(this)" onBlur="reset_default(this)"/>
 				<input class="button" type="submit" value="GO" name="Submit" />
 				</form>
 			</div>

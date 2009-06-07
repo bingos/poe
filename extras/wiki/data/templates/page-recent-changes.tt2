@@ -12,11 +12,11 @@
 			<ul>
 			[% FOREACH change = changes.$change_date %]
 				<li>
-					[% change.time %]
-					[% change.link %]
-					[% change.count %]
-					[% change.edit %]
-					by [% change.author %]
+					[% change.display_time %]
+					[% change.display_link %]
+					[% change.display_count %]
+					[% change.display_edit %]
+					by [% change.display_author %]
 					<br/>
 					<strong>[% change.summary | html %]</strong>
 				</li>

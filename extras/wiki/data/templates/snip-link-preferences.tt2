@@ -1,2 +1,2 @@
-[% INCLUDE "snip-link-script.tt2" script_action="action=editprefs" anchor_text="Signup/Preferences" link_title="" %]
+[% INCLUDE "snip-link-script.tt2" script_action="action/editprefs" anchor_text="Signup/Preferences" link_title="" %]
 
