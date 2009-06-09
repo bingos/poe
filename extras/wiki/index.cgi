@@ -596,7 +596,7 @@ sub search_title_and_body {
 		open_default_text();
 
 		if (
-			($request_state{+RS_TEXT}{+TEXT_TEXT} =~ /$string/i)
+			($request_state{+RS_TEXT}{+TEXT_TEXT} =~ /\Q$string/i)
 			||
 			($name =~ /$string/i)
 		) {
@@ -5650,50 +5650,3 @@ sub main_wiki_request {
 
 main_wiki_request();
 exit;
-
-__END__
-
-$request_state{+RS_SECTION}{+SECT_DATA}
-	$request_state{+RS_TEXT} hash, flattened with $FS3.
-
-$request_state{+RS_SECTION}
-	$request_state{+RS_PAGE}{$name} hash split on $FS2.
-
-$request_state{+RS_PAGE}{$section}
-	$request_state{+RS_SECTION} hash, flattened with $FS2.
-
-$request_state{+RS_KEPT_REVISION_LIST}
-	keep file, split on FS1
-
-...
-
-rc_name (rclog files)
-	Newline-terminated lines.
-	Each line is an array of fields, separated with $FS3.
-	The last field is a hash, flattened with $FS2.
-
-	TODO - Convert the whole thing into a hash.
-
-page_file_index file
-	$request_state{+RS_INDEX_HASH} hash, flattened by whitespace.
-
-...
-
-page files
-	$request_state{+RS_PAGE} flattened with $FS1.
-
-kept revisions files
-	Array of revisions, separated by $FS1.
-	If revision 0 is empty, it's discarded.
-	Revisions are $request_state{+RS_SECTION}, flattened with $FS2.
-		With the $FS3 implication for +RS_DATA.
-
-user files
-	$request_state{+RS_USER_DATA} hash, flattened with $FS1.
-
-...
-
-./convert_rclog_to_json.pl
-./convert_user_to_json.pl
-./convert_page_to_json.pl
-./convert_kept_to_json.pl
