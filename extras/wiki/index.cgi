@@ -598,7 +598,7 @@ sub search_title_and_body {
 		if (
 			($request_state{+RS_TEXT}{+TEXT_TEXT} =~ /\Q$string/i)
 			||
-			($name =~ /$string/i)
+			($name =~ /\Q$string/i)
 		) {
 			push(@found, $name);
 			next;
@@ -607,7 +607,7 @@ sub search_title_and_body {
 		if ($config{allow_free_links} && ($name =~ m/_/)) {
 			my $freeName = $name;
 			$freeName =~ s/_/ /g;
-			push(@found, $name) if $freeName =~ /$string/i;
+			push(@found, $name) if $freeName =~ /\Q$string/i;
 			next;
 		}
 
@@ -2444,7 +2444,7 @@ sub redirect_browse_page {
 		);
 	}
 	else {
-		print render_redirect_page_as_html($id, $id, $isEdit);
+		print render_redirect_page_as_html("?$id", $id, $isEdit);
 	}
 }
 
@@ -3766,7 +3766,6 @@ sub render_redirect_page_as_html { # TODO
 	# Normally get URL from script, but allow override.
 	my $url = (
 		($config{full_url} || $request_state{+RS_CGI}->url(-full => 1)) .
-		"/" .
 		$newid
 	);
 
