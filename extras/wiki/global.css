@@ -99,8 +99,9 @@ input {
 /* NAVIGATION ELEMENTS */
 
 #navigation {
+	float: left; /* thanks to Phil Whelan */
 	font-size: 8pt;
-	width: 100px;
+	width: 100px
 }
 
 #navigation ul {
