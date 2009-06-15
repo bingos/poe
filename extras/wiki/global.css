@@ -14,10 +14,15 @@ Heavily modified for POE's wiki by Rocco Caputo.
 	line-height: 1.6em;
 	color: #111111;
 	background-color: #FFF;
+	text-align: left; /* For IE, thanks to Tsz Ming WONG */
 }
 
 /* GENERAL MOJO AND MULA */
-		
+
+body { /* For IE, thanks to Tsz Ming WONG */
+	text-align: center
+}
+
 h1 {
 	font-family: Arial, Helvetica, sans-serif;
 	font-weight: normal;
@@ -90,7 +95,7 @@ input {
 
 /* the slogan */
 
-#header p { 
+#header p {
 	margin-top: -20px;
 	margin-left: 30px;
 	color: #606060;
@@ -99,7 +104,7 @@ input {
 /* NAVIGATION ELEMENTS */
 
 #navigation {
-	float: left; /* thanks to Phil Whelan */
+	float: left; /* For IE, thanks to Phil Whelan */
 	font-size: 8pt;
 	width: 100px
 }
@@ -107,7 +112,7 @@ input {
 #navigation ul {
 	margin-left: 0;
 	padding-left: 0;
-	list-style-type: none;			
+	list-style-type: none;
 	float: left;
 	width: 100%;
 }
