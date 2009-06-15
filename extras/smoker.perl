@@ -83,7 +83,6 @@ sub _start {
   $heap->{todo} = [ [ "$perl Makefile.PL", '--default' ],
 		    [ $make ], [ $make, 'test' ], [ $make, 'distclean' ], ];
   $heap->{processing} = { };
-  #$kernel->sig( CHLD => 'sig_chld' );
   $poe_kernel->yield( 'process' );
   undef;
 }
@@ -97,7 +96,6 @@ sub process {
 	$ua->env_proxy;
 	my $response = $ua->post( $pasteurl, \%formdata );
 	print STDOUT $response->status_line, "\n";
-	#$kernel->sig( 'CHLD' );
   	return;
   }
   my $cmd = shift @{ $todo };
