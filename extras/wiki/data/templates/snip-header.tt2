@@ -1,12 +1,12 @@
 [% html_headers %]<html>
 	<head>
 		<title>[% doctitle %]</title>
-		<meta name="ROBOTS" content="[% meta_robot %]" />
-		<link rel="SHORTCUT ICON" href="[% base_url | html %]favicon.ico" />
+		<meta name="ROBOTS" content="[% meta_robot %]">
+		<link rel="SHORTCUT ICON" href="[% base_url | html %]favicon.ico">
 		[% IF global_css.length %]
-			<link rel="stylesheet" type="text/css" href="[% global_css | html %]" />
+			<link rel="stylesheet" type="text/css" href="[% global_css | html %]">
 		[% END %]
-		<script language="javascript">
+		<script type="text/javascript">
 		<!--
 			function clear_default(e) {
 				if (e.defaultValue==e.value) e.value = "";
@@ -23,8 +23,8 @@
 				<h1><a href="[% base_url | html %]">[% doctitle %]</a></h1>
 				<p>Perl, Objects &amp; Events</p>
 				<form id="search" method="get" action="[% base_url | html %]action/search" enctype="application/x-www-form-urlencoded">
-				<input type="text" value="Search..." name="query" onFocus="clear_default(this)" onBlur="reset_default(this)"/>
-				<input class="button" type="submit" value="GO" name="Submit" />
+					<input type="text" value="Search..." name="query" onFocus="clear_default(this)" onBlur="reset_default(this)">
+					<input class="button" type="submit" value="GO" name="Submit">
 				</form>
 			</div>
 

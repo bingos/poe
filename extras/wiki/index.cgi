@@ -604,7 +604,7 @@ sub search_title_and_body {
 			next;
 		}
 
-		if ($config{allow_free_links} && ($name =~ m/_/)) {
+		if ($config{allow_free_links} and ($name =~ m/_/)) {
 			my $freeName = $name;
 			$freeName =~ s/_/ /g;
 			push(@found, $name) if $freeName =~ /\Q$string/i;
@@ -643,12 +643,12 @@ sub try_html_cache {
 
 	my $query = $ENV{QUERY_STRING};
 
-	if (($query eq "") && ($ENV{REQUEST_METHOD} eq "GET")) {
+	if (($query eq "") and ($ENV{REQUEST_METHOD} eq "GET")) {
 		$query = $config{home_page};    # Allow caching of home page.
 	}
 
 	unless ($query =~ /^$pattern_link$/o) {
-		unless ($config{allow_free_links} && ($query =~ /^$pattern_free_link/o)) {
+		unless ($config{allow_free_links} and ($query =~ /^$pattern_free_link/o)) {
 			return 0;            # Only use cache for simple links
 		}
 	}
@@ -1128,14 +1128,14 @@ sub get_all_pages_for_entire_site {
 
 	my $refresh = get_request_param("refresh", 0);
 
-	if (@{$request_state{+RS_INDEX_LIST}} && !$refresh) {
+	if (@{$request_state{+RS_INDEX_LIST}} and !$refresh) {
 
 		# May need to change for mod_perl eventually (cache consistency)
 		# Possibly check timestamp of file then?
 		return @{$request_state{+RS_INDEX_LIST}};
 	}
 
-	if ((!$refresh) && (-f $config{file_page_index})) {
+	if ((!$refresh) and (-f $config{file_page_index})) {
 		my ($status, $rawIndex) = read_file($config{file_page_index});
 		if ($status) {
 			$request_state{+RS_INDEX_HASH} = {
@@ -1205,19 +1205,19 @@ sub get_all_links_for_entire_site {
 
 		foreach my $link (@links) {
 			$seen{$link}++;
-			if (($unique > 0) && ($seen{$link} != 1)) {
+			if (($unique > 0) and ($seen{$link} != 1)) {
 				next;
 			}
 
-			if (($exists == 0) && ($pgExists{$link} == 1)) {
+			if (($exists == 0) and ($pgExists{$link} == 1)) {
 				next;
 			}
 
-			if (($exists == 1) && ($pgExists{$link} != 1)) {
+			if (($exists == 1) and ($pgExists{$link} != 1)) {
 				next;
 			}
 
-			if (($search ne "") && !($link =~ /$search/)) {
+			if (($search ne "") and !($link =~ /$search/)) {
 				next;
 			}
 
@@ -1733,7 +1733,7 @@ sub do_login {
 	$uid =~ s/\D//g;
 	my $password = get_request_param("p_password", "");
 
-	if (($uid > 199) && ($password ne "") && ($password ne "*")) {
+	if (($uid > 199) and ($password ne "") and ($password ne "*")) {
 		$request_state{+RS_USER_ID} = $uid;
 		load_user_data();
 		if ($request_state{+RS_USER_ID} > 199) {
@@ -2389,7 +2389,7 @@ sub action_run_periodic_maintenance {
 
 	my $fname = "$dir_data/maintain";
 	unless (user_is_admin()) {
-		if ((-f $fname) && ((-M $fname) < 0.5)) {
+		if ((-f $fname) and ((-M $fname) < 0.5)) {
 			print(
 				"Maintenance not done.  ",
 				"(Maintenance can only be done once every 12 hours.)  ",
@@ -2440,7 +2440,7 @@ sub redirect_browse_page {
 
 	if ($old_id ne "") {
 		print render_redirect_page_as_html(
-			"action/browse?id=$id&oldid=$old_id", $id, $isEdit
+			"action/browse?id=$id&amp;oldid=$old_id", $id, $isEdit
 		);
 	}
 	else {
@@ -2478,15 +2478,13 @@ sub action_browse_page {
 	# Handle a single-level redirect
 	my $old_id = get_request_param("oldid", "");
 	if (
-		($old_id eq "")
-		&&
+		($old_id eq "") and
 		(substr($request_state{+RS_TEXT}{+TEXT_TEXT}, 0, 10) eq "#REDIRECT ")
 	) {
 		$old_id = $id;
 
 		if (
-			($config{allow_free_links})
-			&&
+			($config{allow_free_links}) and
 			($request_state{+RS_TEXT}{+TEXT_TEXT} =~ /\#REDIRECT\s+\[\[.+\]\]/)
 		) {
 			($id) = (
@@ -2520,7 +2518,7 @@ sub action_browse_page {
 		$allDiff = get_request_param("defaultdiff", 1);
 	}
 
-	if (($id eq $config{rc_name}) && get_request_param("norcdiff", 1)) {
+	if (($id eq $config{rc_name}) and get_request_param("norcdiff", 1)) {
 		$allDiff = 0;          # Only show if specifically requested
 	}
 
@@ -2528,7 +2526,7 @@ sub action_browse_page {
 
 	my $showDiff = get_request_param("diff", $allDiff);
 	my $diffRevision;
-	if ($config{allow_diff} && $showDiff) {
+	if ($config{allow_diff} and $showDiff) {
 		$diffRevision = $goodRevision;
 		$diffRevision = get_request_param("diffrevision", $diffRevision);
 
@@ -2548,7 +2546,7 @@ sub action_browse_page {
 		)
 	);
 
-	if ($config{allow_diff} && $showDiff) {
+	if ($config{allow_diff} and $showDiff) {
 		$fullHtml .= render_diff_as_html($showDiff, $id, $diffRevision, $newText);
 	}
 
@@ -2863,11 +2861,11 @@ sub action_write_updated_preferences {
 		print "UserName removed.<br>";
 		$request_state{+RS_USER_DATA}{+USER_NAME} = undef;
 	}
-	elsif ((!$config{allow_free_links}) && (!($username =~ /^$pattern_link$/o))) {
+	elsif ((!$config{allow_free_links}) and (!($username =~ /^$pattern_link$/o))) {
 		print "Invalid UserName $username: not saved.<br>\n";
 	}
 	elsif (
-		$config{allow_free_links} && (!($username =~ /^$pattern_free_link$/o))
+		$config{allow_free_links} and (!($username =~ /^$pattern_free_link$/o))
 	) {
 		print "Invalid UserName $username: not saved.<br>\n";
 	}
@@ -3071,7 +3069,7 @@ sub action_open_page_editor {
 
 	my $oldText = $request_state{+RS_TEXT}{+TEXT_TEXT};
 
-	if ($preview && !$isConflict) {
+	if ($preview and !$isConflict) {
 		$oldText = $newText;
 	}
 
@@ -3318,7 +3316,7 @@ sub action_write_updated_page {
 	my $preview = 0;
 	$preview = 1 if (get_request_param("Preview", "") ne "");
 
-	if (!$preview && ($old eq $string)) {    # No changes (ok for preview)
+	if (!$preview and ($old eq $string)) {    # No changes (ok for preview)
 		release_main_lock();
 		redirect_browse_page($id, "", 1);
 		return;
@@ -3350,7 +3348,7 @@ sub action_write_updated_page {
 	$newAuthor = 1 if $oldrev == 0;   # New page
 	$newAuthor = 0 unless $newAuthor; # Standard flag form, not empty
 																		# Detect editing conflicts and resubmit edit
-	if (($oldrev > 0) && ($newAuthor && ($oldtime != $pgtime))) {
+	if (($oldrev > 0) and ($newAuthor and ($oldtime != $pgtime))) {
 		release_main_lock();
 
 		if ($oldconflict > 0) {         # Conflict again...
@@ -3956,9 +3954,9 @@ sub render_diff_as_html { # TODO
 		$diffText = get_cache_diff($priorName);
 	}
 
-	$useMajor  = 0 if ($useMajor  && ($diffText eq get_cache_diff("major")));
-	$useMinor  = 0 if ($useMinor  && ($diffText eq get_cache_diff("minor")));
-	$useAuthor = 0 if ($useAuthor && ($diffText eq get_cache_diff("author")));
+	$useMajor  = 0 if ($useMajor  and ($diffText eq get_cache_diff("major")));
+	$useMinor  = 0 if ($useMinor  and ($diffText eq get_cache_diff("minor")));
+	$useAuthor = 0 if ($useAuthor and ($diffText eq get_cache_diff("author")));
 	$useMajor  = 0 if (
 		(!defined(get_page_cache('oldmajor'))) or
 		(get_page_cache('oldmajor') < 1)
@@ -4005,7 +4003,7 @@ sub render_diff_as_html { # TODO
 	}
 
 	if (
-		($diffType != 2) &&
+		($diffType != 2) and
 		(
 			(!defined(get_page_cache("old$priorName")))
 			|| (get_page_cache("old$priorName") < 1)
@@ -4173,7 +4171,7 @@ sub render_common_markup_as_html { # TODO
 			s/\[$pattern_inter_link\s+([^\]]+?)\]/render_bracketed_inter_page_link_as_stored_html($1, $2)/geos;
 
 			# Local bracket-links
-			if ($config{allow_camelcase_links} && $config{allow_bracketed_wiki_links}) {
+			if ($config{allow_camelcase_links} and $config{allow_bracketed_wiki_links}) {
 				s/\[$pattern_link\s+([^\]]+?)\]/render_bracketed_link_as_stored_html($1, $2)/geos;
 			}
 		}
@@ -4352,7 +4350,7 @@ sub render_history_line_as_html { # TODO
 	$html .= "... " . $minor . render_date_time_as_text($ts) . " ";
 	$html .= "by " . render_author_link_as_html($host, $user, $uid) . " ";
 
-	if (defined($summary) && ($summary ne "") && ($summary ne "*")) {
+	if (defined($summary) and ($summary ne "") and ($summary ne "*")) {
 		$summary = quote_html($summary);    # Thanks Sunir! :-)
 		$html .= "<b>[$summary]</b> ";
 	}
@@ -4416,7 +4414,7 @@ sub render_old_page_link_as_html {
 	}
 
 	return render_script_link_as_html(
-		"action/$kind?id=$page_id&revision=$revision", $page_name
+		"action/$kind?id=$page_id&amp;revision=$revision", $page_name
 	);
 }
 
@@ -4517,22 +4515,22 @@ sub render_random_link_as_html {
 sub render_diff_link_as_html {
 	my ($diff, $id, $text, $rev) = @_;
 
-	$rev = "&revision=$rev" if ($rev ne "");
+	$rev = "&amp;revision=$rev" if ($rev ne "");
 	$diff = get_request_param("defaultdiff", 1) if ($diff == 4);
 
 	return render_script_link_as_html(
-		"action/browse?diff=$diff&id=$id$rev", $text
+		"action/browse?diff=$diff&amp;id=$id$rev", $text
 	);
 }
 
 sub render_diff_link_with_revision_as_html {
 	my ($diff, $id, $rev, $text) = @_;
 
-	$rev = "&diffrevision=$rev" if ($rev ne "");
+	$rev = "&amp;diffrevision=$rev" if ($rev ne "");
 	$diff = get_request_param("defaultdiff", 1) if ($diff == 4);
 
 	return render_script_link_as_html(
-		"action/browse?diff=$diff&id=$id$rev", $text
+		"action/browse?diff=$diff&amp;id=$id$rev", $text
 	);
 }
 
@@ -4552,7 +4550,7 @@ sub render_author_link_as_html {
 
 	# Later have user preference for link titles and/or host text?
 	my $html;
-	if (($uid > 0) && ($userName ne "")) {
+	if (($uid > 0) and ($userName ne "")) {
 		# XXX - Probably renders the wrong link.
 		$html = render_script_link_as_html(
 			$userName, $userNameShow, "ID $uid from $host"
@@ -4636,7 +4634,7 @@ sub template_set_common_header_data {
 		$template_data->{doctitle} = $title;
 	}
 
-	if ($config{allow_user_css} && $request_state{+RS_USER_DATA}{+USER_CSS}) {
+	if ($config{allow_user_css} and $request_state{+RS_USER_DATA}{+USER_CSS}) {
 		$template_data->{CSS} = $request_state{+RS_USER_DATA}{+USER_CSS};
 	}
 }
@@ -4686,7 +4684,7 @@ sub template_set_title_data {
 		}
 	}
 
-	if ($config{enable_top_link_bar} && get_request_param("toplinkbar", 1)) {
+	if ($config{enable_top_link_bar} and get_request_param("toplinkbar", 1)) {
 
 		# Later consider smaller size?
 		$template_data->{header} .= render_goto_bar_as_html($page_id) . "<hr>";
@@ -5462,7 +5460,7 @@ sub render_url_link_as_html_and_punct { # TODO
 
 	my ($name, $punct) = split_url_from_trailing_punctuation($rawname);
 
-	if ($config{allow_file_scheme} && $name =~ m!^file:!) {
+	if ($config{allow_file_scheme} and $name =~ m!^file:!) {
 
 		# Only do remote file:// links. No file:///c|/windows.
 		if ($name =~ m!^file://[^/]!) {
@@ -5474,8 +5472,7 @@ sub render_url_link_as_html_and_punct { # TODO
 
 	# Restricted image URLs so that mailto:foo@bar.gif is not an image
 	if (
-		$useImage
-		&&
+		$useImage and
 		($name =~ /^(http:|https:|ftp:).+\.$pattern_image_extensions$/)
 	) {
 		return ("<img src=\"$name\">", $punct);
