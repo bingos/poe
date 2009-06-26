@@ -3779,7 +3779,7 @@ sub render_redirect_page_as_html { # TODO
 			# Minimal header.
 			$html = "Status: 302 Moved\n";
 			$html .= "Location: $url\n";
-			$html .= "Content-Type: text/html\n";    # Needed for browser failure
+			$html .= "Content-Type: text/html; charset=UTF-8\n";    # Needed for browser failure
 			$html .= "\n";
 		}
 		else {
@@ -4608,11 +4608,14 @@ sub template_set_common_header_data {
 		# TODO - Proper expiration and other cache-management headers.
 		$cookie .= ";expires=Fri, 08-Sep-2010 19:48:23 GMT";
 		$template_data->{html_headers} = $request_state{+RS_CGI}->header(
-			-cookie => $cookie
+			-cookie => $cookie,
+			-charset => 'UTF-8',
 		);
 	}
 	else {
-		$template_data->{html_headers} = $request_state{+RS_CGI}->header();
+		$template_data->{html_headers} = $request_state{+RS_CGI}->header(
+			-charset => 'UTF-8',
+		);
 	}
 
 	$template_data->{global_css} = $config{global_css} || "";

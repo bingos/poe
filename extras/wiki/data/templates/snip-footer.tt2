@@ -6,7 +6,7 @@
 						<script type="text/javascript">
 							if (typeof window.Delcious == "undefined") window.Delicious = {}; Delicious.BLOGBADGE_DEFAULT_CLASS = 'delicious-blogbadge-custom';
 						</script>
-						<div class="delicious-blogbadge-tall"><script src="http://images.del.icio.us/static/js/blogbadge.js"></script></div>
+						<div class="delicious-blogbadge-tall"><script type="text/javascript" src="http://images.del.icio.us/static/js/blogbadge.js"></script></div>
 					</div>
 					<div class="badge">
 						<script type="text/javascript" src="http://www.ohloh.net/p/8105/widgets/project_thin_badge.js"></script>
@@ -15,7 +15,7 @@
 						<a href="http://sourceforge.net/"><img src="http://sourceforge.net/sflogo.php?group_id=15660&amp;type=1" width="88" height="31" border="0" alt="SourceForge.net Logo"></a>
 					</div>
 					<div class="badge">
-						<a href="http://sourceforge.net/community/cca09/nominate/?project_name=POE: Perl Object Environment&amp;project_url=http://sourceforge.net/projects/poe/"><img src="http://sourceforge.net/images/cca/cca_nominate.png" border="0"/></a>
+						<a href="http://sourceforge.net/community/cca09/nominate/?project_name=POE: Perl Object Environment&amp;project_url=http://sourceforge.net/projects/poe/"><img src="http://sourceforge.net/images/cca/cca_nominate.png" alt="Nominate POE for SF CCA09" border="0"></a>
 					</div>
 			</div>
 
