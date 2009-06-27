@@ -4598,15 +4598,15 @@ sub template_set_common_header_data {
 	my ($template_data, $title) = @_;
 
 	if (defined($request_state{+RS_SET_COOKIE}{+SCOOK_ID})) {
-		my $cookie = (
-			"$config{cookie_name}=" .
-			"rev&" . $request_state{+RS_SET_COOKIE}{+SCOOK_REV} .
-			"&id&" . $request_state{+RS_SET_COOKIE}{+SCOOK_ID} .
-			"&randkey&" . $request_state{+RS_SET_COOKIE}{+SCOOK_RANDKEY}
+		# TODO - Proper cache-management headers.
+
+		my $cookie = $request_state{+RS_CGI}->cookie(
+			-name => $config{cookie_name},
+			-value => $request_state{+RS_SET_COOKIE},
+			-path => '/',
+			-expires => '+1y',
 		);
 
-		# TODO - Proper expiration and other cache-management headers.
-		$cookie .= ";expires=Fri, 08-Sep-2010 19:48:23 GMT";
 		$template_data->{html_headers} = $request_state{+RS_CGI}->header(
 			-cookie => $cookie,
 			-charset => 'UTF-8',
