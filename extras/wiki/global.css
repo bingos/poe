@@ -59,6 +59,9 @@ a:hover {
 	background-color: #F5F5F5;
 }
 
+a.rss {
+	color: #D95C28 !important;
+}
 
 form {
 	float: right;

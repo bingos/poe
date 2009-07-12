@@ -1350,7 +1350,7 @@ sub open_or_create_text {
 				"\" vim: syntax=wiki\n" .
 				"-->\n"
 			),
-			TEXT_IS_MINOR_REV,  0,   # Default as major edit.
+			TEXT_IS_MINOR_REV,  1,   # Default as minor edit.
 			TEXT_IS_NEW_AUTHOR, 1,   # Default as new author.
 			TEXT_SUMMARY,       '',  # TODO - Can we default the summary?
 		};
@@ -3135,9 +3135,9 @@ sub action_open_page_editor {
 		)
 	);
 
+	print "<br>";
 	if (get_request_param("recent_edit") eq "on") {
 		print(
-			"<br>",
 			$request_state{+RS_CGI}->checkbox(
 				-name    => 'recent_edit',
 				-checked => 1,
@@ -3147,13 +3147,17 @@ sub action_open_page_editor {
 	}
 	else {
 		print(
-			"<br>",
 			$request_state{+RS_CGI}->checkbox(
-				-name  => 'recent_edit',
-				-label => 'This change is a minor edit.'
+				-name    => 'recent_edit',
+				-label   => 'This change is a minor edit.'
 			)
 		);
 	}
+
+	print(
+		"<br>(Minor edits are structural or typographical changes.)",
+		"<br>(Major edits include new pages and substantial content changes.)",
+	);
 
 	print q{<br><input type="submit" name="Save" value="Save">};
 

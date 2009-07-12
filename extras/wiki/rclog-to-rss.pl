@@ -17,6 +17,7 @@ use strict;
 use XML::RSS;
 use POSIX qw(strftime);
 use JSON::XS;
+use URI::Escape;
 
 ### Common calculated data.
 
@@ -36,17 +37,17 @@ my %common_text_input_info = (
 	link        => "http://poe.perl.org/action/search",
 );
 
-### Create and globally configure the major-changes feed.
+### Create and globally configure the notable-changes feed.
 
-my $rss_major = XML::RSS->new(version => '2.0');
+my $rss_notable = XML::RSS->new(version => '2.0');
 
-$rss_major->channel(
+$rss_notable->channel(
 	%common_feed_info,
-	title           => 'POE Wiki Major Changes',
-	description     => 'Major POE wiki changes, excluding minor edits.',
+	title           => 'POE Wiki Notable Changes',
+	description     => 'Notable POE wiki changes, excluding minor edits.',
 );
 
-$rss_major->textinput(%common_text_input_info);
+$rss_notable->textinput(%common_text_input_info);
 
 ### Create and globally configure the all-changes feed.
 
@@ -77,6 +78,18 @@ foreach (@candidates) {
 }
 die "couldn't open rclog: $!" unless $rclog;
 
+my $file_rss_notable  = "$rss_dir/wiki-notable.rss";
+my $file_rss_all      = "$rss_dir/wiki-all.rss";
+
+# We don't need to do anything if all our RSS files are up to date.
+
+if (
+	(stat $rclog)[9] < ((stat $file_rss_notable)[9] || time()) and
+	(stat $rclog)[9] < ((stat $file_rss_all)[9] || time())
+) {
+	exit;
+}
+
 my $earliest = $^T - 14 * 86400;
 while (<$rclog>) {
 	chomp;
@@ -85,35 +98,36 @@ while (<$rclog>) {
 	# Too old, or, surprisingly, too new.
 	next if $rc_info->{timestamp} < $earliest or $rc_info->{timestamp} > $^T;
 
+	my $title = $rc_info->{page_id};
+	$title =~ s/_+/ /g;
+	$title =~ s!\s*/\s*! - !g;
+
+	my $creator = "$rc_info->{user_name} ($rc_info->{user_id})";
+	my $link    = "http://poe.perl.org/?" .  uri_escape($rc_info->{page_id});
+
 	# Translate it to an RSS item.
 	my %rss_item = (
-		title       => "$rc_info->{page_id} (wiki change)",
-		permaLink   => "http://poe.perl.org/?" . $rc_info->{page_id},
+		title       => $title,
+		permaLink   => $link,
 		description => $rc_info->{summary},
-		pubDate     => strftime("%a, %d %b %Y %T GMT", gmtime($^T)),
-		dc => {
-			creator => "$rc_info->{user_name} ($rc_info->{user_id})",
-		},
+		pubDate     => strftime(
+			"%a, %d %b %Y %T GMT", gmtime($rc_info->{timestamp})),
+		author      => $creator,
 	);
 
 	# Minor edits go into the full feed.
 
-	$rss_major->add_item(%rss_item) unless $rc_info->{minor_edit};
+	$rss_notable->add_item(%rss_item) unless $rc_info->{minor_edit};
 	$rss_all->add_item(%rss_item);
 }
 
 # Save the files.
+# TODO - Only save the files that have changed.
 
-{
-	my $rss_file = "$rss_dir/wiki-major.rss";
-	$rss_major->save($rss_file);
-	chmod 0644, $rss_file;
-}
+$rss_notable->save($file_rss_notable);
+chmod 0644, $file_rss_notable;
 
-{
-	my $rss_file = "$rss_dir/wiki-all.rss";
-	$rss_all->save($rss_file);
-	chmod 0644, $rss_file;
-}
+$rss_all->save($file_rss_all);
+chmod 0644, $file_rss_all;
 
 exit;

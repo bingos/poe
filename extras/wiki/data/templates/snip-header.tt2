@@ -5,6 +5,8 @@
 		<meta http-equiv="Content-type" content="text/html;charset=UTF-8"> 
 		<meta name="ROBOTS" content="[% meta_robot %]">
 		<link rel="SHORTCUT ICON" href="[% base_url | html %]favicon.ico">
+		<link rel="alternate" type="application/rss+xml" title="Notable Wiki Changes" href="/wiki-major.rss"></link>
+		<link rel="alternate" type="application/rss+xml" title="All Wiki Changes" href="/wiki-all.rss"></link>
 		[% IF global_css.length %]
 			<link rel="stylesheet" type="text/css" href="[% global_css | html %]">
 		[% END %]
@@ -45,6 +47,8 @@
 					<li><a href="[% base_url | html %]?Organizations_Using_POE">Corporate Users</a></li>
 					<li><a href="[% base_url | html %]?Projects_Using_POE">Related Projects</a></li>
 					<li><a href="[% base_url | html %]?About_the_Site">Colophon</a></li>
+					<li><a class="rss" href="/wiki-major.rss">Notable Changes</a></li>
+					<li><a class="rss" href="/wiki-all.rss">All Changes</a></li>
 				</ul>
 			</div>
 
