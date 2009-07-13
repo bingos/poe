@@ -1,52 +1,111 @@
 /* --------------------------------------------------
 CSS Document For Leaves v1.0 - Anthonyy @ OSWD.org
 Heavily modified for POE's wiki by Rocco Caputo.
+Incorporates ideas summarized at
+http://www.alistapart.com/articles/holygrail
 -------------------------------------------------- */
 
-/* CONTAINER */
+/*
+	HOLY GRAIL      POE.PERL.ORG
+	header          header
+	container       container
+		left            navigation
+		center          content
+		right           sidebar
+	footer          footer
+
+	fw = fullwidth
+*/
+
+/* BASIC PAGE STRUCTURE */
+
+body {
+	min-width: 630px;
+}
 
 #container {
-	width: 750px;
-	margin: 0 auto;
+	padding-left: 170px;
+	padding-right: 210px;
+}
+
+#container .column {
+	position: relative;
+	float: left;
+}
+
+#navigation {
+	width: 150px;
+	padding: 0 10px;
+	right: 210px;
+	margin-left: -100%;
+}
+
+#sidebar {
+	width: 150px;
+	padding: 0 10px;
+	margin-right: -100%;
+}
+
+#content {
+	padding: 10px 20px;
+	width: 100%;
+}
+
+#footer {
+	clear: both;
+	text-align: right;
+}
+
+/* IE Fix */
+
+* html #left {
+	left: 170px;
+}
+
+/* Equal height columns? */
+
+#container {
+	overflow: hidden;
+}
+
+#container .column {
+	padding-bottom: 1001em; /* X + padding-bottom */
+	margin-bottom: -1000em; /*  X */
+}
+
+/* Footer Fix */
+
+* html body {
+	overflow: hidden;
+}
+
+* html #footer-wrapper {
+	float: left;
+	position: relative;
+	width: 100%;
+	padding-bottom: 10010px;
+	margin-bottom: -10000px;
+	background: #FFF; /* match body BG */
+}
+
+/* STYLING - Global */
+
+body {
 	/* Lucida Grande for the Macs, Tahoma for the PCs */
 	font-family: Lucida Grande, Tahoma, Arial, Helvetica, sans-serif;
 	font-size: 10pt;
 	line-height: 150%;
 	color: #111111;
 	background-color: #FFF;
-	text-align: left; /* For IE, thanks to Tsz Ming WONG */
-}
-
-/* GENERAL MOJO AND MULA */
-
-body { /* For IE, thanks to Tsz Ming WONG */
-	text-align: center
-}
-
-h1 {
-	font-family: Arial, Helvetica, sans-serif;
-	font-weight: normal;
-	font-size: 24pt;
-	color: #4040FF;
-	margin-bottom: 30px;
-	background-color: #FFF;
-}
-
-h2 {
-	color: #222222;
-	font-size: 16pt;
-	font-family: Arial, Helvetica, sans-serif;
-	background-color: #FFF;
 }
 
 pre {
 	font-size: 8pt;
-	margin-bottom: 0pt;
 	line-height: 120%;
 }
 
 a {
-	color:#4040FF;
+	color: #4040FF;
 	text-decoration: none;
 }
 
@@ -55,7 +114,7 @@ b {
 }
 
 a:hover {
-	color:#4040FF;
+	color: #4040FF;
 	background-color: #F5F5F5;
 }
 
@@ -63,68 +122,37 @@ a.rss {
 	color: #D95C28 !important;
 }
 
-form {
-	float: right;
-	margin-top: -45px;
-	font-size: 10pt;
+h1 {
+	font-family: Arial, Helvetica, sans-serif;
 }
 
-input {
-	background-color: #FFF;
-	color: #606060;
-	border: 1px solid #CCC;
-	font-size: 8pt;
-	padding: 3px;
+/* STYLING - Column Container */
+
+#container h1 {
+	color: #222222;
 }
 
-.button {
-	padding: 2px;
+#container h2 {
+	color: #222222;
 }
 
-/* HEADER ELEMENTS */
-
-#header {
-	border-bottom: 4px solid #948979;
-	padding-top: 10px;
-	padding-left: 5px;
-	padding-right: 5px;
-	clear: both;
-	margin-bottom: 10px;
-	background-color: #E8E8FF;
-}
-
-#header h1 {
-	background-color: #E8E8FF;
-}
-
-/* the slogan */
-
-#header p {
-	margin-top: -20px;
-	margin-left: 30px;
-	color: #606060;
-}
-
-/* NAVIGATION ELEMENTS */
+/* STYLING - Navigation Column */
 
 #navigation {
-	float: left; /* For IE, thanks to Phil Whelan */
 	font-size: 8pt;
-	width: 100px
 }
 
 #navigation ul {
 	margin-left: 0;
 	padding-left: 0;
 	list-style-type: none;
-	float: left;
 	width: 100%;
 }
 
 #navigation a {
 	display: block;
 	padding: 5px;
-	width: 90px; /* navigation width - padding x2 */
+	width: 140px; /* navigation width - padding x2 */
 	border-bottom: 1px solid #CCC;
 }
 
@@ -139,60 +167,64 @@ input {
 	color:#4040FF;
 }
 
-/* THE SMALL BOX BELOW NAV */
+/* STYLING - Header */
 
-#navigation p {
-	margin-top: 40px;
-	padding: 5px;
-	border-bottom: 1px dotted #CCC;
-	border-top: 1px dotted #CCC;
+#header {
+	border-bottom: 4px solid #948979;
+	padding-top: 5px;
+	padding-left: 5px;
+	padding-right: 5px;
+	clear: both;
+	margin-bottom: 10px;
+	background-color: #E8E8FF;
 }
 
-/* CONTENT ELEMENTS */
-
-#content {
-	width: 470px;
-	float: left;
-	padding-left: 15px;
-	padding-right: 15px;
+#header h1 {
+	/* background-color: #E8E8FF; */
+	font-weight: normal;
+	font-size: 24pt;
+	color: #4040FF;
+	margin-bottom: 30px;
+	margin-left: 8px;
 }
 
-#content p {
-	padding-bottom: 0.1em;
-	/* border-bottom: 1px solid #DDDDDD;  A faint grey line below the text */
+#header p { /* slogan */
+	margin-top: -20px;
+	margin-left: 30px;
+	color: #606060;
 }
 
-#content form {
-	float: left;
-	margin-top: 0px;
-}
-
-/* SIDEBAR ELEMENTS */
-
-#sidebar {
+#header form {
 	float: right;
-	width: 150px;
+	margin-top: -45px;
+	font-size: 10pt;
+	margin-right: 8px;
 }
 
-#sidebar p {
-	padding-bottom: 10px;
-	border-bottom: 1px solid #DDDDDD;
+#header input {
+	background-color: #FFF;
+	color: #606060;
+	border: 1px solid #CCC;
+	font-size: 8pt;
+	padding: 3px;
 }
 
-/* FOOTER ELEMENTS */
+#header .button {
+	padding: 2px;
+}
+
+/* STYLING - Footer */
 
 #footer {
 	margin-top: 20px;
-	clear: both;
-	float: left;
-	width: 100%;
 	background-color:#E8E8FF;
 	padding: 5px;
 	font-size: 8pt;
+	line-height: 120%;
 }
 
 #footer p {
-	color:#89817f;
+	color: #89817f;
 	padding: 5px;
 }
 
@@ -206,47 +238,58 @@ input {
 	background-color:#575352;
 }
 
-/* Sidebar badges. */
+/* STYLING - Sidebar Badges */
 
-.badge {
+#sidebar .badge {
 	width: 150;
 	padding-bottom: 10px !important;
 }
 
-.delicious-blogbadge-tall {
+#sidebar .delicious-blogbadge-tall {
 	width: 97% !important;
 }
 
-.delicious-blogbadge-tall .post-count-label-after {
+#sidebar .delicious-blogbadge-tall .post-count-label-after {
 	display: none !important;
 }
 
-/* source code highlighting */
+/* STYLING - Source Code */
 
-.pd { color: #404080;} /* pod-text */
-.c  { color: #404080;} /* comment */
+#code {
+	background-color: #EEEEEE;
+	border: 1px solid #000000;
+}
 
-.cm { color: #800097;} /* comma */
-.co { color: #800097;} /* colon */
+#code pre {
+	margin-top: 0pt;
+	margin-bottom: 0pt;
+	padding: 1ex 1ex;
+}
 
-.h  { color: #804848;} /* here-doc-target */
-.hh { color: #800000;} /* here-doc-text */
-.q  { color: #800000;} /* quote */
-.v  { color: #800000;} /* v-string */
+#code .pd { color: #404080;} /* pod-text */
+#code .c  { color: #404080;} /* comment */
 
-.i  { color: #008080;} /* identifier */
+#code .cm { color: #800097;} /* comma */
+#code .co { color: #800097;} /* colon */
 
-.k  { color: #0000FF;} /* keyword */
-.n  { color: #E02020;} /* numeric */
+#code .h  { color: #804848;} /* here-doc-target */
+#code .hh { color: #800000;} /* here-doc-text */
+#code .q  { color: #800000;} /* quote */
+#code .v  { color: #800000;} /* v-string */
 
-.m  { color: #C00080;} /* subroutine */
-.j  { color: #C00080;} /* label */
-.w  { color: #C00080;} /* bareword */
+#code .i  { color: #008080;} /* identifier */
 
-.p  { color: #800080;} /* paren */
-.s  { color: #800080;} /* structure */
-.sc { color: #800080;} /* semicolon */
+#code .k  { color: #0000FF;} /* keyword */
+#code .n  { color: #E02020;} /* numeric */
 
-.pu { color: #C44800;} /* punctuation */
+#code .m  { color: #C00080;} /* subroutine */
+#code .j  { color: #C00080;} /* label */
+#code .w  { color: #C00080;} /* bareword */
+
+#code .p  { color: #800080;} /* paren */
+#code .s  { color: #800080;} /* structure */
+#code .sc { color: #800080;} /* semicolon */
+
+#code .pu { color: #C44800;} /* punctuation */
 
 /* And they lived happily ever after. The End. */

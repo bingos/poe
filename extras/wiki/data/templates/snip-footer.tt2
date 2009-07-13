@@ -1,6 +1,26 @@
 			</div>
 
-			<div id="sidebar">
+			<div id="navigation" class="column">
+				<ul id="navlist">
+					<li><a href="[% base_url | html %]">Home</a></li>
+					<li><a href="[% base_url | html %]?What_POE_Is">About</a></li>
+					<li><a href="[% base_url | html %]?POE_Cookbook">Cookbook</a></li>
+					<li><a href="[% base_url | html %]?POE_Documentation">Documentation</a></li>
+					<li><a href="[% base_url | html %]?Where_to_Get_POE">Downloads</a></li>
+					<li><a href="[% base_url | html %]?POE_FAQ">FAQ</a></li>
+					<li><a href="[% base_url | html %]?POE_Support_Resources">Support</a></li>
+					<li><a href="[% base_url | html %]?POE_Support_Resources">Contact Us</a></li>
+					<li><a href="[% base_url | html %]?Join_Us">Contribute</a></li>
+					<li><a href="[% base_url | html %]?People_Using_POE">Individual Users</a></li>
+					<li><a href="[% base_url | html %]?Organizations_Using_POE">Corporate Users</a></li>
+					<li><a href="[% base_url | html %]?Projects_Using_POE">Related Projects</a></li>
+					<li><a href="[% base_url | html %]?About_the_Site">Colophon</a></li>
+					<li><a class="rss" href="/wiki-major.rss">Notable Changes</a></li>
+					<li><a class="rss" href="/wiki-all.rss">All Changes</a></li>
+				</ul>
+			</div>
+
+			<div id="sidebar" class="column">
 				<h2>Stats</h2>
 					<div class="badge">
 						<script type="text/javascript">
@@ -19,11 +39,12 @@
 					</div>
 			</div>
 
-			<div id="footer">
-				<div>
-					[% footer %]
-				</div>
+		</div>
+
+		<div id="footer">
+			<div>
+				[% footer %]
 			</div>
-	</div>
+		</div>
 	</body>
 </html>

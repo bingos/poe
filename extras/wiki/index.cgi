@@ -4729,50 +4729,57 @@ sub template_set_complex_page_footer {
 	if (user_can_edit($id, 0)) {
 		my $userName = get_request_param("username", "");
 		if ($userName eq "") {
-			$template_data->{footer} .= "Must login to edit";
+			$template_data->{footer} .= "Must Login to Edit";
 		}
 		else {
 			if ($rev ne "") {
 				$template_data->{footer} .= (
 					render_old_page_link_as_html(
-						'edit', $id, $rev, "Edit revision $rev of this page"
+						'edit', $id, $rev, "Edit r$rev of This Page"
 					)
 				);
 			}
 			else {
 				$template_data->{footer} .= render_edit_link_as_html(
-					$id, "Edit text of this page"
+					$id, "Edit This Page"
 				);
 			}
 		}
 
 		$template_data->{footer} .= (
 			" | " .
-			render_history_link_as_html($id, "View other revisions")
+			render_history_link_as_html($id, "View Page History")
 		);
 	}
 	else {
 		$template_data->{footer} .= (
-			"This page is read-only" .
+			"This Page is Read-Only" .
 			" | " .
-			render_history_link_as_html($id, "View other revisions")
+			render_history_link_as_html($id, "View Page History")
 		);
 	}
 
 	if ($rev ne "") {
 		$template_data->{footer} .= (
 			" | " .
-			render_named_page_link_as_html($id, "View current revision")
+			render_named_page_link_as_html($id, "View Current Revision")
 		);
 	}
 
+	$template_data->{footer} .= (
+		" | Find Links to <b>" .
+		render_search_link_as_html($id) .
+		"</b>"
+	);
+
+	$template_data->{footer} .= "<br>";
+
 	if ($request_state{+RS_SECTION}{+SECT_REVISION}) {
-		$template_data->{footer} .= "<br>";
 		if ($rev eq "") {    # Only for most current rev
-			$template_data->{footer} .= "Last edited ";
+			$template_data->{footer} .= "Last edited: ";
 		}
 		else {
-			$template_data->{footer} .= "Edited ";
+			$template_data->{footer} .= "Edited: ";
 		}
 
 		$template_data->{footer} .= render_date_time_as_text(
@@ -4785,18 +4792,12 @@ sub template_set_complex_page_footer {
 	}
 
 	#$template_data->{footer} .= "<br>" . render_search_form_as_html();
-	if ($dir_data =~ m!/tmp/!) {
+	if ($dir_data =~ m!/te?mp/!) {
 		$template_data->{footer} .= (
 			"<br><b>Warning:</b> Database is stored in temporary" .
 			" directory $dir_data<br>"
 		);
 	}
-
-	$template_data->{footer} .= (
-		" - Or find pages that link to <b>" .
-		render_search_link_as_html($id) .
-		"</b>"
-	);
 
 	if (length $config{additional_footer_html}) {
 		$template_data->{footer} .= $config{additional_footer_html};
@@ -5039,11 +5040,13 @@ sub render_perl_as_stored_html { # TODO
 		],
 	);
 
-	$html = (
-		"<table border='1' cellspacing='0' width='100%'><tr><td nowrap>" .
-		$html .
-		"</td></tr></table>"
-	);
+	$html = '<div id="code">' . $html . '</div>';
+
+#	$html = (
+#		"<table border='1' cellspacing='0' width='100%'><tr><td nowrap>" .
+#		$html .
+#		"</td></tr></table>"
+#	);
 
 	DUMP_TIDY and do {
 		open(WHEE, ">", "/home/troc/tmp/tidied");

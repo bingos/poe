@@ -13,13 +13,13 @@ foreach my $target (
 ) {
 	next unless -d $target;
 
+	# omitting dot-htaccess because it's too system dependent
 	copy_644(
 		$target,
 		qw(
 			favicon.ico
 			global.css
 			robots.txt
-			dot-htaccess
 			data/templates/*.tt2
 		)
 	);

@@ -11,13 +11,13 @@ foreach my $source (
 ) {
 	next unless -d $source;
 
+	# exclude dot-htaccess because it's system dependent
 	copy_files(
 		$source,
 		qw(
 			favicon.ico
 			global.css
 			robots.txt
-			dot-htaccess
 			data/templates/*.tt2
 			index.cgi
 		)
