@@ -253,14 +253,14 @@ h1 {
 	display: none !important;
 }
 
-/* STYLING - Source Code */
+/* STYLING - Source Code & Examples */
 
-#code {
+#code,#eg {
 	background-color: #EEEEEE;
 	border: 1px solid #000000;
 }
 
-#code pre {
+#code,#eg pre {
 	margin-top: 0pt;
 	margin-bottom: 0pt;
 	padding: 1ex 1ex;

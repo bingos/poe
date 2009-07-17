@@ -4221,6 +4221,7 @@ sub render_line_based_markup_as_html { # TODO
 	my @htmlStack = ();
 	my $depth     = 0;
 	my $pageHtml  = "";
+	my $id        = "";
 
 	foreach (split(/\n/, $pageText)) {    # Process lines one-at-a-time
 		$_ .= "\n";
@@ -4229,74 +4230,79 @@ sub render_line_based_markup_as_html { # TODO
 		if (s/^(\;+)([^:]+\:?)\:?/<dt>$2<dd>/) {
 			$code  = "DL";
 			$depth = length $1;
+			$id    = "";
 		}
 		elsif (s/^(\:+)/<dt><dd>/) {
 			$code  = "DL";
 			$depth = length $1;
+			$id    = "";
 		}
 		elsif (s/^(\*+)/<li>/) {
 			$code  = "UL";
 			$depth = length $1;
+			$id    = "";
 		}
 		elsif (s/^(\#+)/<li>/) {
 			$code  = "OL";
 			$depth = length $1;
+			$id    = "";
 		}
 		elsif (/^[ \t].*\S/) {
 			$code  = "PRE";
 			$depth = 1;
+			$id    = "eg";
 		}
 		else {
 			$depth = 0;
+			$id    = "";
 		}
 
-		while (@htmlStack > $depth) {    # Close tags as needed
-			my $code = pop(@htmlStack);
-			$pageHtml .= "</$code>";
-			$pageHtml .= "</td></tr></table>" if $code eq 'PRE';
+    # Close tags as needed
+		while (@htmlStack > $depth) {
+			my ($old_code,$old_id) = @{pop(@htmlStack)};
+			$pageHtml .= "</$old_code>";
+			$pageHtml .= "</div>" if $old_id;
 		}
 
 		if ($depth > 0) {
 			$depth = $config{indent_limit} if ($depth > $config{indent_limit});
 
-			if (@htmlStack) {              # Non-empty stack
-				my $oldCode = pop(@htmlStack);
+			# Non-empty stack
+			if (@htmlStack) {
+				my ($old_code,$old_id) = @{pop(@htmlStack)};
 
-				if ($oldCode ne $code) {
+				if ($old_code ne $code) {
+					$pageHtml .= "</$old_code>";
+					$pageHtml .= "</div>" if $old_id;
 
-					$pageHtml .= "</$oldCode>";
-
-					# Handle PRE being in tables.
-					$pageHtml .= "</td></tr></table>" if $oldCode eq 'PRE';
-					$pageHtml .= "<table border='1' cellspacing='0'><tr><td nowrap>"
-						if $code eq 'PRE';
-
-					$pageHtml .= "<$code>";
+					$pageHtml .= qq(<div id="$id">) if $id;
+					$pageHtml .= qq(<$code>);
 				}
 
-				push(@htmlStack, $code);
+				push(@htmlStack, [$code, $id]);
 			}
 
 			while (@htmlStack < $depth) {
-				push(@htmlStack, $code);
+				push(@htmlStack, [$code,$id]);
 
-				$pageHtml .= "<table border='1' cellspacing='0'><tr><td nowrap>"
-					if $code eq 'PRE';
-
-				$pageHtml .= "<$code>\n";
+				$pageHtml .= qq(<div id="$id">) if $id;
+				$pageHtml .= qq(<$code>\n);
 			}
 		}
 
-		s/^\s*$/<p>\n/;    # Blank lines become <p> tags
+		# Blank lines become <p> tags.
+		# TODO - Paragraphs should be wrapped instead.
+		s/^\s*$/<p>\n/;
 
 		# Line-oriented markup.
 		$pageHtml .= render_common_markup_as_html($_, RENDER_IMAGES, 2);
 	}
 
-	while (@htmlStack > 0) {                   # Clear stack
-		my $code = pop(@htmlStack);
-		$pageHtml .= "</$code>";
-		$pageHtml .= "</td></tr></table>" if $code eq 'PRE';
+	# Clear the stack.
+	while (@htmlStack > 0) {
+		my ($old_code,$old_id) = @{pop(@htmlStack)};
+		$pageHtml .= "</$old_code>";
+		$pageHtml .= "</div>" if $old_id;
 	}
 
 	return $pageHtml;
@@ -5042,12 +5048,6 @@ sub render_perl_as_stored_html { # TODO
 
 	$html = '<div id="code">' . $html . '</div>';
 
-#	$html = (
-#		"<table border='1' cellspacing='0' width='100%'><tr><td nowrap>" .
-#		$html .
-#		"</td></tr></table>"
-#	);
-
 	DUMP_TIDY and do {
 		open(WHEE, ">", "/home/troc/tmp/tidied");
 		print WHEE $html;
@@ -5370,9 +5370,9 @@ sub render_components_as_html { # TODO
 sub render_pre_as_stored_html { # TODO
 	my $html = shift;
 	my $pre = (
-		"<table border='1' cellspacing='0'><tr><td nowrap><pre>" .
+		'<div id="eg"><pre>' .
 		$html .
-		"</pre></td></tr></table>"
+		'</pre></div>'
 	);
 
 	return store_raw_html($pre);
@@ -5381,9 +5381,9 @@ sub render_pre_as_stored_html { # TODO
 sub render_code_as_stored_html { # TODO
 	my $html = shift;
 	my $code = (
-		"<table border='1' cellspacing='0'><tr><td nowrap><code>" .
+		"<code>" .
 		$html .
-		"</code></td></tr></table>"
+		"</code>"
 	);
 
 	return store_raw_html($code);
