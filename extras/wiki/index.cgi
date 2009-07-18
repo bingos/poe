@@ -213,23 +213,23 @@ sub init_wiki {
 			local $/;
 
 			eval scalar <CONFIG>;
-			die "eval $dir_data/config failed: $@" if $@;
+			confess "eval $dir_data/config failed: $@" if $@;
 			close(CONFIG);
 		}
 		else {
-			die "couldn't open config: $!";
+			confess "couldn't open config: $!";
 		}
 	}
 	else {
-		die "couldn't find $dir_data/config: $!";
+		confess "couldn't find $dir_data/config: $!";
 	}
 
 	# Validate configuration.
 
-	die "no document root; set \$dir_data manually" unless defined $dir_data;
-	die "document root $dir_data doesn't exist" unless -e $dir_data;
+	confess "no document root; set \$dir_data manually" unless defined $dir_data;
+	confess "document root $dir_data doesn't exist" unless -e $dir_data;
 	unless (-d $dir_data || -l $dir_data) {
-		die "document root $dir_data isn't a directory";
+		confess "document root $dir_data isn't a directory";
 	}
 
 	# Initialize link patterns.
@@ -369,22 +369,22 @@ sub create_directory {
 	my ($newdir) = @_;
 
 	mkdir($newdir, 0775) unless -d $newdir;
-	die "Failed to mkdir $newdir: $!" unless -d $newdir;
+	confess "Failed to mkdir $newdir: $!" unless -d $newdir;
 }
 
 sub write_string_to_file {
 	my ($file, $string) = @_;
 
-	open(OUT, ">", $file) or die "can't write $file: $!";
+	open(OUT, ">", $file) or confess "can't write $file: $!";
 	print OUT $string;
-	close(OUT) or die "close failed (write_string_to_file) on $file: $!";
+	close(OUT) or confess "close failed (write_string_to_file) on $file: $!";
 }
 
 sub read_file_or_die {
 	my ($fileName) = @_;
 
 	my ($status, $data) = read_file($fileName);
-	die "Can't open $fileName: $!" unless $status;
+	confess "Can't open $fileName: $!" unless $status;
 
 	return $data;
 }
@@ -479,7 +479,7 @@ sub request_lock_dir {
 
 		# TODO - POSIX or Errno instead
 		if ($! != 17) {
-			die("can't make $config{dir_locks}: $!\n") if $errorDie;
+			confess("can't make $config{dir_locks}: $!\n") if $errorDie;
 			return 0;
 		}
 
@@ -1040,7 +1040,7 @@ sub append_recent_changes_log {
 		}
 	);
 
-	open(OUT, ">>", $config{file_recent_changes_log}) or die(
+	open(OUT, ">>", $config{file_recent_changes_log}) or confess(
 		"$config{rc_name} log error: $!"
 	);
 	print OUT "$rc_line\n";
@@ -1252,7 +1252,7 @@ sub get_all_links_for_entire_site {
 sub run_page_and_link_update_script {
 	my ($commandList, $doRC, $doText) = @_;
 
-	request_main_lock() or die(
+	request_main_lock() or confess(
 		"run_page_and_link_update_script could not get main lock"
 	);
 	unlink($config{file_page_index}) if $config{use_page_index_file};
@@ -1344,8 +1344,8 @@ sub open_or_create_text {
 		$request_state{+RS_TEXT} = {
 			TEXT_TEXT, (
 				"Empty page.\n\n" .
-				"Edit this page (below), " .
-				"or try [[$config{home_page}|the home page]].\n\n" .
+				"Edit this page (see the page footer for link), " .
+				"or go back to [[$config{home_page}|the home page]].\n\n" .
 				"<!--\n" .
 				"\" vim: syntax=wiki\n" .
 				"-->\n"
@@ -1434,7 +1434,14 @@ sub save_keep_section { # TODO
 
 	$request_state{+RS_SECTION}{+SECT_KEEP_TS} = $^T;
 
-	my $keep_list = decode_json(read_file_or_die($file_name));
+	my $keep_list;
+	if (-f $file_name) {
+		$keep_list = decode_json(read_file_or_die($file_name));
+	}
+	else {
+		$keep_list = [];
+	}
+
 	push @$keep_list, dclone($request_state{+RS_SECTION});
 	write_string_to_file($file_name, encode_json($keep_list));
 }
@@ -1497,9 +1504,9 @@ sub expire_keep_file { # TODO
 	return unless $expire_count;
 
 	# Write the keep list back out.
-	open(OUT, ">", $fname) or die("cant write $fname: $!");
+	open(OUT, ">", $fname) or confess("cant write $fname: $!");
 	print OUT encode_json(\@keep_list);
-	close(OUT) or die "can't close (expire_keep_file) on $fname: $!";
+	close(OUT) or confess "can't close (expire_keep_file) on $fname: $!";
 }
 
 sub rename_keep_text { # TODO
@@ -1547,7 +1554,7 @@ sub rename_keep_text { # TODO
 
 	open(OUT, ">", $fname) or return;
 	print OUT encode_json(\@keep_list);
-	close(OUT) or die "cannot close $fname: $!";
+	close(OUT) or confess "cannot close $fname: $!";
 }
 
 ##################
@@ -1776,7 +1783,7 @@ sub get_new_user_id {
 		$id += 10;
 	}
 
-	request_main_lock() or die "Could not get user-ID lock";
+	request_main_lock() or confess "Could not get user-ID lock";
 
 	while (-f get_user_data_filename($id)) {
 		$id++;
@@ -1865,7 +1872,7 @@ sub set_user_pref_from_request_bool {
 sub write_diff_log {
 	my ($id, $editTime, $diffString) = @_;
 
-	open(OUT, ">>", "$dir_data/diff_log") or die "cant write diff_log";
+	open(OUT, ">>", "$dir_data/diff_log") or confess "cant write diff_log";
 	print OUT "------\n" . $id . "|" . $editTime . "\n", $diffString;
 	close(OUT);
 }
@@ -2400,7 +2407,7 @@ sub action_run_periodic_maintenance {
 		}
 	}
 
-	request_main_lock() or die "Could not get maintain-lock";
+	request_main_lock() or confess "Could not get maintain-lock";
 
 	foreach my $name (get_all_pages_for_entire_site()) {
 		open_or_create_page($name);
@@ -3306,7 +3313,7 @@ sub action_write_updated_page {
 	}
 
 	# Lock before getting old page to prevent races
-	request_main_lock() or die "Could not get editing lock";
+	request_main_lock() or confess "Could not get editing lock";
 
 	# Consider extracting lock section into sub, and eval-wrap it?
 	# (A few called routines can die, leaving locks.)
@@ -3456,7 +3463,7 @@ sub render_template_as_html {
 		$template_file,
 		$template_data,
 		\$output
-	) or die $template->error;
+	) or confess $template->error;
 
 	return $output;
 }
@@ -3787,7 +3794,7 @@ sub render_redirect_page_as_html { # TODO
 			$html .= "\n";
 		}
 		else {
-			die "unknown redirection type: $config{redir_type}";
+			confess "unknown redirection type: $config{redir_type}";
 		}
 
 		$html .= "\nYour browser should go to the $newid page.";
