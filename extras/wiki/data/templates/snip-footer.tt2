@@ -10,7 +10,7 @@
 					<li><a href="[% base_url | html %]?POE_FAQ">FAQ</a></li>
 					<li><a href="[% base_url | html %]?POE_Support_Resources">Support</a></li>
 					<li><a href="[% base_url | html %]?POE_Support_Resources">Contact Us</a></li>
-					<li><a href="[% base_url | html %]?Join_Us">Contribute</a></li>
+					<li><a href="[% base_url | html %]?How_to_Help">How to Help</a></li>
 					<li><a href="[% base_url | html %]?People_Using_POE">Individual Users</a></li>
 					<li><a href="[% base_url | html %]?Organizations_Using_POE">Corporate Users</a></li>
 					<li><a href="[% base_url | html %]?Projects_Using_POE">Related Projects</a></li>

@@ -2991,7 +2991,6 @@ sub action_open_links_editor {
 		),
 		"<br>", q{<input type="submit" name="Edit" value="Edit">},
 		"<hr>\n",
-		render_goto_bar_as_html(""),
 		$request_state{+RS_CGI}->endform,
 		render_common_footer_as_html()
 	);
