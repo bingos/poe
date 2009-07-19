@@ -989,9 +989,9 @@ sub substitute_text_links {
 	$text =~ s/(<code>((.|\n)*?)<\/code>)/store_raw_html($1)/ige;
 	$text =~ s/(<perl>((.|\n)*?)<\/perl>)/render_perl_as_stored_html($1)/ige;
 	$text =~ s/(<projects>((.|\n)*?)<\/projects>)/render_projects_as_html($1)/smige;
-	$text =~ s/(<outline>((.|\n)*?)<\/outline>)/store_outline($1,"bullets")/smige;
-	$text =~ s/(<outline-head>((.|\n)*?)<\/outline>)/store_outline($1,"headers")/smige;
-	$text =~ s/(<outline-todo>((.|\n)*?)<\/outline>)/store_outline($1,"todo")/smige;
+	$text =~ s/(<outline>((.|\n)*?)<\/outline>)/render_outline_as_html($1,"bullets")/smige;
+	$text =~ s/(<outline-head>((.|\n)*?)<\/outline>)/render_outline_as_html($1,"headers")/smige;
+	$text =~ s/(<outline-todo>((.|\n)*?)<\/outline>)/render_outline_as_html($1,"todo")/smige;
 	$text =~ s/(<components>((.|\n)*?)<\/components>)/render_components_as_html($1)/smige;
 	$text =~ s/(<nowiki>((.|\n)*?)<\/nowiki>)/store_raw_html($1)/ige;
 
@@ -5074,6 +5074,7 @@ my %otl_colors = (
 	"#" => "800000",
 );
 
+# TODO - I don't really like the way they render anymore.
 sub render_outline_as_html { # TODO
 	my ($source, $type) = @_;
 	$type = "headers" unless defined $type;
