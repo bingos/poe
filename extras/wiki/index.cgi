@@ -375,6 +375,7 @@ sub create_directory {
 sub write_string_to_file {
 	my ($file, $string) = @_;
 
+	confess "about to write raw html out to a file" if $string =~ /<span id="/;
 	open(OUT, ">", $file) or confess "can't write $file: $!";
 	print OUT $string;
 	close(OUT) or confess "close failed (write_string_to_file) on $file: $!";
@@ -982,34 +983,40 @@ sub substitute_text_links {
 
 	$text =~ s/$FS//g;    # Remove separators (paranoia)
 
+	# These types of data are stored in the symbol table as raw html so
+	# that they are omitted from the text substitution.
+
 	if ($config{allow_raw_html}) {
 		$text =~ s/(<html>((.|\n)*?)<\/html>)/store_raw_html($1)/ige;
 	}
 
-	$text =~ s/(<pre>((.|\n)*?)<\/pre>)/render_pre_as_stored_html($1)/ige;
+	$text =~ s/(<pre>((.|\n)*?)<\/pre>)/store_raw_html($1)/ige;
 	$text =~ s/(<code>((.|\n)*?)<\/code>)/store_raw_html($1)/ige;
-	$text =~ s/(<perl>((.|\n)*?)<\/perl>)/render_perl_as_stored_html($1)/ige;
-	$text =~ s/(<projects>((.|\n)*?)<\/projects>)/render_projects_as_html($1)/smige;
-	$text =~ s/(<outline>((.|\n)*?)<\/outline>)/render_outline_as_html($1,"bullets")/smige;
-	$text =~ s/(<outline-head>((.|\n)*?)<\/outline>)/render_outline_as_html($1,"headers")/smige;
-	$text =~ s/(<outline-todo>((.|\n)*?)<\/outline>)/render_outline_as_html($1,"todo")/smige;
-	$text =~ s/(<components>((.|\n)*?)<\/components>)/render_components_as_html($1)/smige;
+	$text =~ s/(<perl>((.|\n)*?)<\/perl>)/store_raw_html($1)/ige;
+	$text =~ s/(<projects>((.|\n)*?)<\/projects>)/store_raw_html($1)/smige;
+	$text =~ s/(<outline>((.|\n)*?)<\/outline>)/store_raw_html($1,"bullets")/smige;
+	$text =~ s/(<outline-head>((.|\n)*?)<\/outline>)/store_raw_html($1,"headers")/smige;
+	$text =~ s/(<outline-todo>((.|\n)*?)<\/outline>)/store_raw_html($1,"todo")/smige;
+	$text =~ s/(<components>((.|\n)*?)<\/components>)/store_raw_html($1)/smige;
 	$text =~ s/(<nowiki>((.|\n)*?)<\/nowiki>)/store_raw_html($1)/ige;
 
+	# Rename free links.
 	if ($config{allow_free_links}) {
 		$text =~ s/\[\[$pattern_free_link\|([^\]]+)\]\]/render_sub_free_link_as_stored_html($1,$2,$old,$new)/geo;
 		$text =~ s/\[\[$pattern_free_link\]\]/render_sub_free_link_as_stored_html($1,"",$old,$new)/geo;
 	}
 
-	# Links like [URL text of link]
+	# Links like [URL text of link] don't get renamed.
 	if ($config{allow_link_descriptions}) {
 		$text =~ s/(\[$pattern_url\s+([^\]]+?)\])/store_raw_html($1)/geo;
 		$text =~ s/(\[$pattern_inter_link\s+([^\]]+?)\])/store_raw_html($1)/geo;
 	}
 
+	# URLs and inter-wiki links don't get renamed either.
 	$text =~ s/(\[?$pattern_url\]?)/store_raw_html($1)/geo;
 	$text =~ s/(\[?$pattern_inter_link\]?)/store_raw_html($1)/geo;
 
+	# Rename CamelCase links.
 	if ($config{allow_camelcase_links}) {
 		$text =~ s/$pattern_link/render_sub_wiki_link_as_stored_html($1, $old, $new)/geo;
 	}
@@ -1505,8 +1512,11 @@ sub expire_keep_file { # TODO
 	return unless $expire_count;
 
 	# Write the keep list back out.
+	my $keep_list_string = encode_json(\@keep_list);
+	confess "about to write raw html out to a file" if $keep_list_string =~ /<span id="/;
+
 	open(OUT, ">", $fname) or confess("cant write $fname: $!");
-	print OUT encode_json(\@keep_list);
+	print OUT $keep_list_string;
 	close(OUT) or confess "can't close (expire_keep_file) on $fname: $!";
 }
 
@@ -1553,8 +1563,11 @@ sub rename_keep_text { # TODO
 	# No sections changed?
 	return unless $changed;
 
+	my $keep_list_string = encode_json(\@keep_list);
+	confess "about to write raw html out to a file" if $keep_list_string =~ /<span id="/;
+
 	open(OUT, ">", $fname) or return;
-	print OUT encode_json(\@keep_list);
+	print OUT $keep_list_string;
 	close(OUT) or confess "cannot close $fname: $!";
 }
 
