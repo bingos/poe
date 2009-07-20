@@ -6,7 +6,7 @@ use warnings;
 sub DEBUG () { 0 }
 my $REFCNT;
 sub POE::Kernel::USE_SIGCHLD () { 1 }
-sub POE::Kernel::ASSERT_DEFAULT () { 0 }
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_SIGNALS () { 0 }
 sub POE::Kernel::TRACE_REFCNT () { DEBUG and $REFCNT }
 
@@ -60,7 +60,8 @@ sub _start {
   $kernel->alias_set( 'worker' );
   $kernel->sig( CHLD => 'sig_CHLD' );
 
-  $kernel->yield( 'work' );
+  # Tk crashes if this test is run too soon after another.
+  $kernel->delay( 'work', 2 );
 }
 
 sub work {
