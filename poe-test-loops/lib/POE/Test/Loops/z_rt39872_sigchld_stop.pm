@@ -10,10 +10,13 @@ sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_SIGNALS () { 0 }
 sub POE::Kernel::TRACE_REFCNT () { DEBUG and $REFCNT }
 
-use POE;
+# Try to avoid an XIO crash in this test.
+BEGIN { sleep 2 if $INC{'Tk.pm'} }
+
 use Test::More;
-use POE::Wheel::Run;
 use POSIX qw( SIGINT SIGUSR1 );
+use POE;
+use POE::Wheel::Run;
 
 if ($^O eq "MSWin32") {
   plan skip_all => "Test not working on $^O";
@@ -23,7 +26,6 @@ if ($^O eq "MSWin32") {
 $SIG{__WARN__} = sub {
   print STDERR "$$: $_[0]";
 };
-
 
 plan tests => 3;
 
@@ -60,8 +62,8 @@ sub _start {
   $kernel->alias_set( 'worker' );
   $kernel->sig( CHLD => 'sig_CHLD' );
 
-  # Tk crashes if this test is run too soon after another.
-  $kernel->delay( 'work', 2 );
+  # XIO crashes if this test is run too soon after the program starts.
+  $kernel->delay( 'work', ($INC{'Tk.pm'} ? 2 : 0.01) );
 }
 
 sub work {
@@ -95,7 +97,9 @@ sub parent
 {
   my( $kernel, $heap, $session ) = @_[KERNEL, HEAP, SESSION];
   DEBUG and warn "parent";
+  diag( "sending sigusr1" );
   kill SIGUSR1, $heap->{T1}{PID};
+  diag( "sent sigusr1" );
   $heap->{T1}{closing} = 1;
 }
 
