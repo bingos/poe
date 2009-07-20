@@ -871,11 +871,11 @@ sub get_links_from_a_page {
 
 	my $text = $request_state{+RS_TEXT}{+TEXT_TEXT};
 
+	$text =~ s/<perl>(.|\n)*?\<\/perl>/ /ig;
 	$text =~ s/<html>((.|\n)*?)<\/html>/ /ig;
 	$text =~ s/<nowiki>(.|\n)*?\<\/nowiki>/ /ig;
 	$text =~ s/<pre>(.|\n)*?\<\/pre>/ /ig;
 	$text =~ s/<code>(.|\n)*?\<\/code>/ /ig;
-	$text =~ s/<perl>(.|\n)*?\<\/perl>/ /ig;
 	$text =~ s/<boxes>(.|\n)*?\<\/boxes>/ /ig;
 
 	my @links;
@@ -986,18 +986,19 @@ sub substitute_text_links {
 	# These types of data are stored in the symbol table as raw html so
 	# that they are omitted from the text substitution.
 
-	if ($config{allow_raw_html}) {
-		$text =~ s/(<html>((.|\n)*?)<\/html>)/store_raw_html($1)/ige;
-	}
-
-	$text =~ s/(<pre>((.|\n)*?)<\/pre>)/store_raw_html($1)/ige;
-	$text =~ s/(<code>((.|\n)*?)<\/code>)/store_raw_html($1)/ige;
 	$text =~ s/(<perl>((.|\n)*?)<\/perl>)/store_raw_html($1)/ige;
 	$text =~ s/(<projects>((.|\n)*?)<\/projects>)/store_raw_html($1)/smige;
 	$text =~ s/(<outline>((.|\n)*?)<\/outline>)/store_raw_html($1,"bullets")/smige;
 	$text =~ s/(<outline-head>((.|\n)*?)<\/outline>)/store_raw_html($1,"headers")/smige;
 	$text =~ s/(<outline-todo>((.|\n)*?)<\/outline>)/store_raw_html($1,"todo")/smige;
 	$text =~ s/(<components>((.|\n)*?)<\/components>)/store_raw_html($1)/smige;
+
+	if ($config{allow_raw_html}) {
+		$text =~ s/(<html>((.|\n)*?)<\/html>)/store_raw_html($1)/ige;
+	}
+
+	$text =~ s/(<pre>((.|\n)*?)<\/pre>)/store_raw_html($1)/ige;
+	$text =~ s/(<code>((.|\n)*?)<\/code>)/store_raw_html($1)/ige;
 	$text =~ s/(<nowiki>((.|\n)*?)<\/nowiki>)/store_raw_html($1)/ige;
 
 	# Rename free links.
@@ -3501,6 +3502,7 @@ sub render_wiki_data_as_html { # TODO
 	$request_state{+RS_SAVED_HTML} = [];
 	$request_state{+RS_SAVED_URL_IDX} = {};
 
+	# TODO - Perl rendering must come first.
 	if ($config{allow_raw_html}) {
 		$pageText =~ s/<html>((.|\n)*?)<\/html>/store_raw_html($1)/ige;
 	}
