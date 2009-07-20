@@ -801,7 +801,7 @@ sub rename_page_and_links {
 	}
 
 	create_page_directory($config{dir_page}, $new);    # It might not exist yet
-	rename($oldfname, $newfname);
+	rename($oldfname, $newfname) or confess "Failed to rename $oldfname to $newfname";
 	create_page_directory($config{dir_kept_revisions}, $new);
 
 	my $oldkeep = normalize_filename(
@@ -816,8 +816,9 @@ sub rename_page_and_links {
 	);
 
 	unlink($newkeep) if (-f $newkeep);    # Clean up if needed.
-	rename($oldkeep, $newkeep);
+	rename($oldkeep, $newkeep) or confess "Failed to rename $oldkeep to $newkeep";
 	unlink($config{file_page_index}) if $config{use_page_index_file};
+
 	edit_recent_changes(ACT_RC_EDIT_RENAME, $old, $new) if $doRC;
 	rename_text_links($old, $new) if ($doText);
 }
