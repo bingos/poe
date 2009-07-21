@@ -70,7 +70,7 @@ sub work {
   my( $kernel, $heap, $session ) = @_[KERNEL, HEAP, SESSION];
 
   foreach my $name ( qw( T1 T2 ) ) {
-    my $pid = fork;
+    my $pid = fork();
     die "Unable to fork: $!" unless defined $pid;
 
     if( $pid ) {        # parent
@@ -78,6 +78,7 @@ sub work {
       $heap->{pid2N}{ $pid } = $name;
     }
     else {
+      $kernel->can('has_forked') and $kernel->has_forked();
       $kernel->yield( 'child' );
       return;
     }
@@ -107,7 +108,6 @@ sub parent
 sub child
 {
   my( $kernel, $heap, $session ) = @_[KERNEL, HEAP, SESSION];
-  $kernel->has_forked;
   $PARENT = 0;
   DEBUG and warn "child";
   $kernel->sig( 'CHLD' );
