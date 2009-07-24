@@ -6,9 +6,7 @@
 use warnings;
 use strict;
 
-use Test::More;
-
-plan 'no_plan';
+use Test::More tests => 7;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE;
