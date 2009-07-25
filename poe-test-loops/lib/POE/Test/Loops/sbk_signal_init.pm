@@ -29,7 +29,17 @@ sub dispatch_normal_signal { $signal_dispatched = 1 }
 use POE;
 
 alarm(1);
-sleep 5;
+
+if ($^O eq "MSWin32") {
+	# Cant' select. Windows will get me!
+	# Windows has trouble with select() and undefined input vectors.
+	sleep(5);
+}
+else {
+	# Can't sleep. HP-UX will get me!
+	# HP-UX implements sleep() with alarm(), so they don't mix.
+	select(undef, undef, undef, 5);
+}
 
 ok($signal_dispatched, "normal SIGALRM dispatched");
 
