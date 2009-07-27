@@ -12,6 +12,13 @@ WriteMakefile(
   ABSTRACT     => 'POE::Loop test suite',
   LICENSE      => 'perl',
   VERSION_FROM => 'lib/POE/Test/Loops.pm',
+  META_ADD     => {
+    resources  => {
+      license    => 'http://dev.perl.org/licenses/',
+      repository =>
+        'https://poe.svn.sourceforge.net/svnroot/poe/trunk/poe-test-loops'
+    },
+  },
   PREREQ_PM    => {
     'Test::More' => 0,
   },

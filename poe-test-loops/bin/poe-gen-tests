@@ -319,13 +319,25 @@ combination.
 
 L<POE::Test::Loops> and L<POE::Loop>.
 
+=head1 BUG TRACKER
+
+https://rt.cpan.org/Dist/Display.html?Status=Active&Queue=POE-Test-Loops
+
+=head1 REPOSITORY
+
+https://poe.svn.sourceforge.net/svnroot/poe/trunk/poe-test-loops
+
+=head1 OTHER RESOURCES
+
+http://search.cpan.org/dist/POE-Test-Loops/
+
 =head1 AUTHOR & COPYRIGHT
 
 Rocco Caputo <rcaputo@cpan.org>.
 Benjamin Smith <bsmith@cpan.org>.
 Countless other people.
 
-These tests are Copyright 1998-2008 by Rocco Caputo, Benjamin Smith,
+These tests are Copyright 1998-2009 by Rocco Caputo, Benjamin Smith,
 and countless contributors.  All rights are reserved.  These tests are
 free software; you may redistribute them and/or modify them under the
 same terms as Perl itself.
