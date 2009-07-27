@@ -319,15 +319,15 @@ combination.
 
 L<POE::Test::Loops> and L<POE::Loop>.
 
-=head1 BUG TRACKER
+=head2 BUG TRACKER
 
 https://rt.cpan.org/Dist/Display.html?Status=Active&Queue=POE-Test-Loops
 
-=head1 REPOSITORY
+=head2 REPOSITORY
 
 https://poe.svn.sourceforge.net/svnroot/poe/trunk/poe-test-loops
 
-=head1 OTHER RESOURCES
+=head2 OTHER RESOURCES
 
 http://search.cpan.org/dist/POE-Test-Loops/
 
