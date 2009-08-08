@@ -12,8 +12,18 @@ my $port;
 use POE;
 use POE::Wheel::Run;
 
-Worker->spawn( 'pty' );
-Worker->spawn( 'pty-pipe' );
+SKIP: {
+  skip("The underlying event loop has trouble with ptys on $^O", 6)
+    if $^O eq "darwin" and (
+      exists $INC{"POE/Loop/IO_Poll.pm"} or
+      exists $INC{"POE/Loop/Event.pm"} or
+      $ENV{POE_LOOP_USES_POLL}
+    );
+
+  Worker->spawn( 'pty' );
+  Worker->spawn( 'pty-pipe' );
+}
+
 Worker->spawn( 'socketpair' );
 Worker->spawn( 'inet' );
 
