@@ -1,0 +1,10 @@
+CHANGES
+MANIFEST
+MANIFEST.SKIP
+META.yml
+Makefile.PL
+README
+lib/POE/Loop/Tk.pm
+lib/POE/Loop/TkCommon.pm
+lib/POE/Loop/TkActiveState.pm
+t/00_info.t

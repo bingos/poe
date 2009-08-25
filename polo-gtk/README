@@ -1,0 +1,11 @@
+POE supports nearly any event loop imaginable through POE::Loop plugin
+modules.  POE::Loop::Gtk is the plugin support for Gtk's event loop.
+
+See http://search.cpan.org/search?query=POE%3A%3ALoop&mode=module for
+a list of other event loops POE supports.
+
+POE::Loop documents the generic API for all POE::Loop subclasses.  You
+are invited to implement this API for your favorite event loop.
+Kudos, bug reports, and patches are also welcome.
+
+Thank you!

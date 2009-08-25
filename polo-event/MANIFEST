@@ -1,0 +1,8 @@
+CHANGES
+MANIFEST
+MANIFEST.SKIP
+META.yml
+Makefile.PL
+README
+lib/POE/Loop/Event.pm
+t/00_info.t
