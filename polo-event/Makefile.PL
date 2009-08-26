@@ -81,7 +81,7 @@ WriteMakefile(
     COMPRESS      => 'gzip -9f',
     SUFFIX        => 'gz',
     PREOP         => (
-      './mylib/svn-log.perl --tags ^ple- | ' .
+      'svn-log.perl --tags ^ple- | ' .
       '/usr/bin/tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
     ),
   },
