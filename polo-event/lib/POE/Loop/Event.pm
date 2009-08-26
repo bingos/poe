@@ -10,7 +10,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = '1.300'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.301'; # NOTE - Should be #.### (three decimal places)
 
 =for poe_tests
 
