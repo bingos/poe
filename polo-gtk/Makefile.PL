@@ -88,10 +88,19 @@ WriteMakefile(
   clean           => { FILES => 't/poe_loop_gtk/*.t t/poe_loop_gtk' },
   test            => { TESTS => 't/poe_loop_gtk/*.t' },
 
-  # More for META.yml than anything.
+  CONFIGURE_REQUIRES => {
+    'ExtUtils::MakeMaker' => 0,
+    'POE::Test::Loops'    => 1.021,
+  },
+
+  META_MERGE      => {
+    build_requires => {
+      'POE::Test::Loops'    => 1.021,
+    },
+  },
+
   PREREQ_PM       => {
     'POE'               => 1.007,
-    'POE::Test::Loops'  => 1.021,
     'Gtk'               => 0.7009,
   },
 );
