@@ -86,7 +86,7 @@ WriteMakefile(
     ),
   },
   clean           => { FILES => 't/poe_loop_gtk/*.t t/poe_loop_gtk' },
-  test            => { TESTS => 't/poe_loop_gtk/*.t' },
+  test            => { TESTS => 't/*.t t/poe_loop_gtk/*.t' },
 
   CONFIGURE_REQUIRES => {
     'ExtUtils::MakeMaker' => 0,
