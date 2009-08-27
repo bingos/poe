@@ -8,7 +8,7 @@ package POE::Loop::TkCommon;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = '1.301'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.302'; # NOTE - Should be #.### (three decimal places)
 
 use Tk 800.021;
 use 5.00503;
