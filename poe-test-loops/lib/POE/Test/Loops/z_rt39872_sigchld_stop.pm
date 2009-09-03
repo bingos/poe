@@ -19,7 +19,7 @@ use POE;
 use POE::Wheel::Run;
 
 if ($^O eq "MSWin32") {
-  plan skip_all => "Test not working on $^O";
+  plan skip_all => "SIGUSR1 not supported on $^O";
   exit 0;
 }
 

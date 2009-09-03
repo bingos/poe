@@ -13,7 +13,7 @@ use POE::Wheel::Run;
 use POSIX qw( SIGINT );
 
 if ($^O eq "MSWin32") {
-	plan skip_all => "Test not working on $^O";
+	plan skip_all => "Perl crashes on $^O";
 	exit 0;
 }
 

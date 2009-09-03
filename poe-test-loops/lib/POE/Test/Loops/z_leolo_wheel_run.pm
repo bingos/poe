@@ -5,7 +5,13 @@
 use warnings;
 use strict;
 
-use Test::More tests => 14;
+use Test::More;
+
+if ($^O eq "MSWin32") {
+  plan skip_all => "Sorry Perl crashes on $^O";
+}
+
+plan tests => 14;
 
 my $port;
 
