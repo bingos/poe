@@ -46,6 +46,9 @@ sub loop_initialize {
     unless($gtk_init_check) {
       $gtk_init_check++;
 
+      # Clear errno to avoid bleed-through during potential error display.
+      $! = 0;
+
       my $res = Gtk->init_check();
 
       # Now check whether the init was ok.
@@ -54,7 +57,7 @@ sub loop_initialize {
         Gtk->init();
 
       } else {
-        POE::Kernel::_die "Gtk initialization failed. Chances are it couldn't connect to a display. Of course, Gtk doesn't put its error message anywhere I can find so we can't be more specific here.";
+        POE::Kernel::_die "Gtk initialization failed. Chances are it couldn't connect to a display. Of course, Gtk doesn't put its error message anywhere I can find so we can't be more specific here ($!) ($@)";
       }
     }
   }
