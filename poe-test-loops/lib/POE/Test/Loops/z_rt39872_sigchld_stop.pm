@@ -10,9 +10,6 @@ sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_SIGNALS () { 0 }
 sub POE::Kernel::TRACE_REFCNT () { DEBUG and $REFCNT }
 
-# Try to avoid an XIO crash in this test.
-BEGIN { sleep 2 if $INC{'Tk.pm'} }
-
 use Test::More;
 use POSIX qw( SIGINT SIGUSR1 );
 use POE;
@@ -20,6 +17,11 @@ use POE::Wheel::Run;
 
 if ($^O eq "MSWin32") {
   plan skip_all => "SIGUSR1 not supported on $^O";
+  exit 0;
+}
+
+if ($INC{'Tk.pm'}) {
+  plan skip_all => "Test causes XIO and other errors under Tk.";
   exit 0;
 }
 
@@ -62,8 +64,7 @@ sub _start {
   $kernel->alias_set( 'worker' );
   $kernel->sig( CHLD => 'sig_CHLD' );
 
-  # XIO crashes if this test is run too soon after the program starts.
-  $kernel->delay( 'work', ($INC{'Tk.pm'} ? 2 : 0.01) );
+  $kernel->yield( 'work' );
 }
 
 sub work {

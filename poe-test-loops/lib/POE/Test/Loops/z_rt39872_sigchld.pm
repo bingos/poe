@@ -17,6 +17,11 @@ if ($^O eq "MSWin32") {
 	exit 0;
 }
 
+if ($INC{'Tk.pm'}) {
+	plan skip_all => "Test causes XIO and other errors under Tk.";
+	exit 0;
+}
+
 plan tests => 5;
 
 POE::Session->create(
