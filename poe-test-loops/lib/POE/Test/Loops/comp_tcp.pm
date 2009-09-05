@@ -28,6 +28,7 @@ my ($acceptor_port, $callback_port);
 
 POE::Component::Server::TCP->new(
   Port => 0,
+	Address => '127.0.0.1',
   Alias => 'acceptor_server',
   Started => sub {
     use Socket qw(sockaddr_in);
@@ -77,6 +78,7 @@ POE::Component::Server::TCP->new(
 
 POE::Component::Server::TCP->new(
   Port => 0,
+	Address => '127.0.0.1',
   Alias => 'input_server',
   ClientFilter => [ "POE::Filter::Line", Literal => "\n" ],
   Started => sub {

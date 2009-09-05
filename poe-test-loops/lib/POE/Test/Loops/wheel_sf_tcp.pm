@@ -19,7 +19,7 @@ use POE qw(
   Driver::SysRW
 );
 
-my $tcp_server_port = 31909;
+my $tcp_server_port;
 
 use Test::More;
 
@@ -180,7 +180,7 @@ sub client_tcp_got_flush {
 # Start the TCP server and client.
 
 POE::Component::Server::TCP->new(
-  Port     => $tcp_server_port,
+  Port     => 0,
   Address  => '127.0.0.1',
   Alias    => 'tcp_server',
   Acceptor => sub {
@@ -196,6 +196,11 @@ POE::Component::Server::TCP->new(
       ($port == $tcp_server_port),
       "received connection"
     );
+  },
+  Started  => sub {
+    $tcp_server_port = (
+      sockaddr_in($_[HEAP]->{listener}->getsockname())
+    )[0];
   },
 );
 
