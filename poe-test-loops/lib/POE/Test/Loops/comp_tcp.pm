@@ -13,7 +13,7 @@ BEGIN {
   }
 }
 
-use Test::More tests => 30;
+use Test::More tests => 34;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }
@@ -28,7 +28,7 @@ my ($acceptor_port, $callback_port);
 
 POE::Component::Server::TCP->new(
   Port => 0,
-	Address => '127.0.0.1',
+  Address => '127.0.0.1',
   Alias => 'acceptor_server',
   Started => sub {
     use Socket qw(sockaddr_in);
@@ -78,7 +78,7 @@ POE::Component::Server::TCP->new(
 
 POE::Component::Server::TCP->new(
   Port => 0,
-	Address => '127.0.0.1',
+  Address => '127.0.0.1',
   Alias => 'input_server',
   ClientFilter => [ "POE::Filter::Line", Literal => "\n" ],
   Started => sub {
@@ -102,6 +102,11 @@ POE::Component::Server::TCP->new(
   },
   ClientConnected => sub {
     pass("callback server got client connection");
+  },
+  ClientPreConnect => sub {
+    pass("server got pre-connect callback");
+    ok(fileno($_[ARG0]), "ARG0 is a socket");
+    return $_[ARG0];
   },
   ClientDisconnected => sub {
     pass("callback server got client disconnected");
@@ -166,6 +171,12 @@ POE::Component::Server::TCP->new(
 POE::Component::Client::TCP->new(
   RemoteAddress => '127.0.0.1',
   RemotePort    => $acceptor_port,
+
+  PreConnect => sub {
+    pass("acceptor pre connect");
+    ok(fileno($_[ARG0]), "acceptor has a socket");
+    return $_[ARG0];
+  },
 
   Connected => sub {
     pass("acceptor client connected");
