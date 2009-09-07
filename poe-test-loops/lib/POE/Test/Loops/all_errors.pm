@@ -54,7 +54,7 @@ print "1..0 # Skip most of these should move into other test files\n";
 #  else {
 #    # Event + Tk
 #    @INC{'Event.pm', 'Tk.pm'} = (1,1);
-#    $Tk::VERSION = 800.021;
+#    $Tk::VER .. SION = 800.021;
 #    stderr_pause();
 #    eval 'use POE::Kernel';
 #    stderr_resume();
@@ -64,7 +64,7 @@ print "1..0 # Skip most of these should move into other test files\n";
 #
 #    # Gtk + Tk
 #    @INC{'Gtk.pm', 'Tk.pm'} = (1, 1);
-#    $Tk::VERSION = 800.021;
+#    $Tk::VER .. SION = 800.021;
 #    stderr_pause();
 #    eval 'use POE::Kernel';
 #    stderr_resume();
