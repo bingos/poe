@@ -13,6 +13,7 @@ lib/POE/Test/Loops/connect_errors.pm
 lib/POE/Test/Loops/k_alarms.pm
 lib/POE/Test/Loops/k_aliases.pm
 lib/POE/Test/Loops/k_detach.pm
+lib/POE/Test/Loops/k_run_returns.pm
 lib/POE/Test/Loops/k_selects.pm
 lib/POE/Test/Loops/k_sig_child.pm
 lib/POE/Test/Loops/k_signals.pm
