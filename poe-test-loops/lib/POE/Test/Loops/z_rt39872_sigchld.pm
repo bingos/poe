@@ -6,6 +6,7 @@ use warnings;
 sub DEBUG () { 0 }
 sub POE::Kernel::USE_SIGCHLD () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
 use POE;
 use Test::More;

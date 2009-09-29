@@ -9,6 +9,7 @@ sub POE::Kernel::USE_SIGCHLD () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_SIGNALS () { 0 }
 sub POE::Kernel::TRACE_REFCNT () { DEBUG and $REFCNT }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
 use Test::More;
 use POSIX qw( SIGINT SIGUSR1 );

@@ -13,7 +13,7 @@ BEGIN {
   sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 }
 
-use Test::More tests => 44;
+use Test::More tests => 41;
 use POE;
 
 ### Test parameters and results.
@@ -206,12 +206,12 @@ POE::Session->create(
       }
     },
     _stop => sub {
-      ok(
-        $_[KERNEL]->get_active_session() == $_[SESSION],
+      is(
+        $_[KERNEL]->get_active_session(), $_[SESSION],
         "get_active_session within session"
       );
-      ok(
-        $_[KERNEL]->get_active_session()->get_heap() == $_[HEAP],
+      is(
+        $_[KERNEL]->get_active_session()->get_heap(), $_[HEAP],
         "get_heap during stop"
       );
     },
@@ -385,15 +385,15 @@ ok($@ ne '', "create() doesn't accept an odd number of args");
 #------------------------------------------------------------------------------
 # Main loop.
 
-ok(
-  $poe_kernel->get_active_session() == $poe_kernel,
+is(
+  $poe_kernel->get_active_session(), $poe_kernel,
   "get_active_session before POE::Kernel->run()"
 );
 
 POE::Kernel->run();
 
-ok(
-  $poe_kernel->get_active_session() == $poe_kernel,
+is(
+  $poe_kernel->get_active_session(), $poe_kernel,
   "get_active_session after POE::Kernel->run()"
 );
 
@@ -402,8 +402,8 @@ ok(
 
 # Now make sure they've run.
 for (my $i=0; $i<$machine_count; $i++) {
-  ok(
-    $completions[$i] == $event_count,
+  is(
+    $completions[$i], $event_count,
     "test $i ran"
   );
 }
@@ -414,13 +414,13 @@ SKIP: {
     skip "$^O does not support signals", 2;
   }
 
-  ok(
-    $sigalrm_caught == $event_count,
+  is(
+    $sigalrm_caught, $event_count,
     "caught enough SIGALRMs"
   );
 
-  ok(
-    $sigpipe_caught == $event_count,
+  is(
+    $sigpipe_caught, $event_count,
     "caught enough SIGPIPEs"
   );
 }
@@ -437,28 +437,26 @@ ok(
   "ARG constants are good"
 );
 
-ok(
-  $sender_count == $machine_count * $event_count,
+is(
+  $sender_count, $machine_count * $event_count,
   "sender_count"
 );
 
-ok(
-  $default_count == $machine_count * $event_count,
+is(
+  $default_count, $machine_count * $event_count,
   "default_count"
 );
 
-ok(
-  $got_heap_count == $machine_count,
+is(
+  $got_heap_count, $machine_count,
   "got_heap_count"
 );
 
 # Object/package sessions.
-for (0..3) {
-  ok(
-    $objpack[$_] == $event_count,
-    "object/package session $_ event count"
-  );
-}
+is_deeply(
+  \@objpack, [ ($event_count) x 4 ],
+  "object/package session event count"
+);
 
 my $sessions_destroyed = 0;
 my $objects_destroyed = 0;
@@ -568,8 +566,8 @@ POE::MySession->create(
         $expected = 3;
       }
 
-      ok(
-        $sessions_destroyed == $expected,
+      is(
+        $sessions_destroyed, $expected,
         "$sessions_destroyed sessions destroyed (expected $expected)"
       );
 
@@ -582,11 +580,12 @@ POE::MySession->create(
         $expected = 3;
       } else {
         $expected = 2;
-        diag( "Your version of Perl is rather buggy.  Consider upgrading." );
+        diag("Detected a memory leak in Perl version $].");
+        diag("Please consider upgrading if you use Perl in production.");
       }
 
-      ok(
-        $objects_destroyed == $expected,
+      is(
+        $objects_destroyed, $expected,
         "$objects_destroyed objects destroyed (expected $expected)"
       );
     }
@@ -595,18 +594,18 @@ POE::MySession->create(
 
 POE::Kernel->run();
 
-ok(
-  $stop_called == 0,
+is(
+  $stop_called, 0,
   "_stop wasn't called"
 );
 
-ok(
-  $child_called == 0,
+is(
+  $child_called, 0,
   "_child wasn't called"
 );
 
-ok(
-  $parent_called == 0,
+is(
+  $parent_called, 0,
   "_parent wasn't called"
 );
 
@@ -620,8 +619,8 @@ else {
   $expected = 4;
 }
 
-ok(
-  $sessions_destroyed == $expected,
+is(
+  $sessions_destroyed, $expected,
   "destroyed $sessions_destroyed sessions (expected $expected)"
 );
 
@@ -640,8 +639,8 @@ else {
   $expected = 4;
 }
 
-ok(
-  $objects_destroyed == $expected,
+is(
+  $objects_destroyed, $expected,
   "destroyed $objects_destroyed objects (expected $expected)"
 );
 
