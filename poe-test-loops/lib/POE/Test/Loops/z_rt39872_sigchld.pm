@@ -13,7 +13,7 @@ use Test::More;
 use POE::Wheel::Run;
 use POSIX qw( SIGINT );
 
-if ($^O eq "MSWin32") {
+if ($^O eq "MSWin32" and not $ENV{POE_DANTIC}) {
 	plan skip_all => "Perl crashes on $^O";
 	exit 0;
 }

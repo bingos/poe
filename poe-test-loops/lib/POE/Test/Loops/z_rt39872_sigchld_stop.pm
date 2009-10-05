@@ -16,12 +16,12 @@ use POSIX qw( SIGINT SIGUSR1 );
 use POE;
 use POE::Wheel::Run;
 
-if ($^O eq "MSWin32") {
+if ($^O eq "MSWin32" and not $ENV{POE_DANTIC}) {
   plan skip_all => "SIGUSR1 not supported on $^O";
   exit 0;
 }
 
-if ($INC{'Tk.pm'}) {
+if ($INC{'Tk.pm'} and not $ENV{POE_DANTIC}) {
   plan skip_all => "Test causes XIO and other errors under Tk.";
   exit 0;
 }

@@ -20,10 +20,10 @@ BEGIN {
   unless (-f 'run_network_tests') {
     $error = "Network access (and permission) required to run this test";
   }
-  elsif ($^O eq "MSWin32" or $^O eq "MacOS") {
+  elsif (($^O eq "MSWin32" or $^O eq "MacOS") and not $ENV{POE_DANTIC}) {
     $error = "$^O does not support UNIX sockets";
   }
-  elsif ($^O eq "cygwin") {
+  elsif ($^O eq "cygwin" and not $ENV{POE_DANTIC}) {
     $error = "UNIX sockets on $^O always block";
   }
 

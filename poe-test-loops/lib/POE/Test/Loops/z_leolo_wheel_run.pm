@@ -7,7 +7,7 @@ use strict;
 
 use Test::More;
 
-if ($^O eq "MSWin32") {
+if ($^O eq "MSWin32" and not $ENV{POE_DANTIC}) {
   plan skip_all => "Sorry Perl crashes on $^O";
 }
 
@@ -24,7 +24,7 @@ SKIP: {
       exists $INC{"POE/Loop/IO_Poll.pm"} or
       exists $INC{"POE/Loop/Event.pm"} or
       $ENV{POE_LOOP_USES_POLL}
-    );
+    ) and not $ENV{POE_DANTIC};
 
   Worker->spawn( 'pty' );
   Worker->spawn( 'pty-pipe' );

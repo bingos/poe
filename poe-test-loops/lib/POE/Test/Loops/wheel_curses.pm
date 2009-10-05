@@ -14,7 +14,7 @@ use Test::More;
 use Symbol qw(gensym);
 
 BEGIN {
-  if ($^O eq "MSWin32") {
+  if ($^O eq "MSWin32" and not $ENV{POE_DANTIC}) {
     plan skip_all => "Can't multiplex consoles in $^O";
   }
 

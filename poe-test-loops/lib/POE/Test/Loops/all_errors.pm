@@ -46,7 +46,7 @@ print "1..0 # Skip most of these should move into other test files\n";
 #
 #  # Test that errors occur when multiple event loops are enabled.
 #
-#  if ($^O eq 'MSWin32') {
+#  if ($^O eq 'MSWin32' and not $ENV{POE_DANTIC}) {
 #    for (1..3) {
 #      print "ok $_ # skipped: This test crashes ActiveState Perl.\n";
 #    }
@@ -203,7 +203,7 @@ print "1..0 # Skip most of these should move into other test files\n";
 #  local $SIG{__WARN__} = sub { $warnings++; };
 #
 #  # Grar!  No UNIX sockets on Windows.
-#  if ($^O eq 'MSWin32') {
+#  if ($^O eq 'MSWin32' and not $ENV{POE_DANTIC}) {
 #    print "ok 21 # skipped: $^O does not support listen on unbound sockets.\n";
 #    print "ok 22 # skipped: $^O does not support UNIX sockets.\n";
 #  }
@@ -386,7 +386,7 @@ print "1..0 # Skip most of these should move into other test files\n";
 #print 'not ' unless defined $@ and length $@;
 #print "ok 47\n";
 #
-#if ($^O ne 'MSWin32' and $^O ne 'MacOS') {
+#if (($^O ne 'MSWin32' and $^O ne 'MacOS') or $ENV{POE_DANTIC}) {
 #  require POE::Wheel::Run;
 #  POE::Wheel::Run->import();
 #

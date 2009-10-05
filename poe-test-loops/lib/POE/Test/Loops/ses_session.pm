@@ -410,7 +410,7 @@ for (my $i=0; $i<$machine_count; $i++) {
 
 # Were all the signals caught?
 SKIP: {
-  if ($^O eq "MSWin32" or $^O eq "MacOS") {
+  if (($^O eq "MSWin32" or $^O eq "MacOS") and not $ENV{POE_DANTIC}) {
     skip "$^O does not support signals", 2;
   }
 

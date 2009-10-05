@@ -23,13 +23,13 @@ BEGIN {
     if ($@) {
       $error = "Win32::Console is required on $^O - try ActivePerl";
     }
-    elsif (exists $INC{"Tk.pm"}) {
+    elsif (exists $INC{"Tk.pm"} and not $ENV{POE_DANTIC}) {
       $error = "$^O with Tk seems to hang on this test";
     }
-    elsif (exists $INC{"Event.pm"}) {
+    elsif (exists $INC{"Event.pm"} and not $ENV{POE_DANTIC}) {
       $error = "$^O\'s fork() emulation breaks Event";
     }
-    else {
+    elsif (not $ENV{POE_DANTIC}) {
       $error = "Signal handling on $^O is too fragile - Perl crashes";
     }
 

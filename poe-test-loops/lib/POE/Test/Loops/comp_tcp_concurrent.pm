@@ -11,7 +11,7 @@ BEGIN {
     print "1..0 # Skip Network access (and permission) required to run this test\n";
     CORE::exit();
   }
-  if ($^O eq "MSWin32") {
+  if ($^O eq "MSWin32" and not $ENV{POE_DANTIC}) {
     print "1..0 # Skip Windows sockets aren't as concurrent as those on Unix\n";
     CORE::exit();
   }

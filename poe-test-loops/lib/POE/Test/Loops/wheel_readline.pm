@@ -129,7 +129,7 @@ use Test::More;
 
 BEGIN {
   my $error;
-  if ($^O eq "MSWin32") {
+  if ($^O eq "MSWin32" and not $ENV{POE_DANTIC}) {
     $error = "$^O cannot multiplex terminals";
   }
   elsif (!-t STDIN) {

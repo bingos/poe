@@ -27,10 +27,10 @@ BEGIN {
   # this test to FAIL instead of skip.
 
   my $error;
-  if ($^O eq "MSWin32") {
+  if ($^O eq "MSWin32" and not $ENV{POE_DANTIC}) {
     $error = "$^O does not support signals";
   }
-  elsif ($^O eq "MacOS") {
+  elsif ($^O eq "MacOS" and not $ENV{POE_DANTIC}) {
     $error = "$^O does not support fork";
   }
 

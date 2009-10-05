@@ -149,7 +149,7 @@ sub part2 {
     $poe_kernel->post("test_dispatcher" => "run_next");
     return;
   }
-  elsif ($^O eq "MSWin32") {
+  elsif ($^O eq "MSWin32" and not $ENV{POE_DANTIC}) {
     SKIP: {
       skip( "part2 doesn't work on windows", 13 );
     }

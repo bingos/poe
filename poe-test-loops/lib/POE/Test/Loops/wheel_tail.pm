@@ -18,7 +18,7 @@ unless (-f "run_network_tests") {
   plan skip_all => "Network access (and permission) required to run this test";
 }
 
-if ($^O eq "cygwin") {
+if ($^O eq "cygwin" and not $ENV{POE_DANTIC}) {
   plan skip_all => "Cygwin file open/locking semantics thwart this test.";
 }
 
