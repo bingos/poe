@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Tests basic session aliases.
 
@@ -8,8 +8,11 @@ use strict;
 use Test::More tests => 20;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_DEFAULT  () { 1 }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 use POSIX qw (:errno_h);
 
@@ -41,7 +44,9 @@ sub machine_start {
   $resolved_session = $kernel->alias_resolve( $session );
   ok($resolved_session eq $session, "resolve session reference");
 
+  open(SAVE_STDERR, ">&STDERR") or die $!; close(STDERR) or die $!;
   $resolved_session = eval { $kernel->alias_resolve( 'nonexistent' ) };
+  open(STDERR, ">&SAVE_STDERR") or die $!; close(SAVE_STDERR) or die $!;
   ok(!$resolved_session, "fail to resolve nonexistent alias");
 
   my $id = $session->ID;
