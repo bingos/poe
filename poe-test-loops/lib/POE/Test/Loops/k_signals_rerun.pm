@@ -1,5 +1,4 @@
-# $Id$
-# vim: filetype=perl
+# vim: ts=2 sw=2 expandtab
 
 # Yuval Kogman's test case for edge issues with rethrowing unhandled
 # die() exceptions and re-calling run() after it's returned due to

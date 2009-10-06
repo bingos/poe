@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -10,8 +10,11 @@ use lib qw(./mylib ../mylib);
 use Test::More;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_DEFAULT  () { 1 }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 # This is the number of processes to fork.  Increase this number if
 # your system can handle the resource use.  Also try increasing it if

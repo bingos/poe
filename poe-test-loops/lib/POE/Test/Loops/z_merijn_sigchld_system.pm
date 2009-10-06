@@ -7,9 +7,12 @@
 
 use strict;
 
-sub POE::Kernel::TRACE_DEFAULT  () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 use POE;
 
@@ -33,8 +36,8 @@ SKIP: {
   POE::Session->create(
     inline_states => {
       _start => sub {
-				my $sig_chld = $SIG{CHLD};
-				$sig_chld = "(undef)" unless defined $sig_chld;
+        my $sig_chld = $SIG{CHLD};
+        $sig_chld = "(undef)" unless defined $sig_chld;
 
         is(
           system( $command ), 0,
@@ -60,6 +63,7 @@ SKIP: {
         diag( "Caught child" );
         $caught_child++;
       },
+      _stop => sub { }, # Pacify assertions.
     }
   );
 

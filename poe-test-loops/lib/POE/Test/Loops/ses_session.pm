@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Tests basic compilation and events.
 
@@ -7,14 +7,17 @@ use strict;
 
 use lib qw(./mylib ../mylib);
 
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+
 BEGIN {
-  sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-  sub POE::Kernel::TRACE_DEFAULT  () { 1 }
-  sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
 }
 
 use Test::More tests => 41;
 use POE;
+
+diag("This test generates some STDERR during trace testing.");
 
 ### Test parameters and results.
 
@@ -130,6 +133,7 @@ POE::Session->create(
       $_[KERNEL]->sig( ALRM => undef );
       $_[KERNEL]->sig( PIPE => undef );
     },
+    _stop => sub { }, # Pacify assertions.
   }
 );
 
@@ -165,6 +169,7 @@ POE::Session->create(
     query => sub {
       $_[ARG0]->( ++$_[HEAP]->{response} );
     },
+    _stop => sub { }, # Pacify assertions.
   },
 );
 
@@ -370,6 +375,7 @@ POE::Session->create(
       $_[KERNEL]->yield("idle");
     },
     idle => sub { },
+    _stop => sub { }, # Pacify assertions.
   },
   options => { default => 1 },
 );

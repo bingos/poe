@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Tests whether POE::Kernel affects signal handlers at initialization
 # time.  Based on test code provided by Stuart Kendrick, in

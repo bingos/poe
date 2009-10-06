@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Exercise Server::TCP and later, when it's available, Client::TCP.
 
@@ -16,8 +16,11 @@ BEGIN {
 use Test::More tests => 34;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_DEFAULT  () { 1 }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 use POE qw( Component::Server::TCP Wheel::ReadWrite Component::Client::TCP );
 

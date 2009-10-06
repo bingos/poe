@@ -1,16 +1,19 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Exercises Wheel::FollowTail, Wheel::ReadWrite, and Filter::Block.
-# -><- Needs tests for Seek and SeekBack.
+# TODO - Needs tests for Seek and SeekBack.
 
 use strict;
 use lib qw(./mylib ../mylib);
 use Socket;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_DEFAULT  () { 1 }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 use Test::More;
 

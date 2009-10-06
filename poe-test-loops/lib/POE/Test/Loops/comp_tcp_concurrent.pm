@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Exercise Server::TCP and later, when it's available, Client::TCP.
 
@@ -26,9 +26,7 @@ diag( "You might see a 'disconnect' error during this test." );
 diag( "It may be ignored." );
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-# sub POE::Kernel::TRACE_EVENTS  () { 1 }
-# sub POE::Kernel::TRACE_FILES  () { 1 }
-# sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+sub POE::Kernel::TRACE_DEFAULT  () { 0 }
 
 use POE qw( Component::Server::TCP Wheel::ReadWrite Component::Client::TCP );
 

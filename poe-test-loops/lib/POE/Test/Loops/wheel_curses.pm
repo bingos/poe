@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Exercises Wheel::Curses
 
@@ -7,8 +7,7 @@ use strict;
 use lib qw(./mylib ../mylib);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-#sub POE::Kernel::TRACE_DEFAULT  () { 1 }
-#sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+sub POE::Kernel::TRACE_DEFAULT  () { 0 }
 
 use Test::More;
 use Symbol qw(gensym);

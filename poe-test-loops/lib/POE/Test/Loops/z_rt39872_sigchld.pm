@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# vim: ts=2 sw=2 expandtab
 
 use strict;
 use warnings;
@@ -6,7 +7,11 @@ use warnings;
 sub DEBUG () { 0 }
 sub POE::Kernel::USE_SIGCHLD () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 use POE;
 use Test::More;

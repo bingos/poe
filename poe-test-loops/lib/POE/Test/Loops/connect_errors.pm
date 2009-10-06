@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # POE::XS::Loop::Poll wasn't handling errors correctly, this was
 # particularly noticable for connect() failures, so check connection
@@ -22,8 +22,11 @@ if ($^O eq 'MSWin32' and $] < 5.008) {
 plan tests => 3;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_DEFAULT  () { 1 }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 use POE qw( Wheel::ReadWrite Component::Client::TCP );
 
@@ -60,6 +63,7 @@ POE::Session->create(
     shutdown => sub {
       $poe_kernel->alarm_remove($_[HEAP]{alarm});
     },
+    _stop => sub { }, # Pacify assertions.
   }
 );
 

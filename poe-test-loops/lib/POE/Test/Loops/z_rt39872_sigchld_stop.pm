@@ -1,15 +1,19 @@
 #!/usr/bin/perl
+# vim: ts=2 sw=2 expandtab
 
 use strict;
 use warnings;
 
 sub DEBUG () { 0 }
 my $REFCNT;
+
 sub POE::Kernel::USE_SIGCHLD () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_SIGNALS () { 0 }
-sub POE::Kernel::TRACE_REFCNT () { DEBUG and $REFCNT }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 use Test::More;
 use POSIX qw( SIGINT SIGUSR1 );

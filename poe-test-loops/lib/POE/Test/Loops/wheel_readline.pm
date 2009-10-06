@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Exercises Wheel::ReadLine
 
@@ -120,8 +120,11 @@ my @tests = (
 
 sub POE::Kernel::CATCH_EXCEPTIONS () { 0 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_DEFAULT  () { 1 }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 use Test::More;
 
@@ -340,9 +343,12 @@ sub test_start_next {
     return;
   }
 
+  # Delete them first so that we can tell the relative order of
+  # destruction when DEBUG is turned on.
+  delete $heap->{readline};
+  delete $heap->{readwrite};
   DEBUG and warn "Done with all tests.\n";
-  $heap->{readline} = undef;
-  $heap->{readwrite} = undef;
+  return;
 }
 
 sub test_step {

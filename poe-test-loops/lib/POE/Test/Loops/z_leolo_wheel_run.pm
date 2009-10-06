@@ -1,6 +1,5 @@
 #!/usr/bin/perl
-# $Id$
-# vim: filetype=perl
+# vim: ts=2 sw=2 expandtab
 
 use warnings;
 use strict;

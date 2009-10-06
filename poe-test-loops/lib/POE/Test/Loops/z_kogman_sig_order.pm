@@ -1,5 +1,4 @@
-# $Id: $
-# vim: filetype=perl
+# vim: ts=2 sw=2 expandtab
 
 # Tests propagation of signals through the session ancestry
 
@@ -9,6 +8,12 @@ use strict;
 use Test::More tests => 7;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
+
 use POE;
 
 {

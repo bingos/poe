@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id$
+# vim: ts=2 sw=2 expandtab
 
 # Exercises the ListenAccept wheel.
 
@@ -8,8 +8,11 @@ use lib qw(./mylib ../mylib);
 use IO::Socket;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Kernel::TRACE_DEFAULT  () { 1 }
-sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
 
 use Test::More;
 use POE qw(Wheel::ListenAccept Wheel::SocketFactory);
@@ -119,6 +122,7 @@ if (defined $bound_port) {
         _start         => \&connector_start,
         got_connection => \&connector_got_connection,
         got_error      => \&connector_got_error,
+        _stop => sub { }, # Pacify assertions.
       }
     );
   }
