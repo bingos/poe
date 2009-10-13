@@ -53,6 +53,7 @@ sub do_servers {
   # program's devising.
   POE::Component::Server::TCP->new(
     Port => 0,
+    Address => '127.0.0.1',
     Alias => 'acceptor_server',
     Concurrency => 1,
     Started => sub {
@@ -137,6 +138,7 @@ sub do_servers {
   # of a user-defined session.
   POE::Component::Server::TCP->new(
     Port => 0,
+    Address => '127.0.0.1',
     Alias => 'callback_server',
     Started => sub {
       use Socket qw(sockaddr_in);
