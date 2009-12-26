@@ -32,11 +32,12 @@ if ($^O eq 'MSWin32') {
     plan skip_all => "This test always hangs on MSWin32+perl older than 5.8.0";
   }
   if ($] < 5.010) {
-    # ARGH, it doesn't lock up on Strawberry 5.8.x but it does on ActiveState 5.8.x!!!
-    # ugly method, but it works for me...
+    # ARGH, it doesn't lock up on Strawberry 5.8.x but it does on
+    # ActiveState 5.8.x!!!  ugly method, but it works for me...
     require Config;
     if ($Config::Config{cf_email} =~ /ActiveState/) {
-      plan skip_all => "This test always hangs on MSWin32+ActiveState perl older than 5.10";
+      plan skip_all =>
+        "This test always hangs on MSWin32+ActiveState perl older than 5.10";
     }
   }
 }
@@ -70,7 +71,7 @@ sub sss_new {
       got_error   => \&sss_error,
       got_block   => \&sss_block,
       ev_timeout  => sub {
-        DEBUG and warn "=== sss got timeout";
+        DEBUG and warn "=== handle tail got timeout";
         delete $_[HEAP]->{wheel};
       },
     },
@@ -103,26 +104,24 @@ sub sss_start {
 
 sub sss_block {
   my ($kernel, $heap, $block) = @_[KERNEL, HEAP, ARG0];
-  DEBUG and warn "=== sss got block";
+  DEBUG and warn "=== handle tail got block ($block)";
   $heap->{read_count}++;
   $kernel->delay( ev_timeout => 10 );
 }
 
 sub sss_error {
   my ($heap, $syscall, $errnum, $errstr, $wheel_id) = @_[HEAP, ARG0..ARG3];
-  DEBUG and warn "=== sss got $syscall error $errnum: $errstr";
-  if ($errnum) {
-    $_[HEAP]->{test_two} = 0;
-  }
+  DEBUG and warn "=== handle tail got $syscall error $errnum: $errstr";
+  $_[HEAP]->{test_two} = 0 if $errnum;
 }
 
 sub sss_stop {
   my $heap = $_[HEAP];
-  DEBUG and warn "=== sss stopped";
-  ok($heap->{test_two}, "test two");
-  ok(
-    $heap->{read_count} == $max_send_count,
-    "read everything we were sent " .
+  DEBUG and warn "=== handle tail stopped";
+  ok($heap->{test_two}, "handle tail test two");
+  is(
+    $heap->{read_count}, $max_send_count,
+    "handle tail read everything we were sent " .
     "did($heap->{read_count}) wanted($max_send_count)"
   );
 }
@@ -297,14 +296,14 @@ POE::Session->create(
       $heap->{sent_count}  = 0;
       $heap->{recv_count}  = 0;
       $heap->{reset_count} = 0;
-      DEBUG and warn "=== start";
+      DEBUG and warn "=== file tail start";
     },
 
     create_file => sub {
       open(FH, ">./test-tail-file") or die $!;
       print FH "moo\n";
       close FH;
-      DEBUG and warn "=== create";
+      DEBUG and warn "=== file tail create file";
       $_[HEAP]->{sent_count}++;
     },
 
@@ -312,7 +311,7 @@ POE::Session->create(
       my ($kernel, $heap) = @_[KERNEL, HEAP];
       $heap->{recv_count}++;
 
-      DEBUG and warn "=== input: $_[ARG0]\n";
+      DEBUG and warn "=== file tail input: $_[ARG0]\n";
 
       unlink "./test-tail-file";
 
@@ -327,20 +326,20 @@ POE::Session->create(
     got_error => sub { warn "error"; die },
 
     got_reset => sub {
-      DEBUG and warn "=== reset";
+      DEBUG and warn "=== file tail got reset";
       $_[HEAP]->{reset_count}++;
     },
 
     _stop => sub {
-      DEBUG and warn "=== stop";
+      DEBUG and warn "=== file tail stop";
       my $heap = $_[HEAP];
       ok(
         ($heap->{sent_count} == $heap->{recv_count}) &&
         ($heap->{sent_count} == 2),
-        "sent and received everything we should " .
+        "file tail sent and received everything we should " .
         "sent($heap->{sent_count}) recv($heap->{recv_count}) wanted(2)"
       );
-      is($heap->{reset_count}, 1, "reset detected");
+      is($heap->{reset_count}, 1, "file tail reset detected");
     },
   },
 );
