@@ -13,10 +13,11 @@ unless (-f "run_network_tests") {
   plan skip_all => "Network access (and permission) required to run this test";
 }
 
-# to work around an issue on MSWin32+ActiveState 5.6.1
-# it will always timeout via our alarm, and if we remove it - the OS never times out!
-if ($^O eq 'MSWin32' and $] < 5.008) {
-  plan skip_all => "This test always fails on MSWin32+perl older than 5.8.0";
+# MSWin32+ActiveState 5.6.1 and 5.10.1 always time out.  And if we remove the
+# delay, then the OS never times out.  5.8.0 seems to work fine.  Since this
+# behavior seems to come and go, we're skipping it for all versions of MSWin32.
+if ($^O eq 'MSWin32') {
+  plan skip_all => "This test fails for various versions of MSWin32 perl";
 }
 
 plan tests => 3;
@@ -31,13 +32,13 @@ BEGIN {
 use POE qw( Wheel::ReadWrite Component::Client::TCP );
 
 # Dynamically find an unused port for the failure-to-connect test.
+# Listen on the port, but accept no connections there.
 
 my $unused_port;
 {
   use IO::Socket::INET;
   my $reserved = IO::Socket::INET->new(
     LocalAddr => '127.0.0.1',
-    #LocalPort => 0,    # 0 is the default, and as a bonus this works on MSWin32+ActiveState 5.6.1
     ReuseAddr => 0,
   );
   if (defined $reserved) {
@@ -54,7 +55,7 @@ POE::Session->create(
   inline_states => {
     _start => sub {
       $poe_kernel->alias_set('watcher');
-      $_[HEAP]{alarm} = $poe_kernel->alarm_set(timeout => time() + 10);
+      $_[HEAP]{alarm} = $poe_kernel->delay_set(timeout => 10);
     },
     timeout => sub {
       $poe_kernel->post(client => 'shutdown');
