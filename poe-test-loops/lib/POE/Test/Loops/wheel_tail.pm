@@ -286,11 +286,12 @@ POE::Session->create(
 
       unlink "./test-tail-file";
       $heap->{wheel} = POE::Wheel::FollowTail->new(
-        Filename => "./test-tail-file",
-        InputEvent => "got_input",
-        ErrorEvent => "got_error",
-        ResetEvent => "got_reset",
-  PollInterval => 0.1,
+        Filter        => POE::Filter::Line->new(Literal => "\n"),
+        Filename      => "./test-tail-file",
+        InputEvent    => "got_input",
+        ErrorEvent    => "got_error",
+        ResetEvent    => "got_reset",
+        PollInterval  => 0.1,
       );
       $kernel->delay(create_file => 1);
       $heap->{sent_count}  = 0;
@@ -301,7 +302,7 @@ POE::Session->create(
 
     create_file => sub {
       open(FH, ">./test-tail-file") or die $!;
-      print FH "moo\015\012";
+      print FH "moo\n";
       close FH;
       DEBUG and warn "=== create";
       $_[HEAP]->{sent_count}++;
@@ -311,7 +312,7 @@ POE::Session->create(
       my ($kernel, $heap) = @_[KERNEL, HEAP];
       $heap->{recv_count}++;
 
-      DEBUG and warn "=== input";
+      DEBUG and warn "=== input: $_[ARG0]\n";
 
       unlink "./test-tail-file";
 
@@ -339,7 +340,7 @@ POE::Session->create(
         "sent and received everything we should " .
         "sent($heap->{sent_count}) recv($heap->{recv_count}) wanted(2)"
       );
-      ok($heap->{reset_count} > 0, "reset more than once");
+      is($heap->{reset_count}, 1, "reset detected");
     },
   },
 );
