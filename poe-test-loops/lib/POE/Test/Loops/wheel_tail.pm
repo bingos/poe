@@ -9,6 +9,7 @@ use lib qw(./mylib ../mylib);
 use Socket;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::CATCH_EXCEPTIONS () { 0 }
 
 BEGIN {
   package POE::Kernel;
@@ -323,7 +324,7 @@ POE::Session->create(
       delete $heap->{wheel};
     },
 
-    got_error => sub { warn "error"; die },
+    got_error => sub { warn "$_[ARG0] error $_[ARG1]: $_[ARG2]"; die },
 
     got_reset => sub {
       DEBUG and warn "=== file tail got reset";
@@ -339,7 +340,7 @@ POE::Session->create(
         "file tail sent and received everything we should " .
         "sent($heap->{sent_count}) recv($heap->{recv_count}) wanted(2)"
       );
-      is($heap->{reset_count}, 1, "file tail reset detected");
+      is($heap->{reset_count}, 2, "file tail resets detected");
     },
   },
 );
