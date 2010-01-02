@@ -12,8 +12,9 @@ use strict;
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 
 BEGIN {
-  package POE::Kernel;
-  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+  eval "sub POE::Kernel::TRACE_DEFAULT () { 1 }" if (
+    exists $INC{'Devel/Cover.pm'}
+  );
 }
 
 use POE;

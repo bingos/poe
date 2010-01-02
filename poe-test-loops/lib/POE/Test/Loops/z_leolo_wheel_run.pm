@@ -25,12 +25,12 @@ SKIP: {
       $ENV{POE_LOOP_USES_POLL}
     ) and not $ENV{POE_DANTIC};
 
-  Worker->spawn( 'pty' );
-  Worker->spawn( 'pty-pipe' );
+  PoeTestWorker->spawn( 'pty' );
+  PoeTestWorker->spawn( 'pty-pipe' );
 }
 
-Worker->spawn( 'socketpair' );
-Worker->spawn( 'inet' );
+PoeTestWorker->spawn( 'socketpair' );
+PoeTestWorker->spawn( 'inet' );
 
 pass( "Start" );
 
@@ -40,7 +40,7 @@ pass( "Done" );
 
 
 #############################################################################
-package Worker;
+package PoeTestWorker;
 
 use strict;
 use warnings;

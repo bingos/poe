@@ -18,7 +18,7 @@ use Test::More;
 use POE qw(NFA);
 my $NEW_POE;
 BEGIN {
-  if (eval "$POE::VERSION" <= 1.003) {
+  if (eval("\$POE::VER" . "SION") <= 1.003) { # Pesky CPAN indexer.
     $NEW_POE = 0;
     plan tests => 28;
   } else {
