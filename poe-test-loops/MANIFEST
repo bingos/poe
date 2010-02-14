@@ -1,4 +1,3 @@
-# $Id$
 CHANGES
 MANIFEST
 Makefile.PL
@@ -36,5 +35,6 @@ lib/POE/Test/Loops/z_leolo_wheel_run.pm
 lib/POE/Test/Loops/z_merijn_sigchld_system.pm
 lib/POE/Test/Loops/z_rt39872_sigchld.pm
 lib/POE/Test/Loops/z_rt39872_sigchld_stop.pm
+lib/POE/Test/Loops/z_rt54319_bazerka_followtail.pm
 lib/POE/Test/Loops/z_steinert_signal_integrity.pm
 t/01_no_tests.t
