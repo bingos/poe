@@ -17,7 +17,7 @@ my $write_count = 0;
 my $write_fh;
 
 open $write_fh, ">", $tailfile or plan(
-	skip_all => "can't write to temporary file $tailfile: $!"
+  skip_all => "can't write to temporary file $tailfile: $!"
 );
 $write_fh->autoflush(1);
 
@@ -41,18 +41,19 @@ POE::Session->create(
       $_[HEAP]{tailor} = POE::Wheel::FollowTail->new(
         Filename     => $tailfile,
         InputEvent   => "got_log_line",
-				PollInterval => 3,
+        PollInterval => 3,
       );
-			$_[KERNEL]->delay(timeout => 11);
+      $_[KERNEL]->delay(timeout => 11);
     },
     got_log_line => sub {
-			my ($write, $time) = split /\s+/, $_[ARG0];
-			ok((time() - $time) < 3, "response time <3 seconds");
-			delete $_[HEAP]{tailor} if $write >= TESTS;
+      my ($write, $time) = split /\s+/, $_[ARG0];
+      my $elapsed = time() - $time;
+      ok($elapsed <= 3, "response time <=3 seconds ($elapsed)");
+      delete $_[HEAP]{tailor} if $write >= TESTS;
     },
-		timeout => sub {
-			delete $_[HEAP]{tailor};
-		},
+    timeout => sub {
+      delete $_[HEAP]{tailor};
+    },
   }
 );
 
