@@ -43,7 +43,7 @@ POE::Session->create(
         InputEvent   => "got_log_line",
         PollInterval => 3,
       );
-      $_[KERNEL]->delay(timeout => 11);
+      $_[KERNEL]->delay(timeout => 15);
     },
     got_log_line => sub {
       my ($write, $time) = split /\s+/, $_[ARG0];
