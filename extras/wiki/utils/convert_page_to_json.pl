@@ -28,7 +28,10 @@ sub process_page {
 
 	return unless defined $raw_data;
 
-	my %data = split /\xb31/, $raw_data, -1;
+	my @data = split /\xb31/, $raw_data;
+	push @data, undef if @data % 2;
+
+	my %data = @data;
 
 	while (my ($key, $val) = each %data) {
 		next unless $key =~ /^text_/;

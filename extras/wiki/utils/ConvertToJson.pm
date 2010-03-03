@@ -3,7 +3,7 @@ package ConvertToJson;
 use warnings;
 use strict;
 
-use Encode qw(decode FB_CROAK);
+use Encode qw(decode FB_DEFAULT);
 use Carp qw(croak);
 use File::AtomicWrite;
 use JSON::XS;
@@ -45,8 +45,9 @@ sub utf8_decode_data {
 	my $encoded = shift;
 
 	if (ref($encoded) eq "") {
-		my $decoded = eval { decode("UTF-8", $encoded, FB_CROAK) };
-		return $@ ? "" : $decoded;
+		my $decoded = decode("UTF-8", $encoded, FB_DEFAULT);
+		$decoded =~ s/\x{FFFD}/\x{203D}/g;
+		return $decoded;
 	}
 
 	if (ref($encoded) eq "HASH") {
