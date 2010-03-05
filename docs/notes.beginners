@@ -1,0 +1,319 @@
+http://poe.perl.org/?POE_Documentation/Beginners_Guide
+
+What everyone needs to know about POE.
+
+Feel free to add your questions to this document. Leave the answer as
+ToDo, and someone will explain it eventually.
+
+POE does not use fork or threads.
+
+Programs will only multitask if their parts cooperate with each other.
+
+A task that calls sleep() or something else that doesn't return for a
+while will pause the entire program. This will change when Perl's
+	threads become mainstream.
+
+	Calling die() or exit() in one task will stop every task, and indeed
+	the entire program. This may not be the desired effect. It will
+	change when POE gets exceptions.
+
+	Most of what POE does is implemented in POE::Kernel.
+
+	This one explains itself.
+
+	POE's tasks are called "sessions".
+
+	POE::Session is the main "session" class.
+
+	Sessions own many things.
+
+	Sessions own their resources in many of the same ways that an
+	operating system's processes do. Each session controls its own file
+	handles, has its own storage space (called a heap), accepts its own
+	events, and even owns its child sessions.
+
+	POE keeps the things that one session owns separate from the things
+	owned by other sessions.
+
+	The things sessions own keep them going.
+
+	Sessions run as long as they have something to do. Many of the
+	things they own require them to do something. For example, a socket
+	handle will eventually need to be serviced. POE will keep the
+	session alive as long as it owns one.
+
+	Sessions stop as soon as they run out of things to do. The surest
+	way to ensure that is for a session to stop owning things.
+
+	Aliases keep sessions alive, with some obscure exceptions.
+
+	Aliases are symbolic names for sessions. They let sessions post
+	events to each other by name.
+
+	\$kernel->post( alias => event => @other_stuff );
+
+	POE cannot tell which sessions will send events to an alias, so it
+	keeps aliased sessions alive to be safe. This rule is the source of
+	the rumor that "aliases keep sessions alive". It has an exception,
+	however, that catches a lot of people off guard.
+
+	A deadlock occurs whenever all the sessions in a program are alive
+	only because they have aliases. Since every session is passively
+	waiting for some event from the others, none will ever be awakened.
+	POE::Kernel detects these deadlocks and tries to wake the sessions
+	up by sending them an IDLE signal.
+
+	If the sessions do not awaken after receiving SIGIDLE, POE::Kernel
+	forcibly halts them with a ZOMBIE signal. Sessions cannot handle
+	SIGZOMBIE, so they will die no matter what.
+
+	That is why programs often halt even when sessions have aliases.
+
+	Everything in POE happens as the result of some event.
+
+	Events are just tokens that represent when something has happened.
+	"A file is ready to be used." "An alarm has become due." Those sorts
+	of things.
+
+	When a session is created, it's given a list of the events it will
+	understand. Each event is a name "_start" or "file_ready" or
+	"alarm_due", for example. Each handler is a subroutine reference,
+	usually. \&handle_start, \&handle_file_ready, \&handle_alarm_due,
+	and so on.
+
+	POE::Session->create(
+	    inline_states => {
+				        _start     => \&handle_start,
+								        file_ready => \&handle_file_ready,
+												        alarm_due  => \&handle_alarm_due,
+																    },
+																		);
+
+	When one of these events is given to the session, the appropriate
+	function is called to handle it.
+
+	There are many ways to create events. Most POE::Kernel methods make
+	events, and all the POE::Wheel classes do too.
+
+	POE often keeps track of things for you.
+
+	You'll notice that POE::Session objects are rarely if ever stored
+	anywhere. That's because POE keeps track of them itself. It does
+	this for a few reasons.
+
+	First, creating sessions is very common, and it would be tedious to
+	save them and remember to delete them later.
+
+	Second, POE does a LOT of circular referencing. This file is owned
+	by that session. That session owns this file. POE would leak memory
+	like a sieve if it didn't constantly track these things and break
+	those reference loops at the proper times.
+
+	Third, since POE's doing all this tracking anyway, it knows when a
+	session is not needed anymore. If it's the only thing holding a
+	reference to that session, it can ensure it's garbage collected at
+	the right time.
+
+	POE::Kernel's run() method is a program's main loop.
+
+	It calls your code to handle events. It also watches for new things
+	to happen, such as when files become ready to work on. It creates
+	new events to alert your program when these things happen, which in
+	turn triggers your code to handle them.
+
+	The run() method will not return if sessions are active.
+
+	POE's main loop will run as long as there are sessions around. It
+	would be rude to just stop in the middle of your program. This means
+	that your code after run() will not be executed until the last
+	session has stopped.
+
+	Every session has its own storage space.
+
+	Because sessions are used to encapsulate tasks, each has a place to
+	keep its information separate from the others. These spaces are
+	called heaps. They are named after the heaps that processes allocate
+	their storage from.
+
+	Every session must handle a _start event.
+
+	The _start event notifies a session when it has been started. POE
+	sends this event for you since it's very common to start sessions.
+
+	The _start event's handler is triggered right away. Its job is to
+	initialize the session and create things for it to own. The session
+	will most likely stop immediately if the session does not own
+	something after its _start handler returns.
+
+	Many Kernel methods act on the current session.
+
+	Event handlers are called by POE::Kernel, so the Kernel knows which
+	one is running at any given time. POE uses this knowledge to
+	simplify many of its methods. The yield() call, for example, is used
+	to post messages to the current session. The Kernel supplies that
+	session so you don't have to.
+
+	Some of the more popular methods that don't require a session
+	parameter.
+
+	  alarm(), alarm_add(), alarm_set(), etc.
+		  alias_set(), alias_remove()
+			  delay(), delay_add(), delay_set(), etc.
+				  select(), select_read(), select_write(), etc.
+					  sig()
+						  yield()
+
+							POE programs can be simple.
+
+							This is about as simple as it gets. Set stuff up,
+							include POE, and start a session. Run everything until
+							it's all done, and exit.
+
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+use POE;
+
+POE::Session->create(
+    inline_state => {
+			        _start => sub { print "hello, world!\n"; }
+							    },
+									);
+
+\$poe_kernel->run();
+exit(0);
+
+POE programs can be complex.
+
+They can be comprised of several sessions, each performing a different
+task. They can work in concert like interlocked gears. They also can
+run solo, reporting to the program at large when things are done.
+
+Such separation lends itself to modular, reusable, and maintainable
+code, but it doesn't require these things to work. Perl being what it
+is, though, programmers have to exercise some discipline, or their
+programs won't be maintainable no matter what help they get.
+
+Session's constructor defines the events a session can handle.
+
+POE::Session's create() constructor sets up handlers for every event.
+
+POE::Session->create(
+    inline_states => {
+			        _start => \&handle_start_event,
+							        ...
+											      }
+														);
+
+Events that are not specified in a session's constructor will not be
+handled.
+
+Unhandled events are quietly discarded.
+
+It is not an error to send an event to a session that won't handle it.
+POE simply discards such events without so much as a warning. This
+lets modular programs work when optional sessions aren't available.
+
+For example, a program may contain a session that logs debugging
+information to a file. When the session is omitted, the events
+carrying logging information are discarded, and the program runs
+normally.
+
+Unhandled events can be quite a pain.
+
+It's common to mistype an event or forget to add its handler to a
+session's constructor. In these cases, programs just don't seem to do
+what they should.
+
+POE can treat many optional things as errors, including situations
+where events would be dropped quietly. The most "strict" way to do
+this is to define a constant function in POE::Kernel's package:
+
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+
+That turns on assertions for every marginal case in POE. It also
+enables parameter and return value checking, as well as extra memory
+leak detection within POE. It may be needless to say, but this will
+slow things down somewhat. It's great to have around while developing
+and debugging, though.
+
+SocketFactory creates plain sockets.
+
+The sockets created by SocketFactory are not strange objects. They are
+plain old sockets, created with perl's built-in socket() function. All
+the usual socket functions work on them: sysread and syswrite, send
+and recv, ioctl, fcntl, getsockopt, and setsockopt. Even print and the
+diamond operator, <>, work on them.
+
+The only thing you need to know is that they're sockets, they're not
+buffered, and they're non-blocking. You can even set them back to
+blocking if necessary, as some people have.
+
+This is one area where POE tries to keep the really weird stuff
+hidden.
+
+How wheels relate to sessions.
+
+ToDo
+
+<bline> It took me some time to understand Sessions. I also couldn't
+see why I need to keep the Wheel objects around even though I didn't
+use them.
+
+How sessions communicate with each other.
+
+ToDo
+
+<bline> I think communication between sessions was my next hurdle
+
+How events are processed.
+
+ToDo
+
+<bline> oh, and the order events are processed in
+
+How to handle signals.
+
+<coral> #3 "How do I set up a signal handler for SIGUSR1?" (I watched
+zenham search the poe wiki for 'signal' and fail to find anything.)
+Answer 1: is \$kernel->sig(USR1 => "event_name");
+
+Acknowledgments
+
+The points addressed in this document come from a lot of people. By
+their very nature, many of them have been raised by multiple people.
+These are the people who helped with questions specifically for this
+document, or at least waited to bring up problems after I started
+keeping track of them.
+
+android18, bline, coral, errr, racine, zenham.
+
+Add your nick/name to the list if you contribute and feel like it.
+
+Things to Add
+
+All of these are ToDo in one form or another.
+
+<Android18> do away with the use POE qw(module module module); it's
+confusing as it looks like you're importing functions.. not packages.
+
+<coral> #1 "Where do I find the doco on what the HEAP is?" The HEAP is
+whatever you assign it to be, and is not preinitialized by poe
+anywhere.
+
+<rocco> Better documentation would solve this.
+
+<coral> #2"How do I stop a wheel from receiving new input, but let it
+process the queued events before stopping?" The cookbook entry for
+"graceful wheel shutdown" answers #2 (it should be referenced from the
+poe::Wheel doco.)
+
+<coral> * Many Kernel methods act on the current session. "I tried
+\$kernel->yield("shutdown") to stop the wheel, but it never did
+anything" That's because the wheel is in a different session than you.
+do \$kernel->post("wheel", "shutdown" )
+
+	<coral> "I don't get what ->yield does, then" #5:
+	\$kernel->yield("foo") == \$kernel->post(\$_[SESSION], "foo") 
