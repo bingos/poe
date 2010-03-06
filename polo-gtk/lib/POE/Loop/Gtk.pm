@@ -32,6 +32,7 @@ sub skip_tests {
 package POE::Kernel;
 
 use strict;
+use Gtk;
 
 my $_watcher_timer;
 my @fileno_watcher;
