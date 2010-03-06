@@ -33,6 +33,7 @@ sub skip_tests {
 package POE::Kernel;
 
 use strict;
+use Event;
 
 my $_watcher_timer;
 my @fileno_watcher;
