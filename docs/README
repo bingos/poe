@@ -1,5 +1,30 @@
 Topics:
 
+Intro To POE Braindump.
+-----------------------
+
+1. Who?
+ - Who should be using POE?  
+ Talk about who uses POE now, what kind of person should be using POE, who built POE, the community, etc.
+
+2. What?
+ - What kind of things does POE do? What can I *do* with poe? What *should* be done with POE?
+ Co-processing, workers, multi/simultaneous processing, POE > threads/fork
+3. Where?
+ - Where should I put POE? Does it play well with others? Or does it want to run alone?
+ Examples of standalone POE apps/processes, using POE to delegate tasks that need long running processes and workers.
+4. When?
+ - When should I use POE?  When do I start looking at my app and saying, "this needs POE!"
+ When does an app need POE?  When it starts doing processing on its own that could be better and more efficiently handled by a dedicated process/app
+5. Why?
+ - Why should I use POE?  What advantages does it give me over Coro, Erlang, etc?
+ Why it makes more sense to use POE over Coro, erlang, etc. Speed?  Maturity? Good architecture?
+6. How?
+ - How do I actually use POE?
+ Examples of the aforementioned points, with scenarios
+
+
+
 Basic concepts.
 
 	Production ready:
