@@ -12,14 +12,15 @@ use POE qw(Wheel::FollowTail);
 use constant TESTS => 10;
 use Test::More;
 
-my $tailfile = "/tmp/powh-followtail-test-$$";
-my $write_count = 0;
-my $write_fh;
+use File::Temp;
 
-open $write_fh, ">", $tailfile or plan(
-  skip_all => "can't write to temporary file $tailfile: $!"
-);
+# Sanely generate the tempfile
+my $write_fh;
+eval { $write_fh = File::Temp->new( UNLINK => 1 ) };
+plan skip_all => "Unable to create tempfile for testing" if $@;
+
 $write_fh->autoflush(1);
+my $write_count = 0;
 
 plan tests => 10;
 
@@ -39,7 +40,7 @@ POE::Session->create(
   inline_states => {
     _start => sub {
       $_[HEAP]{tailor} = POE::Wheel::FollowTail->new(
-        Filename     => $tailfile,
+        Filename     => $write_fh->filename,
         InputEvent   => "got_log_line",
         PollInterval => 3,
       );
@@ -58,4 +59,5 @@ POE::Session->create(
 );
 
 POE::Kernel->run();
-unlink $tailfile;
+
+1;
