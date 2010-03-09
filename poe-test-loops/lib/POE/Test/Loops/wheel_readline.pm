@@ -250,9 +250,9 @@ END {
 use POE qw(Filter::Stream Wheel::ReadWrite);
 
 eval "use POE::Wheel::ReadLine";
-if ($@ and $@ =~ /(requires a termcap|failed termcap lookup)/) {
+if ($@ and $@ =~ /(requires a termcap|failed termcap lookup|cannot run)/) {
   my $error = $@;
-  $error =~ s/ at \S+ line \d+.*//;
+  $error =~ s/ at \S+ line \d+.*//s;
   $error =~ s/\s+/ /g;
   plan skip_all => $error;
 }
