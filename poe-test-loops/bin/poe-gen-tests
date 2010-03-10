@@ -117,37 +117,50 @@ most of the examples below.
 
 =head2 Example poe_tests Directives
 
-From POE::Loop::Event
+POE::Loop::Event checks whether the Event module exists and can be
+loaded, then whether specific tests can run under specific operating
+systems.
+
+  =for poe_tests
+
+  sub skip_tests {
+    return "Event tests require the Event module" if (
+      do { eval "use Event"; $@ }
+    );
+    my $test_name = shift;
+    if ($test_name eq "k_signals_rerun" and $^O eq "MSWin32") {
+      return "This test crashes Perl when run with Tk on $^O";
+    }
+    if ($test_name eq "wheel_readline" and $^O eq "darwin") {
+      return "Event skips two of its own tests for the same reason";
+    }
+  }
+
+  =cut
+
+POE::Loop::Gtk checks whether DISPLAY is set, which implies that X is
+running.  It then checks whether Gtk is available, loadable, and
+safely initializable before skipping specific tests.
 
   =for poe_tests
 
   sub skip_tests {
     my $test_name = shift;
-    if ($test_name eq "k_signals_rerun" and $^O eq "MSWin32") {
-      return "This test crashes Perl when run with Event on $^O";
-    }
-    return "Event tests require the Event module" if (
-      do { eval "use Event"; $@ }
-    );
-  }
-
-  =cut
-
-From POE::Loop::Gtk
-
-  =for poe_tests
-
-  sub skip_tests {
     return "Gtk needs a DISPLAY (set one today, okay?)" unless (
       defined $ENV{DISPLAY} and length $ENV{DISPLAY}
     );
     return "Gtk tests require the Gtk module" if do { eval "use Gtk"; $@ };
+    return "Gtk init failed.  Is DISPLAY valid?" unless defined Gtk->init_check;
+    if ($test_name eq "z_rt39872_sigchld_stop") {
+      return "Gdk crashes";
+    }
     return;
   }
 
   =cut
 
-From POE::Loop::IO_Poll
+POE::Loop::IO_Poll checks for system compatibility before verifying
+that IO::Poll is available and loadable.
 
   =for poe_tests
 
@@ -160,7 +173,7 @@ From POE::Loop::IO_Poll
 
   =cut
 
-From POE::Loop::Select
+POE::Loop::Select has no specific requirements.
 
   =for poe_tests
 
@@ -168,7 +181,9 @@ From POE::Loop::Select
 
   =cut
 
-From POE::Loop::Tk
+POE::Loop::Tk needs an X display (except on Windows).  Tk is not safe
+for fork(), so skip tests that require forking.  And finally, check
+whether the Tk module is available, loadable, and runnable.
 
   =for poe_tests
 
@@ -181,6 +196,12 @@ From POE::Loop::Tk
       return "This test crashes Perl when run with Tk on $^O";
     }
     return "Tk tests require the Tk module" if do { eval "use Tk"; $@ };
+    my $m = eval { Tk::MainWindow->new() };
+    if ($@) {
+      my $why = $@;
+      $why =~ s/ at .*//;
+      return "Tk couldn't be initialized: $why";
+    }
     return;
   }
 
