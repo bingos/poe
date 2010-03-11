@@ -85,7 +85,7 @@ WriteMakefile(
       '/usr/bin/tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
     ),
   },
-  clean           => { FILES => 't/poe_loop_event/*.t t/poe_loop_event' },
+  clean           => { FILES => 't/poe_loop_event/*.t t/poe_loop_event ' . $marker },
   test            => { TESTS => 't/*.t t/poe_loop_event/*.t' },
 
   CONFIGURE_REQUIRES => {

@@ -85,7 +85,7 @@ WriteMakefile(
       '/usr/bin/tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
     ),
   },
-  clean           => { FILES => 't/poe_loop_tk/*.t t/poe_loop_tk' },
+  clean           => { FILES => 't/poe_loop_tk/*.t t/poe_loop_tk ' . $marker },
   test            => { TESTS => 't/*.t t/poe_loop_tk/*.t' },
 
   CONFIGURE_REQUIRES => {
