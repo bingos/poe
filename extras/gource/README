@@ -1,0 +1,16 @@
+This directory contains the scripts+files needed to make a visualization
+of the POE git history using Gource.
+
+http://code.google.com/p/gource/
+
+Apocalypse uploaded the vid he made here: http://www.youtube.com/watch?v=ex05VzDc0JY
+
+To do this, you need to download gource and install it on your machine. Also, you will
+need ffmpeg and the mp4 codec installed. Naturally, you need a X display for it to work.
+
+After that's done, you can run the make_gource.sh file and it will dump the video
+as "gource_POE.mp4"
+
+Have fun playing with Gource!
+
+~Apocalypse
