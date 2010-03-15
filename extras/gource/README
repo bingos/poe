@@ -11,6 +11,9 @@ need ffmpeg and the mp4 codec installed. Naturally, you need a X display for it 
 After that's done, you can run the make_gource.sh file and it will dump the video
 as "gource_POE.mp4"
 
+The gravatars for POE committers up to March 15, 2010 is already in avatars/ but
+if you need to re-generate them, run "get_gravatars.pl" to figure it out :)
+
 Have fun playing with Gource!
 
 ~Apocalypse
