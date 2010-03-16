@@ -5,14 +5,14 @@ http://code.google.com/p/gource/
 
 Apocalypse uploaded the vid he made here: http://www.youtube.com/watch?v=ex05VzDc0JY
 
-To do this, you need to download gource and install it on your machine. Also, you will
+To do this, you need to download Gource and install it on your machine. Also, you will
 need ffmpeg and the mp4 codec installed. Naturally, you need a X display for it to work.
+
+You would need to edit the "get_gravatars.pl" file for your path then run it to
+download all the known gravatars for POE committers.
 
 After that's done, you can run the make_gource.sh file and it will dump the video
 as "gource_POE.mp4"
-
-The gravatars for POE committers up to March 15, 2010 is already in avatars/ but
-if you need to re-generate them, run "get_gravatars.pl" to figure it out :)
 
 Have fun playing with Gource!
 
