@@ -1,41 +1,150 @@
+vim: ts=2 sw=2 noexpandtab
+
+To Do:
+
+	Develop a rough outline with the order we want to present things.
+
 Topics:
 
 Intro To POE Braindump.
 -----------------------
 
 1. Who?
- - Who should be using POE?  
- Talk about who uses POE now, what kind of person should be using POE, who built POE, the community, etc.
+	Who uses POE now?
+		Yahoo!
+		poe.perl.org lists others
+		(Need to update poe.perl.org's list... it's been several months.)
+	Who should be using POE?
+		Everyone! :)
+		A lot of the "what" details cover this.
+	Who built POE?
+		Rocco Caputo
+		Plus a dozen or two named contributors.
+		Plus dozens of contributors only named in the changelogs.
+		(Need to pull their names out and list them.)
+		(Also see Acme::CPANAuthors::POE.)
+	Who are the community?
+		#poe on irc.perl.org, freenode, efnet, oftc
+		poe@perl.org mailing list
+		Interwoven throughout the Perl community.
+			http://www.flickr.com/photos/franck_/3877930818/sizes/l/
+	etc.
 
 2. What?
- - What kind of things does POE do? What can I *do* with poe? What *should* be done with POE?
- Co-processing, workers, multi/simultaneous processing, POE > threads/fork
+	What kinds of things does POE do?
+		Co-processing.
+			Cooperative, event driven co-processing using sessions rather than threads.
+		Workers.
+			Dispatch work on multiple CPUs or machines, using a central controller.
+		Multi- and simultaneous processing.
+			Cooperative, if I/O wait is your bottleneck.
+		Differences between POE and other forms of concurrency.
+			POE multiplexes I/O and related things.
+			Single processor.
+			Single memory space.
+			Can coordinate multiple processes and threads.
+				Kind of erlang-like in that regard.
+				Not as tightly bound to the idea as erlang.
+	What can I do with POE?
+		Network clients and servers.
+		Watchdogs.
+		Process managers.
+		Device interfaces.
+		Process simulations.
+		(Page through CPAN POE components & the cookbook for ideas.)
+	What should/shouldn't be done with POE?
+		If I/O wait is your bottleneck, then POE will help a lot.
+		If I/O bandwidth is your bottleneck, only hardware will help.
+			Or altering your protocols to be more compact.
+			Consider compressing data on the wire.
+				Although this burns more CPU, and could make CPU your bottleneck.
+		If CPU is your bottleneck, then POE won't help so much.
+			But it can be used to coordinate multiple threads or processes.
+		If disk wait is your bottleneck, POE could help.
+			Although POE might help even more with IO::AIO.
+			Hardware is another option.
+			Distribute the work across many drives, a la Hadoop.
+			POE can help coordinate this as well.
+		If RAM is your bottleneck...
+			Add more!
+			Shrink your data structures.
+			Delegate to disk, although this may make disk your bottleneck.
+
 3. Where?
- - Where should I put POE? Does it play well with others? Or does it want to run alone?
- Examples of standalone POE apps/processes, using POE to delegate tasks that need long running processes and workers.
+	Where should I put POE?
+		The usual cpan -i stuff.
+		Relocatable.
+			Untar it anywhere, and begin testing it there.
+			Great for regression testing and evaluation.
+	Does it play well with others, or does it want to run alone?
+		13 event loops supported as of this writing.
+		run_one_timeslice() allows it to be driven by external loops.
+	Examples of stand-alone POE apps.
+		(Aren't they all?)
+	Using POE to delegate tasks that need long-running processes and workers.
+
 4. When?
- - When should I use POE?  When do I start looking at my app and saying, "this needs POE!"
- When does an app need POE?  When it starts doing processing on its own that could be better and more efficiently handled by a dedicated process/app
+	When should I use POE?
+		(See "what" section.)
+	When do I start looking at my app and saying "this needs POE!"?
+		When it's waiting for external input a lot.
+		When it needs to wait for external input from more than one source.
+		When it needs to manage multiple timers.
+		When it needs concurrency but multiple CPUs aren't really an issue.
+		(Those are simplistic, but they're a start.)
+	When does an app need POE?
+		When it starts doing processing on its own that could be better and more efficiently handled by a dedicated process or app?
+		(Kinda redundant question, but maybe I don't understand the nuances?)
+
 5. Why?
- - Why should I use POE?  What advantages does it give me over Coro, Erlang, etc?
- Why it makes more sense to use POE over Coro, erlang, etc. Speed?  Maturity? Good architecture?
+	Why should I use POE?
+	What advantages does it give me over Coro, Erlang, etc.?
+		Speed?
+		Size?
+		Maturity?
+		Good architecture?
+
 6. How?
- - How do I actually use POE?
- Examples of the aforementioned points, with scenarios
+	How do I actually use POE?
+		(See ost of the rest of this document.)
+	Examples of the aforementioned points, with scenarios.
 
+===== Tutorial =====
 
+Intro to POE.
+
+	What it is (1-2 paragraphs).
+	What it does (1-2 paragraphs).
+
+Hello, World 1
+
+	Count to 10 (Hello, world!)
+	Explain what's going on.
+	Use all verbose, explicit constructs.
+	Explain that this is longer than it needs to be.
+
+Hello, World 2
+
+	Replace the verbose bits with shortcuts.
+	Explain where things went, and why we did it that way.
+
+Hello, Worlds
+
+	Count to 10 concurrently.
+	Multiple sessions.
+	Explain how POE's concurrency works.
+
+...
+
+===== OLDER BRAINDUMP FOLLOW =====
 
 Basic concepts.
 
-	Production ready:
-		...
-	Developing drafts:
-		...
 	Initial example and notes:
 		anatomy of a program - hello.perl
 		looping - looping.perl
-	Ideas:
 
+	Ideas:
 		different session types - inline handlers
 		different session types - object handlers
 		different session types - class handlers
@@ -64,12 +173,6 @@ Basic concepts.
 
 User interfaces:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		Wheel::ReadLine
 		Wheel::Curses
@@ -82,12 +185,6 @@ User interfaces:
 
 Wheels, filters, drivers.
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		wheels in general
 		drivers in general
@@ -124,12 +221,6 @@ Wheels, filters, drivers.
 
 High-level networking:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		UDP sockets
 		UNIX sockets
@@ -137,12 +228,6 @@ High-level networking:
 
 IRC programming:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		Logging to IRC (Randal Schwartz)
 		Bot debugging techniques
@@ -154,12 +239,6 @@ IRC programming:
 
 IPC
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		poe server, poe client, low-level via POE::Filter::Reference
 		poe server, poe client, POE::Component::IKC
@@ -168,12 +247,6 @@ IPC
 
 Process management:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		POE::Wheel::Run
 		POE::Component::Generic
@@ -183,12 +256,6 @@ Process management:
 
 System administration:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		POE::Component::Client::Ping
 		POE::Component::SNMP?
@@ -198,12 +265,6 @@ System administration:
 
 Extending event flow control:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		Broadcast groups
 		Combining services (telnet chat + web service) ???
@@ -214,12 +275,6 @@ Extending event flow control:
 
 Database interaction:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		DBIAgent
 		EasyDBI
@@ -227,60 +282,29 @@ Database interaction:
 
 Device interfaces:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		Serial ports
 
 Networking tools:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		TCP forwarder: client <-> this <-> server (components)
 		TCP forwarder: client <-> this <-> server (wheels)
 		client1 <-> server1 <-events-> server2 <-> client2
 
-
 Multiuser servers:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		Chat server
 		Chat client with Term::Visual
 
 Asynchronous DNS:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		POE::Component::Client::DNS - log file resolving
 
 Fanciful applicotions
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		Neural networks
 		Quantum computing
@@ -289,12 +313,6 @@ Fanciful applicotions
 
 Web programming:
 
-	Production ready:
-		...
-	Developing drafts:
-		...
-	Initial example and notes:
-		...
 	Ideas:
 		Web client (POE::Component::Client::HTTP)
 		Simple web server with POE::Filter::HTTPD
