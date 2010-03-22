@@ -97,10 +97,14 @@ event loop class that will complete the POE::Loop::... package name.
   poe-gen-tests --dirbase t/loops --loop Event::Lib
   poe-gen-tests --dirbase t/loops --loop POE::Loop::Event_Lib
 
-poe-gen-tests looks for a "=for poe_tests" section within the
-POE::Loop class being tested.  If defined, this section should include
-a single function, skip_tests(), that determines whether any given
-test should be skipped.
+poe-gen-tests looks for a "=for poe_tests" or "=begin poe_tests"
+section within the POE::Loop class being tested.  If defined, this
+section should include a single function, skip_tests(), that
+determines whether any given test should be skipped.
+
+Please see L<perlpod> for syntax for "=for" and "=begin".  Also see
+L<PODDITIES> for notable differences between POE::Test::Loop's POD
+support and the standard.
 
 skip_tests() is called with one parameter, the base name of the test
 about to be executed.  It returns false if the test should run, or a
@@ -122,7 +126,6 @@ loaded, then whether specific tests can run under specific operating
 systems.
 
   =for poe_tests
-
   sub skip_tests {
     return "Event tests require the Event module" if (
       do { eval "use Event"; $@ }
@@ -136,14 +139,11 @@ systems.
     }
   }
 
-  =cut
-
 POE::Loop::Gtk checks whether DISPLAY is set, which implies that X is
 running.  It then checks whether Gtk is available, loadable, and
 safely initializable before skipping specific tests.
 
   =for poe_tests
-
   sub skip_tests {
     my $test_name = shift;
     return "Gtk needs a DISPLAY (set one today, okay?)" unless (
@@ -157,13 +157,10 @@ safely initializable before skipping specific tests.
     return;
   }
 
-  =cut
-
 POE::Loop::IO_Poll checks for system compatibility before verifying
 that IO::Poll is available and loadable.
 
   =for poe_tests
-
   sub skip_tests {
     return "IO::Poll is not 100% compatible with $^O" if $^O eq "MSWin32";
     return "IO::Poll tests require the IO::Poll module" if (
@@ -171,22 +168,16 @@ that IO::Poll is available and loadable.
     );
   }
 
-  =cut
-
 POE::Loop::Select has no specific requirements.
 
   =for poe_tests
-
   sub skip_tests { return }
-
-  =cut
 
 POE::Loop::Tk needs an X display (except on Windows).  Tk is not safe
 for fork(), so skip tests that require forking.  And finally, check
 whether the Tk module is available, loadable, and runnable.
 
   =for poe_tests
-
   sub skip_tests {
     return "Tk needs a DISPLAY (set one today, okay?)" unless (
       (defined $ENV{DISPLAY} and length $ENV{DISPLAY}) or $^O eq "MSWin32"
@@ -204,14 +195,6 @@ whether the Tk module is available, loadable, and runnable.
     }
     return;
   }
-
-  =cut
-
-POE::Loop::Glib needs to load Glib.pm before starting. Also, this is
-an example of using one line for the entire thing. This is useful to
-"hide" the output from POD formatters.
-
-  =for poe_tests sub skip_tests { return "Glib tests require the Glib module" if do { eval "use Glib"; $@ }; return; }
 
 =head1 INSTALL SCRIPT INTEGRATION
 
@@ -342,9 +325,45 @@ Event loops that use poll() should set this environment variable to a
 true value.  It will cause the tests to skip this troublesome
 combination.
 
+=head2 PODDITIES
+
+Previous versions of POE::Test::Loops documented "=for poe_tests"
+sections terminated by =cut and containing blank lines.  This is
+incorrect POD syntax, and it's the reason the skip_tests() functions
+showed up in perldoc and on search.cpan.org.  The following syntax is
+wrong and should not have been used.  I'm so sorry.
+
+  =for poe_tests
+
+  sub skip_tests { ... }
+
+  =cut
+
+The proper syntax is to terminate "=for poe_tests" with a blank line:
+
+  =for poe_tests
+  sub skip_tests {
+    ...
+  }
+
+Multi-line tests containing blank lines can be specified using POD's
+"=begin poe_tests" terminated by "=end poe_tests".
+
+  =begin poe_tests
+
+  sub skip_tests {
+    ...
+  }
+
+  =end poe_tests
+
+All three syntaxes above are supported as of POE::Test::Loops version
+1.034.  The incorrect =for syntax is deprecated and will be removed in
+some future release.
+
 =head1 SEE ALSO
 
-L<POE::Test::Loops> and L<POE::Loop>.
+L<POE::Test::Loops>, L<POE::Loop>, L<perlpod>.
 
 =head2 BUG TRACKER
 

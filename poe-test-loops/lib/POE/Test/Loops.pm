@@ -1,4 +1,5 @@
 # $Id$
+# vim: ts=2 sw=2 expandtab
 
 package POE::Test::Loops;
 
@@ -12,6 +13,11 @@ $REVISION = do {my($r)=(q$Revision$=~/(\d+)/);sprintf"0.%04d",$r};
 use File::Spec;
 use File::Path;
 use File::Find;
+
+use constant TEST_BLOCK_FOR_WHICH => 0x01;
+use constant TEST_BLOCK_FOR_WRONG => 0x02;
+use constant TEST_BLOCK_FOR_RIGHT => 0x04;
+use constant TEST_BLOCK_BEGIN     => 0x08;
 
 ### Find the test libraries.
 
@@ -145,21 +151,91 @@ sub _get_loop_cfg {
 
   open SOURCE, "<$fqmn" or die $!;
   while (<SOURCE>) {
-    # support optional one-line declaration
-    # useful to "hide" the ugly syntax from POD formatters
-    if ( /^=for\s+poe_tests\s+(sub\s+skip_tests.+)\s*$/ ) {
-      push @test_source, $1;
-      last;
+    # Not in a test block.
+    unless ($in_test_block) {
+
+      # Proper =for syntax.
+      if (/^=for\s+poe_tests\s+(\S.*?)$/) {
+        push @test_source, $1;
+        $in_test_block = TEST_BLOCK_FOR_RIGHT;
+        next;
+      }
+
+      # Not sure which =for syntax is in use.
+      if (/^=for\s+poe_tests\s*$/) {
+        $in_test_block = TEST_BLOCK_FOR_WHICH;
+        next;
+      }
+
+      if (/^=begin\s+(poe_tests)\s*$/) {
+        $in_test_block = TEST_BLOCK_BEGIN;
+        next;
+      }
+
+      # Some random line.  Do nothing.
+      next;
     }
 
-    if ($in_test_block) {
-      $in_test_block = 0, next if /^=cut\s*$/;
+    # Which test block format are we in?
+    if ($in_test_block & TEST_BLOCK_FOR_WHICH) {
+      # If the following line is blank, then we're probably in the
+      # wrong, multi-line kind originally documented and now
+      # deprecated.
+      if (/^\s*$/) {
+        $in_test_block = TEST_BLOCK_FOR_WRONG;
+        next;
+      }
+
+      # The following line is not blank, so it appears we're in a
+      # properly formated =for paragraph.
+      $in_test_block = TEST_BLOCK_FOR_RIGHT;
       push @test_source, $_;
       next;
     }
 
-    next unless /^=for\s+poe_tests\s*/;
-    $in_test_block = 1;
+    # The =begin syntax ends with an =end.
+    if ($in_test_block & TEST_BLOCK_BEGIN) {
+      if (/^=end\s*poe_tests\s*$/) {
+        $in_test_block = 0;
+        next;
+      }
+
+      # Be helpful?
+      die "=cut not the proper way to end =begin poe_tests" if /^=cut\s*$/;
+
+      push @test_source, $_;
+      next;
+    }
+
+    # The proper =for syntax ends on a blank line.
+    if ($in_test_block & TEST_BLOCK_FOR_RIGHT) {
+      if (/^$/) {
+        $in_test_block = 0;
+        next;
+      }
+
+      # Be helpful?
+      die "=cut not the proper way to end =for poe_tests" if /^=cut\s*$/;
+
+      push @test_source, $_;
+      next;
+    }
+
+    # The wrong =for syntax ends on =cut.
+    if ($in_test_block & TEST_BLOCK_FOR_WRONG) {
+      if (/^=cut\s*$/) {
+        $in_test_block = 0;
+        next;
+      }
+
+      # Be helpful?
+      die "=end not the proper way to end =for poe_tests" if /^=end/;
+
+      push @test_source, $_;
+      next;
+    }
+
+    die "parser in unknown state: $in_test_block";
   }
 
   shift @test_source while @test_source and $test_source[0] =~ /^\s*$/;
