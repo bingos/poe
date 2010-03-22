@@ -145,6 +145,13 @@ sub _get_loop_cfg {
 
   open SOURCE, "<$fqmn" or die $!;
   while (<SOURCE>) {
+    # support optional one-line declaration
+    # useful to "hide" the ugly syntax from POD formatters
+    if ( /^=for\s+poe_tests\s+(sub\s+skip_tests.+)\s*$/ ) {
+      push @test_source, $1;
+      last;
+    }
+
     if ($in_test_block) {
       $in_test_block = 0, next if /^=cut\s*$/;
       push @test_source, $_;

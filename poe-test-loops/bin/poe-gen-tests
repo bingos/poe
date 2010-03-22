@@ -207,6 +207,12 @@ whether the Tk module is available, loadable, and runnable.
 
   =cut
 
+POE::Loop::Glib needs to load Glib.pm before starting. Also, this is
+an example of using one line for the entire thing. This is useful to
+"hide" the output from POD formatters.
+
+  =for poe_tests sub skip_tests { return "Glib tests require the Glib module" if do { eval "use Glib"; $@ }; return; }
+
 =head1 INSTALL SCRIPT INTEGRATION
 
 The POE::Loop tests started out as part of the POE distribution.  All
