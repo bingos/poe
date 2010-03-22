@@ -204,6 +204,10 @@ sub loop_do_timeslice {
 
 sub loop_run {
   my $self = shift;
+
+  # Avoid a hang when trying to run an idle Kernel.
+  $self->_test_if_kernel_is_idle();
+
   while ($self->_data_ses_count()) {
     $self->loop_do_timeslice();
   }
