@@ -26,7 +26,7 @@ BEGIN {
 }
 
 use Test::More;
-plan tests => 7;
+plan tests => 8;
 
 use POE qw( Component::Server::TCP Component::Client::TCP );
 use Socket qw( sockaddr_in );
@@ -42,6 +42,7 @@ my $acceptor_port;
 
 my $num_client_connects = 0;
 my $num_client_disconnects = 0;
+my $num_client_inputs = 0;
 my $num_client_flushes = 0;
 
 # Spawn the TCP server.
@@ -87,11 +88,14 @@ for ( 1 .. $num_clients ) {
       $num_client_connects++;
 
       $_[HEAP]->{server}->put( 'from client' );
-      $_[KERNEL]->yield( 'shutdown' );
     },
     Disconnected => sub { $num_client_disconnects++ },
 
-    ServerInput => sub {},
+    ServerInput => sub {
+      $num_client_inputs++;
+
+      $_[KERNEL]->delay( 'shutdown' => 1 );
+    },
     ServerError => sub {},
     ServerFlushed => sub { $num_client_flushes++ },
   );
@@ -107,6 +111,7 @@ is( $num_server_flushes, $num_clients, "Server flushed $num_clients lines of dat
 
 is( $num_client_connects, $num_clients, "Client connected $num_clients times" );
 is( $num_client_disconnects, $num_clients, "Client disconnected $num_clients times" );
+is( $num_client_inputs, $num_clients, "Server sent input $num_clients times" );
 is( $num_client_flushes, $num_clients, "Client flushed $num_clients lines of data" );
 
 1;
