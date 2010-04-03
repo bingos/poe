@@ -4,7 +4,7 @@
 package POE::Loop::TkActiveState;
 
 use vars qw($VERSION);
-$VERSION = '1.302'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.303'; # NOTE - Should be #.### (three decimal places)
 
 # Merge things into POE::Loop::Tk.
 package POE::Loop::Tk;

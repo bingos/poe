@@ -90,18 +90,17 @@ WriteMakefile(
 
   CONFIGURE_REQUIRES => {
     'ExtUtils::MakeMaker' => 0,
-    'POE::Test::Loops'    => 1.021,
+    'POE::Test::Loops'    => 1.034,
   },
 
   META_MERGE      => {
     build_requires => {
-      'POE::Test::Loops'    => 1.021,
+      'POE::Test::Loops'    => 1.034,
     },
   },
 
   PREREQ_PM       => {
-    'POE'               => 1.007,
-    'POE::Test::Loops'  => 1.021,
+    'POE'               => 1.288,
     'Tk'                => 804.028,
   },
 );
