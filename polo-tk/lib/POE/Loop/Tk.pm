@@ -3,7 +3,7 @@
 package POE::Loop::Tk;
 
 use vars qw($VERSION);
-$VERSION = '1.303'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.304'; # NOTE - Should be #.### (three decimal places)
 
 # Include common things.
 use POE::Loop::PerlSignals;
