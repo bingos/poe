@@ -221,7 +221,7 @@ POE::Loop::Tk is one of two versions of the Tk event loop bridge.  The
 other, L<POE::Loop::TkActiveState> accommodates behavior differences
 in ActiveState's build of Tk.  Both versions share common code in
 L<POE::Loop::TkCommon>.  POE::Loop::Tk dynamically selects the
-appropriate bridge code based on the runtime enviroment.
+appropriate bridge code based on the runtime environment.
 
 =head1 SEE ALSO
 
