@@ -114,7 +114,9 @@ Intro To POE Braindump.
 Intro to POE.
 
 	What it is (1-2 paragraphs).
+	- practical applications in web, network, and maybe one other scenario
 	What it does (1-2 paragraphs).
+	- what its role would be in these situations
 
 Hello, World 1
 
@@ -122,6 +124,7 @@ Hello, World 1
 	Explain what's going on.
 	Use all verbose, explicit constructs.
 	Explain that this is longer than it needs to be.
+	
 
 Hello, World 2
 
@@ -135,6 +138,8 @@ Hello, Worlds
 	Explain how POE's concurrency works.
 
 ...
+
+Gradually build upon these with 'branches' involving aforementioned scenarios
 
 ===== OLDER BRAINDUMP FOLLOW =====
 
