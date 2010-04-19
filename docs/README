@@ -106,7 +106,7 @@ Intro To POE Braindump.
 
 6. How?
 	How do I actually use POE?
-		(See ost of the rest of this document.)
+		(See most of the rest of this document.)
 	Examples of the aforementioned points, with scenarios.
 
 ===== Tutorial =====
@@ -114,7 +114,11 @@ Intro To POE Braindump.
 Intro to POE.
 
 	What it is (1-2 paragraphs).
-	- practical applications in web, network, and maybe one other scenario
+	- practical applications in web 
+	  1. a web app (shined up paste app), 
+	  2. a bot
+	  3. an app interfacing with a Catalyst App (ThumbIt perhaps?), 
+	  
 	What it does (1-2 paragraphs).
 	- what its role would be in these situations
 
