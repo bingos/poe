@@ -1,0 +1,12 @@
+EPO POE Doc Grant Proposal
+--------------------------
+
+Abstract: To provide a good, solid, beginner-intermediate level documentation environment to bridge the gap between beginners and the current, existing documenation.
+
+Deliverables:
+
+Involved:
+
+References:
+
+Qualifications:
