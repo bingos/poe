@@ -121,6 +121,9 @@ Intro to POE.
 	  
 	What it does (1-2 paragraphs).
 	- what its role would be in these situations
+	  1. perform as a web framework
+	  2. a scalable and multi-process bot for doing x y and z (probably most useful would be an infobot for irc, or a web scraper)
+	  3. a job queue and worker application to delegate image resizing to
 
 Hello, World 1
 
