@@ -115,6 +115,7 @@ Intro to POE.
 
 	What it is (1-2 paragraphs).
 	- practical applications in web 
+	  0. show how POE provides the event driven/actors paradigm.  Try to provide that "aha" push.
 	  1. a web app (shined up paste app), 
 	  2. a bot
 	  3. an app interfacing with a Catalyst App (ThumbIt perhaps?), 
