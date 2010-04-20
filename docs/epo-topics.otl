@@ -1,0 +1,584 @@
+About this file.
+	This is a Vim Outliner file.
+	Please don't break the formatting.
+	Decided to add structure because README contains at least three different formats.
+TODO
+	Port "OLDER BRAINDUMP FOLLOW" ideas over to this document.
+	Weave these discrete concepts into a narrative flow.
+		Start small and simple.
+		As much as practical, use stuff that's already been explained.
+		Provide lots of examples.
+			Complete.
+			Runnable.
+			Show some of their output, so users don't have to run them.
+		Incorporate exercises for the reader.
+			Rather than explain everything, ask what would happen "if..."
+			The answers should be fairly obvious.
+			We're not trying to trick or trap the reader.
+			But we do want to keep their thinking caps on.
+Concepts
+	Who uses POE?
+		Yahoo!
+		(get list from poe.perl.org)
+		(need to update poe.perl.org's list)
+	POE's Community
+		irc.perl.org #poe
+		freenode #poe
+		efnet #poe
+		oftc #poe
+		POE's mailing list
+		http://poe.perl.org/
+		ohlo
+		cia
+		github (soon)
+		http://www.flickr.com/photos/franck_/3877930818/sizes/l/
+	Event-Driven Programming
+		What is event-driven programming?
+			Programs wait for things to happen.
+			When things happen, they trigger (or drive) code to be executed.
+				Event driven programs are said to be reactive.
+				Follow the reactor pattern.
+				Because programs reacts to events.
+			Event handlers perform side effects.
+				That may in turn trigger new events.
+			And so on, until there are no more events.
+		What can it do well?
+			Multiplexing.
+				Also known as waiting for multiple things at once.
+			Sharing memory space among I/O bound tasks.
+			Managing multiple timers.
+		What does it do badly?
+			Utilize multiple CPUs.
+		How can the bad things be made better?
+			Helpers for fork(), threading, and IPC help with multiprocessing.
+			Kind of erlang-like in this regard.
+				Not as tighly bound to the idea as erlang, however.
+		Terms
+			Event watchers.
+			Events.
+			Event handlers.
+			Event queues.
+			Event dispatcher.
+		POE's Kernel
+			Event queue.
+				POE::Queue::Array
+			Event watchers.
+				POE::Kernel post(), select_read(), alarm(), etc.
+			Resources
+				POE::Resource::*
+				Internal data representing event watchers.
+			Event dispatcher.
+		POE Sessions
+			Dispatcher adapter.
+				invoke() looks up event handler by name, etc.
+				calls event handler.
+			Task concept.
+			Event handlers.
+		POE events
+			Lists of data provided by various places.
+				Kernel: itself, event name, sender
+				Sessions: themselves, heaps, etc.
+				Watchers: information about what happened
+				Programs: application data
+	POE-Processing - Using POE For Concurrency
+		Cooperative, event driven co-processing.
+			Sessions as a form of "green threads".
+			Sessions are instances of POE::Session (or subclasses).
+			Each session's stuff (data, watchers, events, etc.) is kept apart from stuff of the others.
+			POE::Kernel knows which sessions call it.
+			These rules codify the boundaries between session contexts.
+			POE is still just Perl, though.
+			There are no shotguns to enforce those boundaries, but the idea that they're there is strong enough to keep most developers from crossing them.
+		Limitations to POE's concurrency.
+	Worker Pattern
+		Dispatching work to multiple sessions.
+		Distributing work to multiple CPUs or machines.
+			Uses a central controller.
+		_parent and _child events.
+			A session is the parent of the sessions it creates.
+			POE::Kernel is the ancestor of all sessions.
+			Child sessions count as work for their parents.
+			POE notifies sessions when their parents or children come or go.
+		_parent
+			_parent tells a session its parent session has changed.
+			Parameters: ARG0 = old parent; ARG1 = new parent
+		_child
+			_child tells a session that a child's state has changed.
+			It's not related to SIGCHLD, although it performs a similar purpose.
+			Parameters: ARG0 is the state transition; ARG1 is the child session
+			reference; ARG2 is the child's _start or _stop value.
+		Explain timing of _parent, _child, _start and _stop.
+	Clients and Servers
+		Network clients and servers spend a lot of time waiting for input.
+		This is perfect for reactive systems
+	Watchdogs
+		Watchdogs spend most of their time waiting for events.
+		Then they react to them.
+	Process Managers
+		Process creation and destruction are events.
+	Device Interfaces
+		Devices generate events.
+		POE is ideal to react to them.
+		Perl may not be the best choice, however.
+			Timing-sensitive device drivers may need C or assembler instead.
+			Your mileage will probably vary.
+	When is it good to use POE?
+		If I/O wait is your bottleneck, then POE will help a lot.
+		If I/O bandwidth is your bottleneck, only hardware will help.
+			Or altering your protocols to be more compact.
+			Consider compressing data on the wire.
+				Although this burns more CPU, and could make CPU your bottleneck.
+		If CPU is your bottleneck, then POE won't help so much.
+			But it can be used to coordinate multiple threads or processes.
+		If disk wait is your bottleneck, POE could help.
+			Although POE might help even more with IO::AIO.
+			Hardware is another option.
+			Distribute the work across many drives, a la Hadoop.
+			POE can help coordinate this as well.
+		If RAM is your bottleneck...
+			Add more!
+			Shrink your data structures.
+			Delegate to disk, although this may make disk your bottleneck.
+	Downloading and Installing
+		CPAN
+		How to test drive POE without installing.   
+			Download via search.cpan.org link.
+			Extract tarball.
+			Test and tinker within the distribution directory.
+	Compatibility
+		13 event loop bridges on the CPAN.
+		run_one_timeslice()
+	Example Applications
+		(poe.perl.org may help)
+		(apps on CPAN)
+	To do is to be.
+		Sessions stop when they run out of work to do.
+		Events count as work.
+		Most event watchers do, as well.
+		Signals also count, although they didn't until recently.
+		Aliases are special, and will be covered later.
+	Cooperation
+		Each do_count() iteration is triggered by a "count" event.
+		The "count" events take turns in the queue.
+		A session can juggle multiple events.  Only one is handled at a time.
+		POE::Kernel can juggle multiple sessions.
+	Aliases.
+		Allow sessions to be addressed by symbolic names.
+		Each may only refer to a single session.
+		Although a session can go by many aliases.
+		Are useful for message passing.
+		Only count as work when something can generate events.
+		Examples
+			alias_set()
+			alias_remove()
+			alias_resolve()
+			alias_list()
+Basic Tutorials
+	Explicit POE Syntax
+		A program that counts to 10 via yield().
+		Explain what's going on.
+		Use all verbose, explicit constructs.
+		Explain that this is longer than it needs to be.
+		Should be designed so that session construction is in a sub.
+	Hello, World 2
+		Replace the verbose bits with shortcuts.
+		Explain where things went, and why we did it that way.
+	Hello, Worlds
+		Multiple sessions count to 10 concurrently.
+			Call the start-a-counter sub more than once.
+			Each session should probably be given (and print) a different name.
+		Multiple sessions.
+		Explain how POE concurrency works.
+	Keeping private data
+		HEAP
+		Modeled after UNIX process heaps.
+		Why does POE have them?
+	Waiting for Input
+		UDP Node
+			UDP sockets are very simple to use.
+		Show how to wait for file input.
+	Multiple UDP Sockets
+		Start two UDP nodes.
+		Pass data between them.
+		Essentially a UDP proxy.
+		Demo it with two UDP clients (netcat or something).
+	Wake me up before you go go
+		Creating and using absolute timers.
+		Explain the difference between named timers and ones with IDs.
+		Explore the APIs a bit.
+	Snooze alarms
+		Creating and using relative delays.
+		Explain that there are named and identified delays, too.
+		Explore the APIs a bit.
+		Note that delays are just alarms that are configured differently.
+	Repeating alarms.
+		Start a new one in the handler for an old one.
+		How to avoid clock drift.
+	Concurrency Within A Session
+		Of course sessions run concurrently among themselves.
+		If you're careful, you can run things concurrently within a session.
+		Passing continuation data with yield().
+	Inter-Session Communication
+		post()
+		What it's good for.
+		Why to avoid it.
+			Much, much slower than a plain Perl method call.
+			Also asynchronous.
+	Synchronous POE
+		call()
+		What it's good for.
+			Fixing timing issues.
+			Post is asynchrnous.
+			So callbacks may not be run at the right time.
+			Curses::UI::POE, I think, had such a race conditions.
+			As do POE::Wheels.
+		Why to avoid it.
+			Much slower than a plain Perl method call.
+			Plain calls are an order of magnitude better for accessors.
+		Why to avoid call() from one session to another.
+	OO POE
+		object_states
+		class_states
+		What they're good for.
+	How to hide POE
+		Wrap sessions in objects.
+		Using objects' $self instead of sessions' HEAP.
+			Accessor data in the object.
+				Avoid call() for accessors.
+			Event handler data in the HEAP.
+				Or not - both can go in the object.
+		Congratulations, you've written a component.
+		Briefly about POE components.
+	POE Components
+		Different interfaces.
+			Commands as methods.
+			Commands as messages.
+			Postbacks provided by caller.
+			Postbacks created by component.
+	POE Wheels
+		What the hell did you call them that for?
+		What are they?
+			Objects that encapsulate common watcher and event handler patterns.
+			They are not managed by POE.
+			They create and destroy watchers and handlers.
+		How do they work?
+			Runtime mix-ins.
+			Add event handlers to the current session.
+			Set up event watchers to trigger the handlers.
+			Convert low-level events into high-level events.
+			Send the high-level events to your sessions.
+		Why do they emit events?
+			Or: Why don't they just do callbacks?
+		Caveats.
+			Can't pass them among sessions.
+			Can't invoke them from other sessions.
+	POE Filters
+		Alter wheel behavior.
+			Filters translate data formats for wheels
+			But they don't understand high-level protocols
+			POE::Filter::Line is assumed.
+		What POE provides
+			(varous filters go here)
+		What you can get from CPAN.
+		What every filter implements.
+			(gradual intro to writing your own).
+	POE Drivers
+		What they are
+			Get data in and out of filehandles.
+			Drivers perform file I/O.
+		Why you don't need to care
+			The default POE::Driver::SysRW handles 99.9% of use cases.
+	Debugging
+		TRACE flags
+		ASSERT flags
+	Signals
+		SIGPIPE isn't needed.
+		sig_child()
+		All other signals.
+		Terminal vs. non-terminal signals.
+		Non-maskable signals.
+		Idle program signals
+			SIGIDLE
+			SIGZOMBIE
+		How signal dispatching works.
+			Signals sent to a session are also dispatched to its children
+			If any of those sessions handles a signal, then it's handled for the whole tree.
+			Signaling POE::Kernel signals the entire program.
+	User interaction
+		Command line interfaces
+			POE::Wheel::ReadLine
+		Console interfaces
+			POE::Wheel::Curses
+			Term::Visual
+		Graphical interfaces
+			Tk
+			Gtk
+			Gtk2
+			etc.
+	Running code in another process
+		POE::Wheel::Run
+	POE::Session callback parameters
+		ARG0, etc.
+	When Sessions Stop
+		Short answer: When they run out of stuff to do.
+		Supply longer answer here.
+		FAQ on poe.perl.org explains it a bit.
+	When Programs Stop
+		Kernel runs until all sessions stop.
+		It sends everyone a SIGIDLE, if only aliased sessions remait.
+		It sends SIGZOMBIE if SIGIDLE didn't help.
+		run() returns when the last session stops.
+	POE::Wheel::ReadWrite
+		Performs buffered, non-blocking I/O on streams
+		Does NOT create filehandles
+		Not really appropriate for datagram I/O
+		Although people have used it that way
+		Separate I/O for input and output
+			Can use separate InputHandle and OutputHandle
+			Instead of just Handle
+			Can use separate InputFilter and OutputFilter
+			Instead of just Filter
+		Water marks
+			Tell when a driver's put() buffer fills up.
+			Indicates an imminent emptiness in the put() buffer.
+			put() returns true if the driver is overfull.
+			LowMark and LowEvent indicate when it's ok to send again.
+			FlushedEvent tells when output buffer is empty.
+		Changing watermarks on the fly
+			set_high_mark()
+			set_low_mark()
+		Other flow control
+			pause_input()
+			resume_input()
+			shutdown_input()
+			shutdown_output()
+		Querying buffers
+			get_driver_out_octets()
+			get_driver_out_messages()
+		Switching filters on the fly
+			Changes data formats in mid-stream.
+			For example, HTTP streams
+			For example, SMTP sessions
+		Switching events
+			Changes the events a wheel generates
+			Re-routes wheel information to new code
+			Useful for stateful things, like protocols
+	Postbacks
+		Create callbacks that post POE events
+		Created for graphical toolkits
+		Keep their sessions alive until destroyed
+	Callbacks (like postbacks, but synchronous)
+		Useful for libraries that expect synchronous callbacks.
+	Session IDs
+		Unique session identifiers
+		Originally created for component developers
+		(Kernel methods)
+	Extra references
+		One session can keep itself or another active arbitrarily.
+		Often used with message passing.
+		Also used in postbacks and callbacks.
+	Modifying running sessions.
+		Add, remove, or replace handlers at runtime
+		First implemented for Wheel classes
+		Named events let this work smoothly
+		POE::Wheel classes use these facilities to add their handlers to sessions that create them, then later remove those handlers at DESTROY time.
+		Yes, POE::Wheel classes build upon the basic POE libraries covered here.
+			It's easy to create new ones, or replace them entirely with something you might like better.
+			Whatever you create will coexist with wheels because they all use the same low-level libraries.
+	Session options
+		Options change a session's behavior.
+		Set at create time with "options" parameter.
+		Set at runtime with $session->option()
+		Watch events with the "trace" option.
+		Catch duplicate states with "debug".
+		Catch unknown events with "default".
+	Using POE from non-POE libraries.
+		$poe_kernel - exported by POE::Kernel
+		$poe_kernel->get_active_session()
+		$session->get_heap()
+Applications
+	Servers
+		(adapt from Evolution of a Server tutorial)
+		select_read()
+			Does not actually read data.
+			Can generate endless event stream if data isn't retrieved.
+			Implies non-blocking, binary socket.
+		POE::Wheel::ListenAccept
+		POE::Wheel::SocketFactory
+		POE::Component::Server::TCP
+	Clients
+		select_read()
+		POE::Wheel::SocketFactory
+		POE::Component::Client::TCP
+Basic concepts.
+	Initial example and notes:
+		anatomy of a program - hello.perl
+		looping - looping.perl
+	Ideas:
+		different session types - inline handlers
+		different session types - object handlers
+		different session types - class handlers
+		wrapping sessions in object interfaces
+		event handlers in more detail (event parameters)
+		Kernel and session as concepts
+		alarms
+		multitasking within a session
+		multitasking with multiple sessions
+		message passing between sessions
+		complex request and response between sessions
+		managing request state while performing large tasks
+		replacing IO::Select (note 1)
+		handling signals
+		sessions
+		the kernel
+		different types of event handler (inline, object, class/package)
+		anonymous vs. named inline handlers
+		repeating alarms
+		debugging - TRACE_FOO and ASSERT_FOO
+		parent/child session interaction
+		... what else?
+User interfaces:
+	Ideas:
+		Wheel::ReadLine
+		Wheel::Curses
+		Wheel::ReadWrite on STDIN/STDOUT
+		Term::Visual
+		Tk
+		Gtk
+		Gtk2
+		... what else?
+Wheels, filters, drivers.
+	Ideas:
+		wheels in general
+		drivers in general
+		filters in general
+		how they fit together
+		graceful POE::Wheel::ReadWrite shutdown
+			shutdown flag
+			creating a "flushed" state on the fly
+			directing FlushedEvent to a shutdown handler
+		complex flow control in POE::Wheel::ReadWrite
+		using filters outside POE
+		using drivers outside POE
+		POE::Wheel::SocketFactory (note 1)
+		POE::Wheel::ReadWrite (note 1)
+		POE::Wheel::ReadLine
+		POE::Wheel::FollowTail
+		POE::Wheel::Curses
+		POE::Wheel::ListenAccept
+		POE::Wheel::Run - one process per session
+		POE::Wheel::Run - many processes per session
+		POE::Wheel::SocketFactory
+		POE::Filter::Block
+		POE::Filter::Grep
+		POE::Filter::HTTPD
+		POE::Filter::Line
+		POE::Filter::Map
+		POE::Filter::RecordBlock
+		POE::Filter::Reference
+		POE::Filter::Stackable
+		POE::Filter::Stream
+		POE::Driver::SysRW
+		... what else?
+High-level networking:
+	UDP sockets
+	UNIX sockets
+	FIFOs
+IRC programming:
+	Logging to IRC (Randal Schwartz)
+	Bot debugging techniques
+	Graceful bot shutdown
+	Graceful bot reconnecting
+	Simple IRC bots
+	IRC plugins
+	Letting POE::Component::IRC track state
+IPC
+	poe server, poe client, low-level via POE::Filter::Reference
+	poe server, poe client, POE::Component::IKC
+	poe server, light client, via POE::Filter::Reference
+	poe server, light client, POE::Component::IKC's light client
+Process management:
+	POE::Wheel::Run
+	POE::Component::Generic
+	Managing multiple forked workers (dynamic)
+	Managing multiple forked workers (static pool)
+	Managig child processes that require ttys
+System administration:
+	POE::Component::Client::Ping
+	POE::Component::SNMP?
+	Gathering banners from multiple hosts/services.
+	Following logs - POE::Wheel::FollowTail
+	Following snort logs - POE::Filter::Snort
+Extending event flow control:
+	Broadcast groups
+	Combining services (telnet chat + web service) ???
+	Dynamically creating events from input
+	Changing events emitted by wheels
+	POE::NFA
+	Changing event handlers on the fly
+Database interaction:
+	DBIAgent
+	EasyDBI
+	etc.
+	(it would be good to list pros/cons so users could decide which to use)
+Device interfaces:
+	Serial ports
+Networking tools:
+	TCP forwarder: client <-> this <-> server (components)
+	TCP forwarder: client <-> this <-> server (wheels)
+	client1 <-> server1 <-events-> server2 <-> client2
+Multiuser servers:
+	Chat server
+	Chat client with Term::Visual
+Asynchronous DNS:
+	POE::Component::Client::DNS - log file resolving
+Fanciful applicotions
+	Neural networks
+	Quantum computing
+	Filter::Template tricks
+	Curses based media player
+Web programming:
+	Web client (POE::Component::Client::HTTP)
+	Simple web server with POE::Filter::HTTPD
+	Complex web server with POE::Component::Server::HTTP
+	Complex web server with POE::Component::Server::SimpleHTTP
+	Complex web server with POE::Component::Server::HTTPServer?
+	A pre-forking web server
+	Web server for large media files
+	A web proxy with streaming support
+	Handling CGI requests
+Random Notes From Elsewhere
+	Combined Concepts
+		This section discusses how things interact in POE.
+		Kernel and Sessions
+			The kernel's largest job is watching resources.
+			Not only does it check the resources for new events, but it also tracks their uses.
+			It does this itself, rather than relying on Perl reference counting, because it was written prior to Perl's weak references, and it's still in use by Perl versions as old as 5.004.
+			The kernel tracks resources by the sessions that watch them.
+			It maintains each resource's reference count, cleaning them up and releasing their memory when they are no longer in use.
+			That is, it will do this if programs don't keep extra resource references.
+			Again, weak references would help here, but they don't exist in all the places where POE is useful.
+			Sessions are resources themselves, and a session created within another becomes a child of its creator.
+			The kernel tracks these relationships for the purpose of job control-- especially the ability for one session to manage a pool of several others-- and signal propagation within a program.
+		Sessions and Wheels
+			While writing sample programs and test cases for POE's early development, the same sorts of algorithms came up again and again.
+			The most common routines involved I/O, either at the socket establishment level or for buffered reading and writing on open files.
+			These recurring routines are often filehandle watcher callbacks or supporting states.
+			Rewriting them had become tiresome almost as soon as POE was released, so it was decided to make modular units out of them.
+			Wheels were invented, replacing the ones being re-created with every program.
+			Wheels were invented to encapsulate these bundles of redundant states and provide the glue logic to insert them into sessions.
+			They are state machine fragments that plug themselves into sessions at creation time, giving their owners new capabilities.
+			Wheels are not resources, and POE's kernel will not keep track of them.
+			It's therefore important that sessions hold onto their wheel references for as long as they're needed.
+			Wheels may be given resources to manage; in this case, the resource is watched internally by the wheel, and destroying it will cascade cleanup to the resource itself.
+			Wheels are implemented so that any circular references are broken at destruction time, ensuring complete destruction and memory reuse.
+			Wheels bind themselves tightly to the sessions that create them.
+			While it's possible to pass wheel references amongst sessions, their states will remain in the sessions that created them.
+			Wheels often deal with resources on behalf of their sessions, finally passing back events when something truly notable occurs.
+			On the other hand, sessions usually invoke wheel features through direct method calls.
+		I/O Wheels, Drivers, and Filters
+			Many I/O wheels use drivers and filters to abstract away the gory details of raw file I/O and the specifics of low-level data parsing and marshalling.
+			This division allows the I/O wheels themselves to focus on the logic necessary to perform a task.
+			The ReadWrite wheel, for example, performs simple reading and writing.
+			It can adapt to the natures of several different file types by virtue of using different filters.
+			It can perform HTTP server transactions by using Filter::HTTPD; it can read and write lines by using Filter::Line; or it can use some other filter, either currently available or written in the future.

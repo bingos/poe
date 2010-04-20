@@ -1,12 +1,20 @@
 EPO POE Doc Grant Proposal
 --------------------------
 
-Abstract: To provide a good, solid, beginner-intermediate level documentation environment to bridge the gap between beginners and the current, existing documenation.
+Abstract:
+
+POE is large, and its existing documentation is not gentle to new
+users.  This grant will fund the creation of documents that introduce
+new users to POE's basic and intermediate concepts and their usage.
 
 Deliverables:
 
+1. An organized outline of topics that will serve as a specification
+for the final deliverable documentation.  The outline will be
+submitted to EPO for approval before writing begins.
+
+2. Documents per the topical outline.
+
 Involved:
 
-References:
-
-Qualifications:
+Rocco Caputo <rcaputo@cpan.org> - Mentor/Manager
