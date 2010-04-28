@@ -22,28 +22,30 @@ Devin Austin <dhoss@cpan.org> - Student/Writer
 
 Project Plans:
 
-1. Triage current documentation to bridge the gap between where the documentation is now, and where we want to be by the end (already in progress)
+1. Triage current documentation to bridge the gap between where the documentation is now, and where we want to be by the end (already in progress).
 
-2. Analyze what kind of examples that would be most beneficial to include in the documentation
+2. Analyze what kind of examples that would be most beneficial to include in the documentation.
 
-3. Refactor documentation into a usable state
+3. Refactor documentation into a usable state.
 
-4. Create a well rounded, documented, and user friendly document and code base for the beginning POE user.
+4. Create a well rounded and user friendly document and code base for the beginning POE user.
 
 5. "Beta" test documentation through various trials and get feedback on what needs fixing, applause, comments, etc.
 
-6. Send out an RFC to the POE and other respective mailing lists concerning the new documentation
+6. Send out an RFC to the POE and other respective mailing lists concerning the new documentation.
 
-7.  Sift through RFC feedback and continue the refactoring cycle
+7. Sift through RFC feedback and continue the refactoring cycle.
 
 8. Finalize documentation and examples and have a finished and brand new documentation product for the new POE user.
 
 Project Schedule: (not sure what we're looking at here for a due date, will leave this out until we figure that out)
 
-Benefits to the perl/open source community: 
+Benefits to the perl/open source community:
+
 POE is a very useful framework for many many tasks.  If we can bridge the gap between the new user and the current user-base, it will help bring POE into a less "scary" light, much in the way that Moose's doc grant brought a large influx of interested users into the fray.  With an influx of users comes volunteers, which means better documentation, better tests, and more hands for expanding POE itself.
 
 Milestones:
+
 0. RFC to mailing list for documentation wishes
 1. Full wishlist of TODOs (mostly done)
 2. Fulfillable task list which we will focus on
@@ -55,6 +57,7 @@ Milestones:
 8. RFC of integrated and finalized documentation 
 
 Bio:
+
 22 year old student/web development contractor in the final throes of a Computer Security degree with a minor in Computer science.  Kung Fu instructor in-progress, and avid perl hacker and geek.
 
 Accomplishments:
